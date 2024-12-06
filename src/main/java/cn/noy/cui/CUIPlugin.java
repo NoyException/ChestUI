@@ -1,5 +1,6 @@
 package cn.noy.cui;
 
+import cn.noy.cui.prebuilt.cmd.CmdCUI;
 import cn.noy.cui.ui.CUIManager;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandExecutor;
@@ -17,6 +18,7 @@ public final class CUIPlugin extends JavaPlugin {
     public void onEnable() {
         instance = this;
         CUIManager.getInstance().initialize();
+        bindCommand("cui", new CmdCUI());
     }
 
     @Override
