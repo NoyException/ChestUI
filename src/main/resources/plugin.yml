@@ -1,0 +1,8 @@
+name: CUI
+version: '${version}'
+main: cn.noy.cui.CUIPlugin
+api-version: '1.21'
+commands:
+  cui:
+    description: Open the CUI
+    usage: /<command> [help|open|close|]

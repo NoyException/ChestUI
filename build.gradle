@@ -1,0 +1,70 @@
+plugins {
+    id 'java'
+    id 'de.undercouch.download' version '5.0.0'
+}
+
+group = 'cn.noy'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "papermc-repo"
+        url = "https://repo.papermc.io/repository/maven-public/"
+    }
+    maven {
+        name = "sonatype"
+        url = "https://oss.sonatype.org/content/groups/public/"
+    }
+}
+
+dependencies {
+    compileOnly "io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT"
+}
+
+def targetJavaVersion = 21
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        options.release.set(targetJavaVersion)
+    }
+}
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset 'UTF-8'
+    filesMatching('plugin.yml') {
+        expand props
+    }
+}
+
+tasks.register('downloadPaperServer', Download) {
+    src 'https://api.papermc.io/v2/projects/paper/versions/1.21.3/builds/80/downloads/paper-1.21.3-80.jar'
+    dest file('./server/paper-1.21.3-80.jar')
+    onlyIf { !file('./server').exists() }
+}
+
+tasks.register('runPaperServer', Exec) {
+    dependsOn downloadPaperServer
+    workingDir file('./server')
+    commandLine 'java', '-DIReallyKnowWhatIAmDoingISwear', '-Xmx1024M', '-Xms1024M', '-jar', 'paper-1.21.3-80.jar'
+}
+
+tasks.register('copyJarToServerPlugins', Copy) {
+    from tasks.jar
+    into file('./server/plugins')
+}
+
+tasks.build.finalizedBy(copyJarToServerPlugins)
+tasks.copyJarToServerPlugins.dependsOn(downloadPaperServer)
