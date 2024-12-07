@@ -7,8 +7,8 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ChestSize {
-    int maxRow() default 3;
-    int maxColumn() default 9;
-    int maxDepth() default 1;
+public @interface CUISize {
+    int maxRow() default -1;
+    int maxColumn() default -1;
+    int maxDepth() default -1;
 }

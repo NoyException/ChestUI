@@ -137,6 +137,13 @@ public class Storage extends Slot {
         return result.placed();
     }
 
+    @Override
+    public Slot deepClone() {
+        var storage = new Storage();
+        storage.source = source;
+        return storage;
+    }
+
     public static class Builder {
         private final Storage storage = new Storage();
 

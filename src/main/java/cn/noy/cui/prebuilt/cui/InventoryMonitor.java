@@ -1,17 +1,14 @@
 package cn.noy.cui.prebuilt.cui;
 
 import cn.noy.cui.layer.Layer;
-import cn.noy.cui.ui.CUIHandler;
-import cn.noy.cui.ui.ChestSize;
-import cn.noy.cui.ui.ChestTitle;
-import cn.noy.cui.ui.ChestUI;
+import cn.noy.cui.ui.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.PlayerInventory;
 
-@ChestSize(maxRow = 6, maxDepth = 6)
-@ChestTitle("Inventory Monitor")
+@DefaultCamera(rowSize = 6)
+@CUITitle("Inventory Monitor")
 public class InventoryMonitor implements CUIHandler {
     private ChestUI<InventoryMonitor> cui;
     private Layer displayPlayers;

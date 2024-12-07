@@ -19,7 +19,7 @@ public class Filter extends Slot {
     @Override
     public ItemStack display(ItemStack legacy) {
         dirty = false;
-        return filter.apply(legacy);
+        return filter.apply(legacy.clone());
     }
 
     @Override
@@ -36,6 +36,14 @@ public class Filter extends Slot {
     @Override
     public ItemStack collect(ItemStack itemStack) {
         return itemStack;
+    }
+
+    @Override
+    public Slot deepClone() {
+        var filter = new Filter();
+        filter.filter = this.filter;
+        filter.clickHandler = clickHandler;
+        return filter;
     }
 
     public static Builder builder() {

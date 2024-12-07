@@ -56,6 +56,14 @@ public class Button extends Slot {
         return itemStack;
     }
 
+    @Override
+    public Slot deepClone() {
+        var button = new Button();
+        button.clickHandler = clickHandler;
+        button.itemStack = itemStack.clone();
+        return button;
+    }
+
     public static class Builder {
         private final Button button = new Button();
 

@@ -7,8 +7,7 @@ import org.bukkit.Material;
 
 import java.util.List;
 
-@ChestSize(maxRow = 6, maxDepth = 6)
-@ChestTitle("CUI Monitor")
+@CUITitle("CUI Monitor")
 public class CUIMonitor implements CUIHandler {
     private ChestUI<CUIMonitor> cui;
     private Layer displayCUIs;
@@ -42,15 +41,16 @@ public class CUIMonitor implements CUIHandler {
                 if (target.getHandlerClass() == CUIMonitor.class) {
                     displayCUIs.edit().editSlot(row, column, slotHandler -> slotHandler.button(builder -> builder.
                             material(Material.BARRIER).
-                            displayName(target.getTitle()).
+                            displayName(target.getDefaultTitle()).
                             lore("&7A CUI Monitor like this", "&cCannot be monitored").
                             build()));
                 } else {
                     displayCUIs.edit().editSlot(row, column, slotHandler -> slotHandler.button(builder -> builder.
                             material(Material.CHEST).
-                            displayName(target.getTitle()).
-                            lore(String.format("&b%d&r viewer(s)", target.getViewers().size())).
-                            clickHandler(event -> cui.switchTo(event.getPlayer(), target)).
+                            displayName(target.getDefaultTitle()).
+                            lore(String.format("&b%d&r camera(s)", target.getCameras().size()),
+                                    String.format("&b%d&r viewer(s)", target.getViewers().size())).
+                            clickHandler(event -> cui.switchTo(event.getPlayer(), target, true)).
                             build()));
                 }
             }

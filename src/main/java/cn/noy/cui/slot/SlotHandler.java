@@ -23,6 +23,10 @@ public class SlotHandler {
         slot = new Button.Builder().build();
     }
 
+    public void deepClone(@NotNull SlotHandler handler) {
+        slot = handler.slot.deepClone();
+    }
+
     public void button(@NotNull Function<Button.Builder, Button> builder) {
         slot = builder.apply(new Button.Builder());
     }

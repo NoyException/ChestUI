@@ -3,7 +3,7 @@ package cn.noy.cui.layer;
 import cn.noy.cui.event.CUIClickEvent;
 import cn.noy.cui.slot.Slot;
 import cn.noy.cui.slot.SlotHandler;
-import org.bukkit.inventory.ItemStack;
+import cn.noy.cui.ui.CUIContents;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -68,17 +68,17 @@ public class Layer {
         return getSlot(row - marginTop, column - marginLeft);
     }
 
-    public void display(ItemStack[][] itemStacks) {
+    public void display(CUIContents contents) {
         for (int row = 0; row < maxRow; row++) {
             for (int column = 0; column < maxColumn; column++) {
                 var slot = slots[row][column];
                 if (slot == null)
                     continue;
 
-                var itemStack = itemStacks[marginTop + row][marginLeft + column];
+                var itemStack = contents.getItem(marginTop + row, marginLeft + column);
                 if (itemStack != null)
                     itemStack = itemStack.clone();
-                itemStacks[marginTop + row][marginLeft + column] = slot.getSlot().display(itemStack);
+                contents.setItem(marginTop + row, marginLeft + column, slot.getSlot().display(itemStack));
             }
         }
     }
@@ -97,6 +97,22 @@ public class Layer {
 
     public Editor edit() {
         return new Editor();
+    }
+
+    public Layer deepClone() {
+        var layer = new Layer(maxRow, maxColumn);
+        layer.marginLeft = marginLeft;
+        layer.marginTop = marginTop;
+        for (int row = 0; row < maxRow; row++) {
+            for (int column = 0; column < maxColumn; column++) {
+                var slot = slots[row][column];
+                if (slot != null) {
+                    layer.slots[row][column] = new SlotHandler();
+                    layer.slots[row][column].deepClone(slot);
+                }
+            }
+        }
+        return layer;
     }
 
     public class Editor {
@@ -150,9 +166,5 @@ public class Layer {
         public Editor clear() {
             return editAll(SlotHandler::empty);
         }
-
-//        public Editor craftingTable(CraftingTable craftingTable, ){
-//
-//        }
     }
 }

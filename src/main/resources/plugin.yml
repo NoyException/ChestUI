@@ -1,4 +1,4 @@
-name: CUI
+name: ChestUI
 version: '${version}'
 main: cn.noy.cui.CUIPlugin
 api-version: '1.21'

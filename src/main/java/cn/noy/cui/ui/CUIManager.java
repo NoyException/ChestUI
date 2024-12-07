@@ -94,7 +94,17 @@ public class CUIManager implements Listener {
         }
         task.cancel();
         task = null;
+        var viewers = viewing.keySet().stream().map(Bukkit::getPlayer).filter(Objects::nonNull).toList();
+        viewers.forEach(player -> closeAll(player, true));
         new ArrayList<>(cuis).forEach(ChestUI::destroy);
+    }
+
+    public ChestUI<?> closeAll(Player viewer, boolean force) {
+        ChestUI<?> cui = viewing.get(viewer.getUniqueId());
+        if (cui != null) {
+            cui.closeAll(viewer, force);
+        }
+        return cui;
     }
 
     void notifyOpen(@NotNull Player viewer, @NotNull ChestUI<?> chestUI) {

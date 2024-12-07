@@ -25,12 +25,12 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
         if(args[0].equals("open")){
             if(args[1].equals("cm")){
                 var cui = CUIManager.getInstance().createCUI(CUIMonitor.class);
-                cui.open(player);
+                cui.open(player, true);
                 return true;
             }
             if(args[1].equals("im")){
                 var cui = CUIManager.getInstance().createCUI(InventoryMonitor.class);
-                cui.open(player);
+                cui.open(player, true);
                 return true;
             }
         }
