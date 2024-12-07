@@ -3,15 +3,17 @@ package cn.noy.cui.prebuilt.cui;
 import cn.noy.cui.layer.Layer;
 import cn.noy.cui.slot.SlotHandler;
 import cn.noy.cui.ui.*;
+import cn.noy.cui.util.Position;
 import org.bukkit.Material;
 
 import java.util.List;
 
+@DefaultCamera(rowSize = 6)
 @CUITitle("CUI Monitor")
 public class CUIMonitor implements CUIHandler {
     private ChestUI<CUIMonitor> cui;
     private Layer displayCUIs;
-    private int page;
+    private int size;
 
     @Override
     public void onInitialize(ChestUI<?> cui) {
@@ -19,25 +21,54 @@ public class CUIMonitor implements CUIHandler {
         this.cui = cui.edit().
                 setLayer(1, displayCUIs).
                 finish();
+        this.cui.getDefaultCamera().edit().setMask(1, new Layer(1,9).edit().
+                editAll(slotHandler -> slotHandler.button(builder -> builder.
+                        material(Material.BLACK_STAINED_GLASS_PANE).
+                        displayName(" ").
+                        build())).
+                editSlot(0, 0, slotHandler -> slotHandler.button(builder -> builder.
+                        material(Material.RED_STAINED_GLASS_PANE).
+                        displayName("Previous").
+                        clickHandler(event -> {
+                            var camera = this.cui.getCamera(event.getPlayer());
+                            var position = camera.getPosition();
+                            if (position.row() <= 0)
+                                return;
+                            camera.edit().move(-5,0);
+                        }).
+                        build())).
+                editSlot(0, 8, slotHandler -> slotHandler.button(builder -> builder.
+                        material(Material.GREEN_STAINED_GLASS_PANE).
+                        displayName("Next").
+                        clickHandler(event -> {
+                            var camera = this.cui.getCamera(event.getPlayer());
+                            var position = camera.getPosition();
+                            if ((position.row()/5+1)*45 >= size)
+                                return;
+                            camera.edit().move(5,0);
+                        }).
+                        build())).
+                finish());
     }
 
     @Override
     public void onTick() {
-        List<ChestUI<?>> cuis = CUIManager.getInstance().getCUIs();
-        int size = cuis.size();
-        int maxPage = (size - 1) / 45 + 1;
-        if (page >= maxPage) {
-            page = maxPage - 1;
-        }
-        for (int row = 0; row < 5; row++) {
+        var cuis = CUIManager.getInstance().getCUIs();
+        size = cuis.size();
+        var maxRow = (size-1)/9+1;
+        displayCUIs = new Layer(maxRow, 9).edit().
+                marginTop(1).
+                finish();
+
+        for (int row = 0; row < maxRow; row++) {
             for (int column = 0; column < 9; column++) {
-                int index = page * 45 + row * 9 + column;
+                int index = row * 9 + column;
                 if (index >= size) {
                     displayCUIs.edit().editSlot(row, column, SlotHandler::empty);
                     continue;
                 }
 
-                ChestUI<?> target = cuis.get(index);
+                var target = cuis.get(index);
                 if (target.getHandlerClass() == CUIMonitor.class) {
                     displayCUIs.edit().editSlot(row, column, slotHandler -> slotHandler.button(builder -> builder.
                             material(Material.BARRIER).
@@ -55,5 +86,9 @@ public class CUIMonitor implements CUIHandler {
                 }
             }
         }
+
+        cui.edit().
+                setLayer(1, displayCUIs).
+                finish();
     }
 }

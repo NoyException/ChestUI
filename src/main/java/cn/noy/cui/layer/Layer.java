@@ -4,6 +4,7 @@ import cn.noy.cui.event.CUIClickEvent;
 import cn.noy.cui.slot.Slot;
 import cn.noy.cui.slot.SlotHandler;
 import cn.noy.cui.ui.CUIContents;
+import org.bukkit.Bukkit;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
@@ -68,24 +69,27 @@ public class Layer {
         return getSlot(row - marginTop, column - marginLeft);
     }
 
-    public void display(CUIContents contents) {
+    public void display(CUIContents contents, int rowOffset, int columnOffset) {
         for (int row = 0; row < maxRow; row++) {
             for (int column = 0; column < maxColumn; column++) {
                 var slot = slots[row][column];
                 if (slot == null)
                     continue;
 
-                var itemStack = contents.getItem(marginTop + row, marginLeft + column);
+                var absoluteRow = marginTop + row + rowOffset;
+                var absoluteColumn = marginLeft + column + columnOffset;
+                var itemStack = contents.getItem(absoluteRow, absoluteColumn);
                 if (itemStack != null)
                     itemStack = itemStack.clone();
-                contents.setItem(marginTop + row, marginLeft + column, slot.getSlot().display(itemStack));
+                contents.setItem(absoluteRow, absoluteColumn, slot.getSlot().display(itemStack));
             }
         }
     }
 
-    public void click(CUIClickEvent<?> event) {
-        var row = event.getRow() - marginTop;
-        var column = event.getColumn() - marginLeft;
+    public void click(CUIClickEvent<?> event, int rowOffset, int columnOffset) {
+        var position = event.getPosition();
+        var row = position.row() - marginTop - rowOffset;
+        var column = position.column() - marginLeft - columnOffset;
         if (row < 0 || row >= maxRow || column < 0 || column >= maxColumn) {
             return;
         }

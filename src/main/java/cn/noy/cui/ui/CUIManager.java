@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -143,19 +142,19 @@ public class CUIManager implements Listener {
 
         if (event.getClickedInventory() != player.getInventory()) {
             var rawSlot = event.getRawSlot();
-            cui.getTrigger().click(player, event.getClick(), event.getAction(),
+            cui.getCamera(player).click(player, event.getClick(), event.getAction(),
                     rawSlot / 9, rawSlot % 9, event.getCursor());
             event.setCancelled(true);
         } else {
             switch (event.getAction()) {
-                case InventoryAction.MOVE_TO_OTHER_INVENTORY -> {
+                case MOVE_TO_OTHER_INVENTORY -> {
                     var itemStack = event.getCurrentItem();
-                    var remaining = cui.getTrigger().addItem(player, itemStack);
+                    var remaining = cui.getCamera(player).addItem(player, itemStack);
                     event.setCurrentItem(remaining);
                     event.setCancelled(true);
                 }
                 case COLLECT_TO_CURSOR -> {
-                    cui.getTrigger().collect(player, event.getCursor(), true);
+                    cui.getCamera(player).collect(player, event.getCursor(), true);
                     event.setCancelled(true);
                 }
             }
@@ -182,7 +181,7 @@ public class CUIManager implements Listener {
             if (view.convertSlot(rawSlot) != rawSlot)
                 return;
 
-            var remaining = cui.getTrigger().
+            var remaining = cui.getCamera(player).
                     place(player, itemStack, rawSlot / 9, rawSlot % 9);
             if (!ItemStacks.isEmpty(remaining)) {
                 amount.addAndGet(remaining.getAmount());

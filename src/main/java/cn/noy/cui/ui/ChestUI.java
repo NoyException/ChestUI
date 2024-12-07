@@ -137,7 +137,12 @@ public class ChestUI<T extends CUIHandler> {
         return layerDepths.getOrDefault(layer, -1);
     }
 
-    public List<Layer> getActiveLayers() {
+    public List<Layer> getActiveLayers(boolean ascending) {
+        if(ascending){
+            return layers.values().stream().
+                    filter(layerWrapper -> layerWrapper.active).
+                    map(layerWrapper -> layerWrapper.layer).toList();
+        }
         return layers.descendingMap().values().stream().
                 filter(layerWrapper -> layerWrapper.active).
                 map(layerWrapper -> layerWrapper.layer).toList();
@@ -449,13 +454,14 @@ public class ChestUI<T extends CUIHandler> {
         }
 
         private boolean sync(boolean force) {
-            List<Layer> activeLayers = getActiveLayers();
+            // 深度高的先display
+            List<Layer> activeLayers = getActiveLayers(false);
             if (!force && !dirty) {
                 if (activeLayers.stream().noneMatch(Layer::isDirty))
                     return false;
             }
             var contents = new CUIContents(maxRow, maxColumn);
-            activeLayers.forEach(layer -> layer.display(contents));
+            activeLayers.forEach(layer -> layer.display(contents, 0, 0));
             ChestUI.this.contents = contents;
             dirty = false;
             return true;
@@ -494,141 +500,6 @@ public class ChestUI<T extends CUIHandler> {
 
         void notifyReleaseCamera(Camera<T> camera) {
             cameras.remove(camera);
-        }
-
-        public void click(Player player, ClickType clickType, InventoryAction action,
-                          int row, int column, ItemStack cursor) {
-            var event = new CUIClickEvent<>(ChestUI.this, player,
-                    clickType, action, row, column, cursor);
-            Bukkit.getPluginManager().callEvent(event);
-            if (event.isCancelled()) {
-                return;
-            }
-
-            for (Layer layer : getActiveLayers()) {
-                layer.click(event);
-                if (event.isCancelled()) {
-                    player.setItemOnCursor(event.getCursor());
-                    return;
-                }
-            }
-        }
-
-        public ItemStack place(Player player, ItemStack itemStack, int row, int column) {
-            if (ItemStacks.isEmpty(itemStack)) {
-                return null;
-            }
-
-            for (Layer layer : getActiveLayers()) {
-                var slot = layer.getRelativeSlot(row, column);
-                if (slot == null) {
-                    continue;
-                }
-                itemStack = slot.place(itemStack);
-                if (ItemStacks.isEmpty(itemStack)) {
-                    return null;
-                }
-            }
-            return itemStack;
-        }
-
-        public ItemStack addItem(Player player, ItemStack itemStack) {
-            if (ItemStacks.isEmpty(itemStack)) {
-                return null;
-            }
-
-            var event = new CUIAddItemEvent<>(ChestUI.this, player, itemStack);
-            Bukkit.getPluginManager().callEvent(event);
-            if (event.isCancelled()) {
-                return itemStack;
-            }
-            itemStack = event.getItemStack();
-            if (ItemStacks.isEmpty(itemStack)) {
-                return null;
-            }
-
-            var activeLayers = getActiveLayers();
-            for (int row = 0; row < maxRow; row++) {
-                for (int column = 0; column < maxColumn; column++) {
-                    for (Layer layer : activeLayers) {
-                        var slot = layer.getRelativeSlot(row, column);
-                        if (slot == null) {
-                            continue;
-                        }
-                        itemStack = slot.place(itemStack);
-                        if (ItemStacks.isEmpty(itemStack)) {
-                            return null;
-                        }
-                    }
-                }
-            }
-            return itemStack;
-        }
-
-        /**
-         * 收集物品（双击物品时触发）<br>
-         * Collect items (triggered when double-clicking items)
-         *
-         * @param player          玩家<br>
-         *                        The player
-         * @param itemStack       待收集的物品<br>
-         *                        The item to collect
-         * @param collectBackpack 是否收集背包中的物品<br>
-         *                        Whether to collect items in the backpack
-         * @return 收集到的物品，如果没有收集到则返回null<br>
-         * The collected item, if there is no collected item, return null
-         */
-        public ItemStack collect(Player player, ItemStack itemStack, boolean collectBackpack) {
-            if (ItemStacks.isEmpty(itemStack)) {
-                return null;
-            }
-            interface Collectable {
-                ItemStack collect(ItemStack itemStack);
-            }
-            var list = new ArrayList<Pair<Integer, Collectable>>();
-
-            var activeLayers = getActiveLayers();
-            for (int row = 0; row < maxRow; row++) {
-                for (int column = 0; column < maxColumn; column++) {
-                    for (Layer layer : activeLayers) {
-                        var slot = layer.getRelativeSlot(row, column);
-                        if (slot == null) {
-                            continue;
-                        }
-                        var inSlot = slot.get();
-                        if (ItemStacks.isEmpty(inSlot)) {
-                            continue;
-                        }
-                        list.add(Pair.of(inSlot.getAmount(), slot::collect));
-                    }
-                }
-            }
-
-            if (collectBackpack) {
-                var inventory = player.getInventory();
-                for (int slot = 0; slot < inventory.getSize(); slot++) {
-                    var item = inventory.getItem(slot);
-                    if (ItemStacks.isEmpty(item)) {
-                        continue;
-                    }
-                    int finalSlot = slot;
-                    list.add(Pair.of(item.getAmount(), itemStack1 -> {
-                        var result = ItemStacks.place(itemStack1, item);
-                        itemStack1 = result.placed();
-                        inventory.setItem(finalSlot, result.remaining());
-                        return itemStack1;
-                    }));
-                }
-            }
-
-            list.sort(Comparator.comparingInt(Pair::getLeft));
-            for (var pair : list) {
-                itemStack = pair.getRight().collect(itemStack);
-                if (ItemStacks.isFull(itemStack)) {
-                    return itemStack;
-                }
-            }
-            return itemStack;
         }
     }
 

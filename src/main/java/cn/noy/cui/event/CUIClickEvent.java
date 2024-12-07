@@ -2,6 +2,7 @@ package cn.noy.cui.event;
 
 import cn.noy.cui.ui.CUIHandler;
 import cn.noy.cui.ui.ChestUI;
+import cn.noy.cui.util.Position;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.inventory.ClickType;
@@ -12,20 +13,20 @@ public class CUIClickEvent<T extends CUIHandler> extends CUIEvent<T> implements 
     private final Player player;
     private final ClickType clickType;
     private final InventoryAction action;
-    private final int row, column;
+    // 相对于ChestUI的行列
+    private final Position position;
     private ItemStack cursor;
     private boolean cancel;
 
     public CUIClickEvent(
             ChestUI<T> chestUI, Player player, ClickType clickType, InventoryAction action,
-            int row, int column, ItemStack cursor
+            Position position, ItemStack cursor
     ) {
         super(chestUI);
         this.player = player;
         this.clickType = clickType;
         this.action = action;
-        this.row = row;
-        this.column = column;
+        this.position = position;
         this.cursor = cursor;
     }
 
@@ -41,12 +42,8 @@ public class CUIClickEvent<T extends CUIHandler> extends CUIEvent<T> implements 
         return action;
     }
 
-    public int getRow() {
-        return row;
-    }
-
-    public int getColumn() {
-        return column;
+    public Position getPosition() {
+        return position;
     }
 
     public ItemStack getCursor() {

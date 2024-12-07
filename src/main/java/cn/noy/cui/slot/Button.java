@@ -42,8 +42,10 @@ public class Button extends Slot {
 
     @Override
     public void click(CUIClickEvent<?> event) {
-        if (clickHandler != null)
+        if (clickHandler != null) {
+            event.setCancelled(true);
             clickHandler.accept(event);
+        }
     }
 
     @Override
@@ -135,6 +137,16 @@ public class Button extends Slot {
             return lore(list);
         }
 
+        /**
+         * 设置按钮的点击事件。触发时事件会被自动拦截取消，如果你想让点击事件继续传递给下一层，请使用{@link CUIClickEvent#setCancelled(boolean)}。<br>
+         * Set the click event of the button. The event will be automatically intercepted and canceled when triggered.
+         * If you want the click event to continue to be passed to the next layer, please use {@link CUIClickEvent#setCancelled(boolean)}.
+         *
+         * @param clickHandler 点击事件处理器<br>
+         *                     Click event handler
+         * @return 构建器<br>
+         * Builder
+         */
         public Builder clickHandler(Consumer<CUIClickEvent<?>> clickHandler) {
             button.clickHandler = clickHandler;
             return this;

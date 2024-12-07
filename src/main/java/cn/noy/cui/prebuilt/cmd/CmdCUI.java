@@ -2,6 +2,7 @@ package cn.noy.cui.prebuilt.cmd;
 
 import cn.noy.cui.prebuilt.cui.CUIMonitor;
 import cn.noy.cui.prebuilt.cui.InventoryMonitor;
+import cn.noy.cui.prebuilt.cui.TestCUI;
 import cn.noy.cui.ui.CUIManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -23,15 +24,23 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
             return false;
         }
         if(args[0].equals("open")){
-            if(args[1].equals("cm")){
-                var cui = CUIManager.getInstance().createCUI(CUIMonitor.class);
-                cui.open(player, true);
-                return true;
-            }
-            if(args[1].equals("im")){
-                var cui = CUIManager.getInstance().createCUI(InventoryMonitor.class);
-                cui.open(player, true);
-                return true;
+            switch (args[1]) {
+                case "cm" -> {
+                    var cui = CUIManager.getInstance().createCUI(CUIMonitor.class);
+                    cui.open(player, true);
+                    return true;
+                }
+                case "im" -> {
+                    var cui = CUIManager.getInstance().createCUI(InventoryMonitor.class);
+                    cui.open(player, true);
+                    return true;
+                }
+                case "test" -> {
+                    for (int i = 0; i < 9; i++) {
+                        CUIManager.getInstance().createCUI(TestCUI.class);
+                    }
+                    return true;
+                }
             }
         }
         return false;
@@ -39,6 +48,10 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        return List.of();
+        return switch (args.length) {
+            case 1 -> List.of("open");
+            case 2 -> List.of("cm", "im", "test");
+            default -> List.of();
+        };
     }
 }

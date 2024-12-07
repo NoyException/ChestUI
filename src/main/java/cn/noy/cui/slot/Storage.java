@@ -115,7 +115,7 @@ public class Storage extends Slot {
                 // 收集【全部】
                 var cui = CUIManager.getInstance().getViewingCUI(player);
                 if(cui != null){
-                    cursor = cui.getTrigger().collect(player, cursor, true);
+                    cursor = cui.getCamera(player).collect(player, cursor, true);
                 }
             }
         }
