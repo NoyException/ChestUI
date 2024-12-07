@@ -1,10 +1,11 @@
 plugins {
     id 'java'
+    id 'maven-publish'
     id("com.diffplug.spotless") version "6.25.0"
 }
 
 group = 'cn.noy'
-version = '1.0.0'
+version = '1.0.1-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -74,10 +75,45 @@ tasks.register('runServer', Exec) {
 }
 
 tasks.register('copyJarToServerPlugins', Copy) {
+    dependsOn tasks.setupServer
     from tasks.jar
     into file('./server/plugins')
 }
 
+tasks.register('buildAndCopy') {
+    dependsOn tasks.build
+    finalizedBy tasks.copyJarToServerPlugins
+}
+
+tasks.register('bac') {
+    dependsOn tasks.buildAndCopy
+}
+
+tasks.register('sourcesJar', Jar) {
+    from sourceSets.main.allSource
+    archiveClassifier.set('sources')
+}
+
 tasks.build.dependsOn('spotlessApply')
-tasks.build.finalizedBy(copyJarToServerPlugins)
-tasks.copyJarToServerPlugins.dependsOn(setupServer)
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact sourcesJar
+            groupId = 'cn.noy'
+            artifactId = 'chest-ui'
+
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/NoyException/ChestUI")
+            credentials {
+                username = System.getenv("USERNAME")
+                password = System.getenv("TOKEN")
+            }
+        }
+    }
+}
