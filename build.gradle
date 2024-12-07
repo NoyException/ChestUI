@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id("com.diffplug.spotless") version "6.25.0"
 }
 
 group = 'cn.noy'
@@ -7,6 +8,7 @@ version = '1.0.0'
 
 repositories {
     mavenCentral()
+    google()
     maven {
         name = "papermc-repo"
         url = "https://repo.papermc.io/repository/maven-public/"
@@ -48,6 +50,12 @@ processResources {
     }
 }
 
+spotless {
+    java {
+        eclipse()
+    }
+}
+
 tasks.register('setupServer', Exec) {
     workingDir file('./devtools')
     executable 'bash'
@@ -70,5 +78,6 @@ tasks.register('copyJarToServerPlugins', Copy) {
     into file('./server/plugins')
 }
 
+tasks.build.dependsOn('spotlessApply')
 tasks.build.finalizedBy(copyJarToServerPlugins)
 tasks.copyJarToServerPlugins.dependsOn(setupServer)

@@ -4,6 +4,7 @@ import cn.noy.cui.prebuilt.cui.CUIMonitor;
 import cn.noy.cui.prebuilt.cui.InventoryMonitor;
 import cn.noy.cui.prebuilt.cui.TestCUI;
 import cn.noy.cui.ui.CUIManager;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -15,43 +16,45 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class CmdCUI implements CommandExecutor, TabCompleter {
-    @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if(!(sender instanceof Player player)){
-            return false;
-        }
-        if(args.length<=1){
-            return false;
-        }
-        if(args[0].equals("open")){
-            switch (args[1]) {
-                case "cm" -> {
-                    var cui = CUIManager.getInstance().createCUI(CUIMonitor.class);
-                    cui.open(player, true);
-                    return true;
-                }
-                case "im" -> {
-                    var cui = CUIManager.getInstance().createCUI(InventoryMonitor.class);
-                    cui.open(player, true);
-                    return true;
-                }
-                case "test" -> {
-                    for (int i = 0; i < 9; i++) {
-                        CUIManager.getInstance().createCUI(TestCUI.class);
-                    }
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
+	@Override
+	public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label,
+			@NotNull String[] args) {
+		if (!(sender instanceof Player player)) {
+			return false;
+		}
+		if (args.length <= 1) {
+			return false;
+		}
+		if (args[0].equals("open")) {
+			switch (args[1]) {
+				case "cm" -> {
+					var cui = CUIManager.getInstance().createCUI(CUIMonitor.class);
+					cui.open(player, true);
+					return true;
+				}
+				case "im" -> {
+					var cui = CUIManager.getInstance().createCUI(InventoryMonitor.class);
+					cui.open(player, true);
+					return true;
+				}
+				case "test" -> {
+					for (int i = 0; i < 9; i++) {
+						CUIManager.getInstance().createCUI(TestCUI.class);
+					}
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        return switch (args.length) {
-            case 1 -> List.of("open");
-            case 2 -> List.of("cm", "im", "test");
-            default -> List.of();
-        };
-    }
+	@Override
+	public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
+			@NotNull String label, @NotNull String[] args) {
+		return switch (args.length) {
+			case 1 -> List.of("open");
+			case 2 -> List.of("cm", "im", "test");
+			default -> List.of();
+		};
+	}
 }
