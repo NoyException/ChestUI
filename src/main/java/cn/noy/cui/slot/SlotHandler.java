@@ -20,7 +20,7 @@ public class SlotHandler {
 	}
 
 	public void empty() {
-		slot = new Button.Builder().build();
+		slot = Empty.getInstance();
 	}
 
 	public void deepClone(@NotNull SlotHandler handler) {

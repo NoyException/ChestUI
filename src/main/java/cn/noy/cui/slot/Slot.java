@@ -67,8 +67,9 @@ public abstract class Slot {
 	 * @param itemStack
 	 *            要收集的物品<br>
 	 *            The item to collect
-	 * @return 收集到的物品，如果没有收集到则返回null<br>
-	 *         The collected item, if there is no collected item, return null
+	 * @return 收集到的物品，如果没有收集到则返回最开始的要收集的物品<br>
+	 *         The collected item, if there is no collected item, return the
+	 *         original item to collect
 	 */
 	public abstract ItemStack collect(ItemStack itemStack);
 

@@ -27,7 +27,7 @@ public class Camera<T extends CUIHandler> {
 	private final HashMap<Layer, Integer> layerPriority = new HashMap<>();
 	private final InventoryHolder holder = new DummyHolder();
 	private Position position;
-	private int rowSize, columnSize;
+	private int rowSize = 3, columnSize = 9;
 	private HorizontalAlign horizontalAlign;
 	private VerticalAlign verticalAlign;
 	private boolean keepAlive;
@@ -447,8 +447,8 @@ public class Camera<T extends CUIHandler> {
 		}
 
 		public Editor setColumnSize(int columnSize) {
-			if (columnSize < 1 || columnSize > 9) {
-				throw new IllegalArgumentException("Column size must be between 1 and 9");
+			if (columnSize != 9) {
+				throw new IllegalArgumentException("Column size must be 9");
 			}
 			Camera.this.columnSize = columnSize;
 			recreate = true;
