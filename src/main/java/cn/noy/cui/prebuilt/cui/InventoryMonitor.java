@@ -64,6 +64,7 @@ public class InventoryMonitor implements CUIHandler {
 				if (index >= size) {
 					return;
 				}
+
 				var player = players.get(index);
 				displayPlayers.edit().editSlot(row, col,
 						slotHandler -> slotHandler.button(builder -> builder.skull(player)
