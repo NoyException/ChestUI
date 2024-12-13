@@ -7,7 +7,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class CUIEvent<T extends CUIHandler> extends Event {
+public abstract class CUIEvent<T extends CUIHandler<T>> extends Event {
 	private static final HandlerList HANDLERS = new HandlerList();
 
 	private final ChestUI<T> chestUI;

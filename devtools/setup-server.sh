@@ -29,8 +29,8 @@ echo "eula=true" >> "$EULA_FILE"
 echo "Creating run.sh..."
 echo "#!/bin/bash" > "$RUN_FILE"
 echo 'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"' >> "$RUN_FILE"
-echo 'cd $SCRIPT_DIR' >> "$RUN_FILE"
-echo "java -DIReallyKnowWhatIAmDoingISwear -Xmx1024M -Xms1024M -jar paper.jar" >> "$RUN_FILE"
+echo 'cd "$SCRIPT_DIR" || exit' >> "$RUN_FILE"
+echo "java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=localhost:5005 -Xmx1024M -Xms1024M -jar paper.jar" >> "$RUN_FILE"
 # Make run.sh executable
 chmod +x "$RUN_FILE"
 

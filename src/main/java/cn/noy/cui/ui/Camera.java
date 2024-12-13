@@ -1,5 +1,6 @@
 package cn.noy.cui.ui;
 
+import cn.noy.cui.CUIPlugin;
 import cn.noy.cui.event.CUIAddItemEvent;
 import cn.noy.cui.event.CUIClickEvent;
 import cn.noy.cui.layer.Layer;
@@ -17,12 +18,64 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Consumer;
 
-public class Camera<T extends CUIHandler> {
+public class Camera<T extends CUIHandler<T>> {
+	public static class Manager {
+		private static final Set<Camera<?>> CAMERAS = new HashSet<>();
+		private static final Map<Player, Stack<Camera<?>>> BY_PLAYER = new HashMap<>();
+
+		public static void forEachCamera(Consumer<? super Camera<?>> action) {
+			new ArrayList<>(CAMERAS).forEach(action);
+		}
+
+		public static List<Camera<?>> getCameras() {
+			return new ArrayList<>(CAMERAS);
+		}
+
+		public static Camera<?> getCamera(Player player) {
+			var stack = BY_PLAYER.computeIfAbsent(player, p -> new Stack<>());
+			if (stack.empty())
+				return null;
+			return stack.peek();
+		}
+
+		public static boolean closeTop(Player player, boolean force) {
+			var stack = BY_PLAYER.computeIfAbsent(player, p -> new Stack<>());
+			if (stack.empty())
+				return true;
+			var closed = stack.peek().close(player, force);
+			if (!closed)
+				return false;
+			// 切换回来
+			if (!stack.empty())
+				stack.peek().viewers.add(player);
+			return true;
+		}
+
+		public static boolean closeAll(Player player, boolean force) {
+			var stack = BY_PLAYER.computeIfAbsent(player, p -> new Stack<>());
+			if (stack.empty())
+				return true;
+			while (!stack.empty()) {
+				var closed = stack.peek().close(player, force);
+				if (!closed)
+					return false;
+			}
+			BY_PLAYER.remove(player);
+			return true;
+		}
+	}
+
 	private final ChestUI<T> chestUI;
 	private final HashSet<Player> viewers = new HashSet<>();
+	/**
+	 * 用于保活的计数，玩家使用该相机则计数+1，不使用则计数-1，从本相机跳到别的相机计数不变（因为会跳回来）
+	 */
+	private final HashMap<Player, Integer> keepAliveCount = new HashMap<>();
 	private final TreeMap<Integer, LayerWrapper> mask = new TreeMap<>();
 	private final HashMap<Layer, Integer> layerPriority = new HashMap<>();
 	private final InventoryHolder holder = new DummyHolder();
@@ -31,6 +84,7 @@ public class Camera<T extends CUIHandler> {
 	private HorizontalAlign horizontalAlign;
 	private VerticalAlign verticalAlign;
 	private boolean keepAlive;
+	private boolean closable = true;
 	private Component title;
 	private Inventory inventory;
 
@@ -42,10 +96,15 @@ public class Camera<T extends CUIHandler> {
 		this.chestUI = chestUI;
 		edit().setPosition(position).setRowSize(rowSize).setColumnSize(columnSize).setHorizontalAlign(horizontalAlign)
 				.setVerticalAlign(verticalAlign).setTitle(title);
+		Manager.CAMERAS.add(this);
 	}
 
 	public Editor edit() {
 		return new Editor();
+	}
+
+	public ChestUI<T> getChestUI() {
+		return chestUI;
 	}
 
 	/**
@@ -68,7 +127,7 @@ public class Camera<T extends CUIHandler> {
 				.toList();
 	}
 
-	public Position getPosition() {
+	public @NotNull Position getPosition() {
 		return position;
 	}
 
@@ -86,6 +145,22 @@ public class Camera<T extends CUIHandler> {
 
 	public VerticalAlign getVerticalAlign() {
 		return verticalAlign;
+	}
+
+	public boolean isClosable() {
+		return closable;
+	}
+
+	public void setClosable(boolean closable) {
+		this.closable = closable;
+	}
+
+	public boolean isKeepAlive() {
+		return keepAlive;
+	}
+
+	public void setKeepAlive(boolean keepAlive) {
+		this.keepAlive = keepAlive;
 	}
 
 	public Component getTitle() {
@@ -111,22 +186,141 @@ public class Camera<T extends CUIHandler> {
 	}
 
 	// TODO: 测试切换Camera
-	public void open(Player viewer) {
-		viewers.add(viewer);
-		if (viewer.getOpenInventory().getTopInventory() != inventory) {
-			viewer.openInventory(inventory);
+	public boolean open(Player viewer, boolean asChild) {
+		if (!asChild) {
+			boolean success = Manager.closeAll(viewer, false);
+			if (!success)
+				return false;
 		}
-		chestUI.getTrigger().notifyUseCamera(viewer, this);
+		viewers.add(viewer);
+		keepAliveCount.compute(viewer, (player, count) -> count == null ? 1 : count + 1);
+		var stack = Manager.BY_PLAYER.computeIfAbsent(viewer, player -> new Stack<>());
+		if (!stack.empty()) {
+			var parent = stack.peek();
+			if (parent != null) {
+				// 切换出去
+				parent.viewers.remove(viewer);
+			}
+		}
+		stack.push(this);
+		return true;
 	}
 
-	public void close(Player viewer) {
-		viewers.remove(viewer);
+	/**
+	 * 尝试为玩家关闭Camera。如果玩家不在看这个Camera，或者Camera不可关闭，则返回false<br>
+	 *
+	 * @param viewer
+	 *            玩家
+	 * @param force
+	 *            是否强制关闭
+	 * @return 是否成功关闭
+	 */
+	public boolean close(Player viewer, boolean force) {
+		if (!force && !closable)
+			return false;
+
+		var exist = viewers.remove(viewer);
+		if (!exist)
+			return false;
+
+		var stack = Manager.BY_PLAYER.get(viewer);
+		if (stack == null || stack.empty())
+			return false;
+		var popped = stack.pop();
+		if (popped != this) {
+			throw new RuntimeException("Camera not match");
+		}
+
+		keepAliveCount.compute(viewer, (player, count) -> {
+			if (count == null)
+				return 0;
+			if (count <= 0) {
+				throw new RuntimeException("Keep alive count is less than 0");
+			}
+			return count - 1;
+		});
+		keepAliveCount.remove(viewer, 0);
+
 		if (viewer.getOpenInventory().getTopInventory().getHolder() == holder) {
 			viewer.closeInventory();
 		}
-		if (!keepAlive && viewers.isEmpty()) {
-			chestUI.getTrigger().notifyReleaseCamera(this);
+		return true;
+	}
+
+	public boolean closeCascade(Player viewer, boolean force) {
+		var count = keepAliveCount.getOrDefault(viewer, 0);
+		if (count <= 0) {
+			return false;
 		}
+		var stack = Manager.BY_PLAYER.get(viewer);
+		if (stack == null || stack.empty())
+			return false;
+		while (count > 0) {
+			try {
+				var camera = stack.peek();
+				var success = camera.close(viewer, force);
+				if (!success) {
+					return false;
+				}
+				if (camera == this) {
+					count--;
+				}
+			} catch (EmptyStackException e) {
+				CUIPlugin.getInstance().getComponentLogger()
+						.error(Component.text("Player " + viewer.getName() + " has no camera to close"), e);
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public void destroy() {
+		new ArrayList<>(viewers).forEach(player -> closeCascade(player, true));
+		chestUI.getTrigger().notifyReleaseCamera(this);
+		Manager.CAMERAS.remove(this);
+	}
+
+	public void sync(boolean force) {
+		if (!recreate && !dirty && !force) {
+			if (getActiveMasks(false).stream().noneMatch(Layer::isDirty))
+				return;
+		}
+		if (recreate) {
+			inventory = Bukkit.createInventory(holder, rowSize * columnSize, title);
+			recreate = false;
+		}
+		dirty = false;
+
+		var topLeft = getTopLeft();
+		var contents = chestUI.getContents();
+		getActiveMasks(false).forEach(layer -> layer.display(contents, topLeft.row(), topLeft.column()));
+
+		for (int row = 0; row < rowSize; row++) {
+			for (int column = 0; column < columnSize; column++) {
+				var index = row * columnSize + column;
+				var absoluteRow = row + topLeft.row();
+				var absoluteColumn = column + topLeft.column();
+				inventory.setItem(index, contents.getItem(absoluteRow, absoluteColumn));
+			}
+		}
+	}
+
+	public void update() {
+		if (!keepAlive && keepAliveCount.isEmpty()) {
+			destroy();
+			return;
+		}
+
+		var force = chestUI.getTrigger().update();
+
+		sync(force);
+
+		// openInventory可能会触发事件，从而导致ConcurrentModificationException
+		new ArrayList<>(viewers).forEach(player -> {
+			if (player.getOpenInventory().getTopInventory() != inventory) {
+				player.openInventory(inventory);
+			}
+		});
 	}
 
 	/**
@@ -372,30 +566,6 @@ public class Camera<T extends CUIHandler> {
 		return itemStack;
 	}
 
-	public void sync(boolean force) {
-		if (!recreate && !dirty && !force) {
-			return;
-		}
-		if (recreate) {
-			inventory = Bukkit.createInventory(holder, rowSize * columnSize, title);
-			recreate = false;
-		}
-		dirty = false;
-
-		var topLeft = getTopLeft();
-		var contents = chestUI.getContents();
-		getActiveMasks(false).forEach(layer -> layer.display(contents, topLeft.row(), topLeft.column()));
-
-		for (int row = 0; row < rowSize; row++) {
-			for (int column = 0; column < columnSize; column++) {
-				var index = row * columnSize + column;
-				var absoluteRow = row + topLeft.row();
-				var absoluteColumn = column + topLeft.column();
-				inventory.setItem(index, contents.getItem(absoluteRow, absoluteColumn));
-			}
-		}
-	}
-
 	public Camera<T> deepClone() {
 		var clone = new Camera<>(chestUI, position, rowSize, columnSize, horizontalAlign, verticalAlign, title);
 		mask.forEach((priority, layerWrapper) -> clone.edit().setMask(priority, layerWrapper.layer.deepClone()));
@@ -521,6 +691,26 @@ public class Camera<T extends CUIHandler> {
 			Camera.this.recreate = recreate;
 			dirty = true;
 			return this;
+		}
+	}
+
+	private class PlayerInfo {
+		private final @Nullable Camera<?> from;
+		private @Nullable Camera<?> to;
+		private State state = State.VIEWING;
+
+		private PlayerInfo(@Nullable Camera<?> from) {
+			this.from = from;
+		}
+
+		public enum State {
+			CLOSING, VIEWING,
+			/**
+			 * 玩家正在查看其他CUI，但是当前CUI仍然处于打开状态。这通常发生在玩家从一个CUI切换到另一个CUI时。<br>
+			 * Player is viewing another CUI, but the current CUI is still open. This
+			 * usually happens when a player switches from one CUI to another.
+			 */
+			VIEWING_OTHER,
 		}
 	}
 

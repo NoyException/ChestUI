@@ -2,8 +2,17 @@ package cn.noy.cui.ui;
 
 import org.bukkit.entity.Player;
 
-public interface CUIHandler {
-	void onInitialize(ChestUI<?> cui);
+/**
+ * 你需要实现该接口来定义一个CUI。对于其实现A，其需要实现{@code CUIHandler<A>}接口。<br>
+ * You need to implement this interface to define a CUI. For its implementation
+ * A, it needs to implement the {@code CUIHandler<A>} interface.
+ *
+ * @param <T>
+ *            你的CUIHandler实现类。<br>
+ *            Your CUIHandler implementation class.
+ */
+public interface CUIHandler<T extends CUIHandler<T>> {
+	void onInitialize(ChestUI<T> cui);
 
 	default void onTick() {
 	}

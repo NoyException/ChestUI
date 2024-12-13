@@ -10,10 +10,10 @@ import org.bukkit.Material;
 
 @DefaultCamera(rowSize = 6)
 @CUITitle("Test")
-public class TestCUI implements CUIHandler {
+public class TestCUI implements CUIHandler<TestCUI> {
 
 	@Override
-	public void onInitialize(ChestUI<?> cui) {
+	public void onInitialize(ChestUI<TestCUI> cui) {
 		cui.edit().setKeepAlive(true).setLayer(0, new Layer(1, 9).edit()
 				.editAll(slotHandler -> slotHandler.button(
 						builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))

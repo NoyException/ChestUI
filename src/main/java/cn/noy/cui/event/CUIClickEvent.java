@@ -10,7 +10,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.inventory.ItemStack;
 
-public class CUIClickEvent<T extends CUIHandler> extends CUIEvent<T> implements Cancellable {
+public class CUIClickEvent<T extends CUIHandler<T>> extends CUIEvent<T> implements Cancellable {
 	private final Player player;
 	private final ClickType clickType;
 	private final InventoryAction action;

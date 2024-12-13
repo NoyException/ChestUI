@@ -8,13 +8,20 @@ import org.bukkit.Material;
 
 @DefaultCamera(rowSize = 6)
 @CUITitle("CUI Monitor")
-public class CUIMonitor implements CUIHandler {
+public class CUIMonitor implements CUIHandler<CUIMonitor> {
+	private static ChestUI<CUIMonitor> INSTANCE;
+	public static ChestUI<CUIMonitor> getInstance() {
+		if (INSTANCE == null) {
+			INSTANCE = CUIManager.getInstance().createCUI(CUIMonitor.class);
+		}
+		return INSTANCE;
+	}
 	private ChestUI<CUIMonitor> cui;
 	private Layer displayCUIs;
 	private int size;
 
 	@Override
-	public void onInitialize(ChestUI<?> cui) {
+	public void onInitialize(ChestUI<CUIMonitor> cui) {
 		this.displayCUIs = new Layer(5, 9);
 		this.cui = cui.edit().setLayer(1, displayCUIs).finish();
 		this.cui.getDefaultCamera().edit().setMask(1, new Layer(1, 9).edit()
@@ -22,7 +29,7 @@ public class CUIMonitor implements CUIHandler {
 						builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
 				.editSlot(0, 0, slotHandler -> slotHandler.button(builder -> builder
 						.material(Material.RED_STAINED_GLASS_PANE).displayName("Previous").clickHandler(event -> {
-							var camera = this.cui.getCamera(event.getPlayer());
+							var camera = Camera.Manager.getCamera(event.getPlayer());
 							var position = camera.getPosition();
 							if (position.row() <= 0)
 								return;
@@ -30,7 +37,7 @@ public class CUIMonitor implements CUIHandler {
 						}).build()))
 				.editSlot(0, 8, slotHandler -> slotHandler.button(builder -> builder
 						.material(Material.GREEN_STAINED_GLASS_PANE).displayName("Next").clickHandler(event -> {
-							var camera = this.cui.getCamera(event.getPlayer());
+							var camera = Camera.Manager.getCamera(event.getPlayer());
 							var position = camera.getPosition();
 							if ((position.row() / 5 + 1) * 45 >= size)
 								return;
@@ -62,12 +69,10 @@ public class CUIMonitor implements CUIHandler {
 											.displayName(target.getDefaultTitle())
 											.lore("&7A CUI Monitor like" + " this", "&cCannot be monitored").build()));
 				} else {
-					displayCUIs.edit().editSlot(row, column,
-							slotHandler -> slotHandler.button(builder -> builder.material(Material.CHEST)
-									.displayName(target.getDefaultTitle())
-									.lore(String.format("&b%d&r" + " camera(s)", target.getCameras().size()),
-											String.format("&b%d&r" + " viewer(s)", target.getViewers().size()))
-									.clickHandler(event -> cui.switchTo(event.getPlayer(), target, true)).build()));
+					displayCUIs.edit().editSlot(row, column, slotHandler -> slotHandler.button(builder -> builder
+							.material(Material.CHEST).displayName(target.getDefaultTitle())
+							.lore(String.format("&b%d&r" + " camera(s)", target.getCameras().size()))
+							.clickHandler(event -> target.getDefaultCamera().open(event.getPlayer(), true)).build()));
 				}
 			}
 		}

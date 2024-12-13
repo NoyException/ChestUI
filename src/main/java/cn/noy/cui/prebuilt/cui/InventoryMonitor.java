@@ -10,14 +10,14 @@ import org.bukkit.inventory.PlayerInventory;
 
 @DefaultCamera(rowSize = 6)
 @CUITitle("Inventory Monitor")
-public class InventoryMonitor implements CUIHandler {
+public class InventoryMonitor implements CUIHandler<InventoryMonitor> {
 	private ChestUI<InventoryMonitor> cui;
 	private Layer displayPlayers;
 	private Layer monitorInventory;
 	private int page = 0;
 
 	@Override
-	public void onInitialize(ChestUI<?> cui) {
+	public void onInitialize(ChestUI<InventoryMonitor> cui) {
 		this.displayPlayers = new Layer(5, 9).edit().marginTop(1).finish();
 		this.monitorInventory = new Layer(5, 9).edit().marginTop(1)
 				.editRow(3, slotHandler -> slotHandler.button(

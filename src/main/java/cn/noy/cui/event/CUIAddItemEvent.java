@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.inventory.ItemStack;
 
-public class CUIAddItemEvent<T extends CUIHandler> extends CUIEvent<T> implements Cancellable {
+public class CUIAddItemEvent<T extends CUIHandler<T>> extends CUIEvent<T> implements Cancellable {
 	private final Player player;
 	private ItemStack itemStack;
 	private boolean cancel;

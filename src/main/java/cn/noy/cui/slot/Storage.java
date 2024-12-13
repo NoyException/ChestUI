@@ -2,6 +2,7 @@ package cn.noy.cui.slot;
 
 import cn.noy.cui.event.CUIClickEvent;
 import cn.noy.cui.ui.CUIManager;
+import cn.noy.cui.ui.Camera;
 import cn.noy.cui.util.ItemStacks;
 
 import org.bukkit.GameMode;
@@ -113,9 +114,9 @@ public class Storage extends Slot {
 			}
 			case DOUBLE_CLICK -> {
 				// 收集【全部】
-				var cui = CUIManager.getInstance().getViewingCUI(player);
-				if (cui != null) {
-					cursor = cui.getCamera(player).collect(player, cursor, true);
+				var camera = Camera.Manager.getCamera(player);
+				if (camera != null) {
+					cursor = camera.collect(player, cursor, true);
 				}
 			}
 		}

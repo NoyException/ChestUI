@@ -5,6 +5,7 @@ import cn.noy.cui.prebuilt.cui.InventoryMonitor;
 import cn.noy.cui.prebuilt.cui.TestCUI;
 import cn.noy.cui.ui.CUIManager;
 
+import cn.noy.cui.ui.Camera;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -28,13 +29,14 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 		if (args[0].equals("open")) {
 			switch (args[1]) {
 				case "cm" -> {
-					var cui = CUIManager.getInstance().createCUI(CUIMonitor.class);
-					cui.open(player, true);
+					var cui = CUIMonitor.getInstance();
+					Camera<CUIMonitor> camera = cui.newCamera();
+					camera.open(player, false);
 					return true;
 				}
 				case "im" -> {
 					var cui = CUIManager.getInstance().createCUI(InventoryMonitor.class);
-					cui.open(player, true);
+					cui.getDefaultCamera().open(player, false);
 					return true;
 				}
 				case "test" -> {

@@ -6,15 +6,11 @@ import cn.noy.cui.util.Position;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class ChestUI<T extends CUIHandler> {
-	private final HashMap<Player, PlayerInfo> viewers = new HashMap<>();
+public class ChestUI<T extends CUIHandler<T>> {
 	private final HashSet<Camera<T>> cameras = new HashSet<>();
 	private State state = State.UNINITIALIZED;
 
@@ -32,11 +28,14 @@ public class ChestUI<T extends CUIHandler> {
 	private long ticks;
 
 	private final T handler;
+	private final int id;
 	private final Trigger trigger;
 	private boolean dirty;
+	private boolean synced;
 
-	ChestUI(@NotNull T handler) {
+	ChestUI(@NotNull T handler, int id) {
 		this.handler = handler;
+		this.id = id;
 		this.trigger = new Trigger();
 
 		var clazz = handler.getClass();
@@ -76,8 +75,18 @@ public class ChestUI<T extends CUIHandler> {
 		return (Class<T>) handler.getClass();
 	}
 
+	public String getName() {
+		return getHandlerClass().getName() + '#' + id;
+	}
+
 	public Camera<T> getDefaultCamera() {
 		return defaultCamera;
+	}
+
+	public Camera<T> newCamera() {
+		var camera = defaultCamera.deepClone();
+		cameras.add(camera);
+		return camera;
 	}
 
 	public Camera<T> newCamera(Position position, int rowSize, int columnSize, Camera.HorizontalAlign horizontalAlign,
@@ -87,20 +96,8 @@ public class ChestUI<T extends CUIHandler> {
 		return camera;
 	}
 
-	public Camera<T> getCamera(Player viewer) {
-		var info = viewers.get(viewer);
-		if (info == null) {
-			return null;
-		}
-		return info.camera;
-	}
-
 	public List<Camera<T>> getCameras() {
 		return new ArrayList<>(cameras);
-	}
-
-	public List<Player> getViewers() {
-		return new ArrayList<>(viewers.keySet());
 	}
 
 	public Component getDefaultTitle() {
@@ -161,194 +158,17 @@ public class ChestUI<T extends CUIHandler> {
 		return contents.clone();
 	}
 
-	/**
-	 * 打开CUI。如果newCamera为true，则克隆并使用默认Camera。<br>
-	 * Open CUI. If newCamera is true, clone and use the default camera.
-	 *
-	 * @param viewer
-	 *            玩家<br>
-	 *            Player
-	 * @param newCamera
-	 *            是否使用新的Camera<br>
-	 *            Whether to use a new camera
-	 * @return 是否成功打开<br>
-	 *         Whether it is successfully opened
-	 */
-	public boolean open(Player viewer, boolean newCamera) {
-		if (viewers.containsKey(viewer)) {
-			return false;
-		}
-		if (!handler.onOpen(viewer)) {
-			return false;
-		}
-		var camera = newCamera ? defaultCamera.deepClone() : defaultCamera;
-		if (newCamera) {
-			cameras.add(camera);
-		}
-		viewers.put(viewer, new PlayerInfo(camera));
-		CUIManager.getInstance().notifyOpen(viewer, this);
-		return true;
-	}
-
-	private boolean openFrom(Player viewer, ChestUI<?> from, boolean newCamera) {
-		if (!open(viewer, newCamera)) {
-			return false;
-		}
-
-		var info = viewers.get(viewer);
-		if (info == null) {
-			return false;
-		}
-
-		info.from = from;
-		return true;
-	}
-
-	/**
-	 * TODO: test<br>
-	 * 切换到另一个CUI，当该CUI关闭时会自动切换回来。<br>
-	 * Switch to another CUI, and it will automatically switch back when the CUI is
-	 * closed.
-	 *
-	 * @param viewer
-	 *            玩家<br>
-	 *            Player
-	 * @param to
-	 *            目标CUI<br>
-	 *            Target CUI
-	 * @param newCamera
-	 *            是否使用新的Camera<br>
-	 *            Whether to use a new camera
-	 * @return 是否成功切换<br>
-	 *         Whether it is successfully switched
-	 */
-	public boolean switchTo(Player viewer, ChestUI<?> to, boolean newCamera) {
-		var info = viewers.get(viewer);
-		if (info == null) {
-			return false;
-		}
-		if (!handler.onSwitchTo(viewer, to)) {
-			return false;
-		}
-
-		if (!to.openFrom(viewer, this, newCamera)) {
-			return false;
-		}
-
-		info.to = to;
-		info.state = PlayerInfo.State.VIEWING_OTHER;
-		return true;
-	}
-
 	public boolean isClosable() {
 		return closable;
-	}
-
-	private boolean switchBack(Player viewer) {
-		var info = viewers.get(viewer);
-		if (info == null) {
-			Bukkit.getLogger().severe("Player " + viewer.getName() + " is not viewing " + this);
-			return false;
-		}
-		if (!handler.onSwitchBack(viewer, info.to)) {
-			return false;
-		}
-		info.to = null;
-		info.state = PlayerInfo.State.VIEWING;
-		CUIManager.getInstance().notifyOpen(viewer, this);
-		return true;
-	}
-
-	/**
-	 * 关闭CUI。在不强制的情况下，closable为false、当前正切换到其他CUI、handler拒绝关闭、来源CUI拒绝切换回去时将无法关闭。<br>
-	 * Close CUI. It cannot be closed if closable is false, currently switching to
-	 * another CUI, the handler refuses to close, and the source CUI refuses to
-	 * switch back without force.
-	 *
-	 * @param viewer
-	 *            玩家<br>
-	 *            Player
-	 * @param force
-	 *            是否强制关闭<br>
-	 *            Whether to force close
-	 * @return 是否成功关闭<br>
-	 *         Whether it is successfully closed
-	 */
-	public boolean close(Player viewer, boolean force) {
-		if (!closable && !force) {
-			return false;
-		}
-
-		var info = viewers.get(viewer);
-		if (info == null) {
-			return false;
-		}
-
-		if (info.to != null && !force) {
-			return false;
-		}
-
-		var oldState = info.state;
-		info.state = PlayerInfo.State.CLOSING;
-
-		if (!handler.onClose(viewer)) {
-			info.state = oldState;
-			return false;
-		}
-
-		if (info.from != null && !info.from.switchBack(viewer)) {
-			info.state = oldState;
-			return false;
-		}
-
-		if (info.to != null) {
-			info.to.close(viewer, true);
-		}
-		viewers.remove(viewer);
-		CUIManager.getInstance().notifyClose(viewer, this);
-		info.camera.close(viewer);
-		return true;
-	}
-
-	/**
-	 * 尝试关闭所有CUI，返回第一个无法关闭的CUI<br>
-	 * Try to close all CUIs and return the first CUI that cannot be closed
-	 *
-	 * @param viewer
-	 *            玩家<br>
-	 *            Player
-	 * @param force
-	 *            是否强制关闭<br>
-	 *            Whether to force close
-	 * @return 无法关闭的CUI，如果所有CUI都关闭了则返回null<br>
-	 *         CUI that cannot be closed, return null if all CUIs are closed
-	 */
-	public ChestUI<?> closeAll(Player viewer, boolean force) {
-		var info = viewers.get(viewer);
-		if (info == null) {
-			return this;
-		}
-
-		if (!close(viewer, force)) {
-			return this;
-		}
-
-		if (info.from != null) {
-			return info.from.closeAll(viewer, force);
-		}
-		return null;
 	}
 
 	/**
 	 * 销毁CUI，这会使得所有玩家强制关闭CUI。<br>
 	 * Destroy CUI, which will force all players to close CUI.
-	 *
-	 * @see #close(Player, boolean)
 	 */
 	public void destroy() {
 		handler.onDestroy();
-		var players = new ArrayList<>(viewers.keySet());
-		players.forEach(player -> close(player, true));
+		new ArrayList<>(cameras).forEach(Camera::destroy);
 		CUIManager.getInstance().notifyDestroy(this);
 	}
 
@@ -358,8 +178,8 @@ public class ChestUI<T extends CUIHandler> {
 
 	@Override
 	public String toString() {
-		return "ChestUI{" + "handler=" + handler.getClass().getCanonicalName() + ", defaultTitle=" + defaultTitle
-				+ ", state=" + state + ", ticks=" + ticks + '}';
+		return "ChestUI{" + "name=" + getName() + ", defaultTitle=" + defaultTitle + ", state=" + state + ", ticks="
+				+ ticks + '}';
 	}
 
 	public enum State {
@@ -370,9 +190,8 @@ public class ChestUI<T extends CUIHandler> {
 		private Editor() {
 		}
 
-		@SuppressWarnings("unchecked")
-		public <T2 extends CUIHandler> ChestUI<T2> finish() {
-			return (ChestUI<T2>) ChestUI.this;
+		public ChestUI<T> finish() {
+			return ChestUI.this;
 		}
 
 		public Editor setDefaultTitle(String title) {
@@ -458,14 +277,18 @@ public class ChestUI<T extends CUIHandler> {
 		public void tick() {
 			ticks++;
 			handler.onTick();
-			if (!keepAlive && viewers.isEmpty()) {
+			if (!keepAlive && cameras.isEmpty()) {
 				destroy();
 			}
+			synced = false;
 		}
 
 		private boolean sync(boolean force) {
+			if (!force && synced) {
+				return false;
+			}
 			// 深度高的先display
-			List<Layer> activeLayers = getActiveLayers(false);
+			var activeLayers = getActiveLayers(false);
 			if (!force && !dirty) {
 				if (activeLayers.stream().noneMatch(Layer::isDirty))
 					return false;
@@ -474,6 +297,7 @@ public class ChestUI<T extends CUIHandler> {
 			activeLayers.forEach(layer -> layer.display(contents, 0, 0));
 			ChestUI.this.contents = contents;
 			dirty = false;
+			synced = true;
 			return true;
 		}
 
@@ -481,56 +305,14 @@ public class ChestUI<T extends CUIHandler> {
 		 * 更新并同步界面状态<br>
 		 * Update and synchronize interface status
 		 */
-		public void update() {
-			var synced = sync(state == State.UNINITIALIZED);
-			cameras.forEach(camera -> camera.sync(synced));
+		public boolean update() {
+			var updated = sync(state == State.UNINITIALIZED);
 			state = State.READY;
-			// openInventory可能会触发事件，从而导致ConcurrentModificationException
-			var copy = new HashMap<>(viewers);
-			copy.forEach((player, info) -> {
-				if (info.state != PlayerInfo.State.VIEWING) {
-					return;
-				}
-
-				info.camera.open(player);
-			});
-		}
-
-		void notifyUseCamera(Player viewer, Camera<T> camera) {
-			var info = viewers.get(viewer);
-			if (info == null) {
-				Bukkit.getLogger().severe("Player " + viewer.getName() + " is not viewing " + ChestUI.this);
-				return;
-			}
-			if (info.camera != camera) {
-				info.camera.close(viewer);
-			}
-			info.camera = camera;
+			return updated;
 		}
 
 		void notifyReleaseCamera(Camera<T> camera) {
 			cameras.remove(camera);
-		}
-	}
-
-	public class PlayerInfo {
-		private @Nullable ChestUI<?> from;
-		private @Nullable ChestUI<?> to;
-		private @NotNull Camera<T> camera;
-		private State state = State.VIEWING;
-
-		public PlayerInfo(@NotNull Camera<T> camera) {
-			this.camera = camera;
-		}
-
-		public enum State {
-			CLOSING, VIEWING,
-			/**
-			 * 玩家正在查看其他CUI，但是当前CUI仍然处于打开状态。这通常发生在玩家从一个CUI切换到另一个CUI时。<br>
-			 * Player is viewing another CUI, but the current CUI is still open. This
-			 * usually happens when a player switches from one CUI to another.
-			 */
-			VIEWING_OTHER,
 		}
 	}
 }
