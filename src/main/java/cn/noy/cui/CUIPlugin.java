@@ -9,23 +9,19 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class CUIPlugin extends JavaPlugin {
-	private static CUIPlugin instance;
+public class CUIPlugin extends JavaPlugin {
 
-	public static CUIPlugin getInstance() {
-		return instance;
-	}
+	private final CUIManager cuiManager = new CUIManager(this);
 
 	@Override
 	public void onEnable() {
-		instance = this;
-		CUIManager.getInstance().initialize();
-		bindCommand("cui", new CmdCUI());
+		cuiManager.setup();
+		bindCommand("cui", new CmdCUI(this));
 	}
 
 	@Override
 	public void onDisable() {
-		CUIManager.getInstance().uninitialize();
+		cuiManager.teardown();
 	}
 
 	private void bindCommand(String name, Object executor) {
@@ -36,5 +32,9 @@ public final class CUIPlugin extends JavaPlugin {
 		}
 		command.setExecutor(executor instanceof CommandExecutor ? (CommandExecutor) executor : null);
 		command.setTabCompleter(executor instanceof TabCompleter ? (TabCompleter) executor : null);
+	}
+
+	public CUIManager getCUIManager() {
+		return cuiManager;
 	}
 }

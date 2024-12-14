@@ -1,5 +1,6 @@
 package cn.noy.cui.prebuilt.cui;
 
+import cn.noy.cui.CUIPlugin;
 import cn.noy.cui.layer.Layer;
 import cn.noy.cui.slot.SlotHandler;
 import cn.noy.cui.ui.*;
@@ -9,13 +10,6 @@ import org.bukkit.Material;
 @DefaultCamera(rowSize = 6)
 @CUITitle("CUI Monitor")
 public class CUIMonitor implements CUIHandler<CUIMonitor> {
-	private static ChestUI<CUIMonitor> INSTANCE;
-	public static ChestUI<CUIMonitor> getInstance() {
-		if (INSTANCE == null) {
-			INSTANCE = CUIManager.getInstance().createCUI(CUIMonitor.class);
-		}
-		return INSTANCE;
-	}
 	private ChestUI<CUIMonitor> cui;
 	private Layer displayCUIs;
 	private int size;
@@ -48,7 +42,7 @@ public class CUIMonitor implements CUIHandler<CUIMonitor> {
 
 	@Override
 	public void onTick() {
-		var cuis = CUIManager.getInstance().getCUIs();
+		var cuis = cui.getPlugin().getCUIManager().getCUIs();
 		size = cuis.size();
 		var maxRow = (size - 1) / 9 + 1;
 		displayCUIs = new Layer(maxRow, 9).edit().marginTop(1).finish();
@@ -71,7 +65,7 @@ public class CUIMonitor implements CUIHandler<CUIMonitor> {
 				} else {
 					displayCUIs.edit().editSlot(row, column, slotHandler -> slotHandler.button(builder -> builder
 							.material(Material.CHEST).displayName(target.getDefaultTitle())
-							.lore(String.format("&b%d&r" + " camera(s)", target.getCameras().size()))
+							.lore(String.format("&b%d&r" + " camera(s)", target.getCameraCount()))
 							.clickHandler(event -> target.getDefaultCamera().open(event.getPlayer(), true)).build()));
 				}
 			}

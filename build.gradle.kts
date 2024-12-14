@@ -1,6 +1,7 @@
 plugins {
     `java-library`
     `maven-publish`
+    `idea`
 //    id("io.papermc.paperweight.userdev") version "1.7.7"
     id("com.diffplug.spotless") version "6.25.0"
 }
@@ -24,6 +25,11 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
 //    paperweight.paperDevBundle("1.21.1-R0.1-SNAPSHOT")
+
+    testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.15.0")
+    testImplementation(platform("org.junit:junit-bom:5.11.3"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 val targetJavaVersion = 21
@@ -34,6 +40,23 @@ java {
     if (JavaVersion.current() < javaVersion) {
         toolchain.languageVersion.set(JavaLanguageVersion.of(targetJavaVersion))
     }
+}
+
+idea {
+    module {
+        isDownloadJavadoc = true
+        isDownloadSources = true
+    }
+}
+
+spotless {
+    java {
+        eclipse()
+    }
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.withType<JavaCompile> {
@@ -50,12 +73,6 @@ tasks.processResources {
     filteringCharset = "UTF-8"
     filesMatching("plugin.yml") {
         expand(props)
-    }
-}
-
-spotless {
-    java {
-        eclipse()
     }
 }
 

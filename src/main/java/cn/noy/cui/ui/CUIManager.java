@@ -20,16 +20,10 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CUIManager implements Listener {
-	private static CUIManager instance;
+	private final CUIPlugin plugin;
 
-	public static CUIManager getInstance() {
-		if (instance == null) {
-			instance = new CUIManager();
-		}
-		return instance;
-	}
-
-	private CUIManager() {
+	public CUIManager(CUIPlugin plugin) {
+		this.plugin = plugin;
 	}
 
 	private BukkitTask task;
@@ -49,7 +43,7 @@ public class CUIManager implements Listener {
 		}
 		var id = maxId.getOrDefault(handlerClass, 1);
 		maxId.put(handlerClass, id + 1);
-		var cui = new ChestUI<>(handler, id);
+		var cui = new ChestUI<>(plugin, handler, id);
 		handler.onInitialize(cui);
 		cuis.add(cui);
 		return cui;
@@ -72,15 +66,15 @@ public class CUIManager implements Listener {
 		Camera.Manager.forEachCamera(Camera::update);
 	}
 
-	public void initialize() {
+	public void setup() {
 		if (task != null) {
 			throw new IllegalStateException("CUIManager has already been initialized");
 		}
-		task = Bukkit.getScheduler().runTaskTimer(CUIPlugin.getInstance(), this::tick, 0, 1);
-		Bukkit.getPluginManager().registerEvents(this, CUIPlugin.getInstance());
+		task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 0, 1);
+		Bukkit.getPluginManager().registerEvents(this, plugin);
 	}
 
-	public void uninitialize() {
+	public void teardown() {
 		if (task == null) {
 			throw new IllegalStateException("CUIManager has not been initialized");
 		}

@@ -1,5 +1,6 @@
 package cn.noy.cui.ui;
 
+import cn.noy.cui.CUIPlugin;
 import cn.noy.cui.layer.Layer;
 import cn.noy.cui.util.Position;
 
@@ -11,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 public class ChestUI<T extends CUIHandler<T>> {
+	private final CUIPlugin plugin;
 	private final HashSet<Camera<T>> cameras = new HashSet<>();
 	private State state = State.UNINITIALIZED;
 
@@ -33,7 +35,8 @@ public class ChestUI<T extends CUIHandler<T>> {
 	private boolean dirty;
 	private boolean synced;
 
-	ChestUI(@NotNull T handler, int id) {
+	ChestUI(CUIPlugin plugin, @NotNull T handler, int id) {
+		this.plugin = plugin;
 		this.handler = handler;
 		this.id = id;
 		this.trigger = new Trigger();
@@ -64,6 +67,10 @@ public class ChestUI<T extends CUIHandler<T>> {
 					Camera.VerticalAlign.TOP, defaultTitle);
 		}
 		cameras.add(defaultCamera);
+	}
+
+	public CUIPlugin getPlugin() {
+		return plugin;
 	}
 
 	public Trigger getTrigger() {
@@ -98,6 +105,10 @@ public class ChestUI<T extends CUIHandler<T>> {
 
 	public List<Camera<T>> getCameras() {
 		return new ArrayList<>(cameras);
+	}
+
+	public int getCameraCount() {
+		return cameras.size();
 	}
 
 	public Component getDefaultTitle() {
@@ -167,9 +178,11 @@ public class ChestUI<T extends CUIHandler<T>> {
 	 * Destroy CUI, which will force all players to close CUI.
 	 */
 	public void destroy() {
+		state = State.DESTROYING;
 		handler.onDestroy();
 		new ArrayList<>(cameras).forEach(Camera::destroy);
-		CUIManager.getInstance().notifyDestroy(this);
+		plugin.getCUIManager().notifyDestroy(this);
+		state = State.DESTROYED;
 	}
 
 	public Editor edit() {
@@ -183,7 +196,7 @@ public class ChestUI<T extends CUIHandler<T>> {
 	}
 
 	public enum State {
-		UNINITIALIZED, READY
+		UNINITIALIZED, READY, DESTROYING, DESTROYED
 	}
 
 	public class Editor {
@@ -313,6 +326,9 @@ public class ChestUI<T extends CUIHandler<T>> {
 
 		void notifyReleaseCamera(Camera<T> camera) {
 			cameras.remove(camera);
+			if (camera == defaultCamera) {
+				destroy();
+			}
 		}
 	}
 }

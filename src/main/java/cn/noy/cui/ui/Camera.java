@@ -1,6 +1,5 @@
 package cn.noy.cui.ui;
 
-import cn.noy.cui.CUIPlugin;
 import cn.noy.cui.event.CUIAddItemEvent;
 import cn.noy.cui.event.CUIClickEvent;
 import cn.noy.cui.layer.Layer;
@@ -119,6 +118,21 @@ public class Camera<T extends CUIHandler<T>> {
 		return new ArrayList<>(viewers);
 	}
 
+	/**
+	 * inventory随时都可能被刷新重建，故该方法仅用于测试<br>
+	 * The inventory may be refreshed and rebuilt at any time, so this method is
+	 * only used for testing
+	 *
+	 * @return inventory
+	 */
+	public Inventory getInventory() {
+		return inventory;
+	}
+
+	public boolean isDefault() {
+		return chestUI.getDefaultCamera() == this;
+	}
+
 	public List<Layer> getActiveMasks(boolean ascending) {
 		if (ascending) {
 			return mask.values().stream().filter(wrapper -> wrapper.active).map(wrapper -> wrapper.layer).toList();
@@ -189,8 +203,9 @@ public class Camera<T extends CUIHandler<T>> {
 	public boolean open(Player viewer, boolean asChild) {
 		if (!asChild) {
 			boolean success = Manager.closeAll(viewer, false);
-			if (!success)
+			if (!success) {
 				return false;
+			}
 		}
 		viewers.add(viewer);
 		keepAliveCount.compute(viewer, (player, count) -> count == null ? 1 : count + 1);
@@ -216,24 +231,32 @@ public class Camera<T extends CUIHandler<T>> {
 	 * @return 是否成功关闭
 	 */
 	public boolean close(Player viewer, boolean force) {
-		if (!force && !closable)
+		if (!force && !closable) {
 			return false;
+		}
 
 		var exist = viewers.remove(viewer);
-		if (!exist)
+		if (!exist) {
 			return false;
+		}
 
 		var stack = Manager.BY_PLAYER.get(viewer);
-		if (stack == null || stack.empty())
+		if (stack == null || stack.empty()) {
 			return false;
+		}
 		var popped = stack.pop();
 		if (popped != this) {
 			throw new RuntimeException("Camera not match");
 		}
+		if (!stack.empty()) {
+			// 切换回来
+			stack.peek().viewers.add(viewer);
+		}
 
 		keepAliveCount.compute(viewer, (player, count) -> {
-			if (count == null)
+			if (count == null) {
 				return 0;
+			}
 			if (count <= 0) {
 				throw new RuntimeException("Keep alive count is less than 0");
 			}
@@ -253,8 +276,9 @@ public class Camera<T extends CUIHandler<T>> {
 			return false;
 		}
 		var stack = Manager.BY_PLAYER.get(viewer);
-		if (stack == null || stack.empty())
+		if (stack == null || stack.empty()) {
 			return false;
+		}
 		while (count > 0) {
 			try {
 				var camera = stack.peek();
@@ -266,7 +290,7 @@ public class Camera<T extends CUIHandler<T>> {
 					count--;
 				}
 			} catch (EmptyStackException e) {
-				CUIPlugin.getInstance().getComponentLogger()
+				chestUI.getPlugin().getComponentLogger()
 						.error(Component.text("Player " + viewer.getName() + " has no camera to close"), e);
 				return false;
 			}
@@ -274,6 +298,12 @@ public class Camera<T extends CUIHandler<T>> {
 		return true;
 	}
 
+	/**
+	 * 销毁Camera。这会导致所有正在看这个Camera的玩家级联关闭。如果{@link #isDefault()}为真，则会同时销毁ChestUI。<br>
+	 * Destroy the Camera. This will cause all players who are watching this Camera
+	 * to close cascade. If {@link #isDefault()} is true, the ChestUI will also be
+	 * destroyed.
+	 */
 	public void destroy() {
 		new ArrayList<>(viewers).forEach(player -> closeCascade(player, true));
 		chestUI.getTrigger().notifyReleaseCamera(this);
@@ -307,6 +337,11 @@ public class Camera<T extends CUIHandler<T>> {
 
 	public void update() {
 		if (!keepAlive && keepAliveCount.isEmpty()) {
+			// 如果是默认Camera，只要还有其他Camera存活，那么即使无人使用也不能销毁
+			// 一但默认Camera被销毁，ChestUI会同步销毁
+			if (isDefault() && chestUI.getCameraCount() > 1) {
+				return;
+			}
 			destroy();
 			return;
 		}
@@ -691,26 +726,6 @@ public class Camera<T extends CUIHandler<T>> {
 			Camera.this.recreate = recreate;
 			dirty = true;
 			return this;
-		}
-	}
-
-	private class PlayerInfo {
-		private final @Nullable Camera<?> from;
-		private @Nullable Camera<?> to;
-		private State state = State.VIEWING;
-
-		private PlayerInfo(@Nullable Camera<?> from) {
-			this.from = from;
-		}
-
-		public enum State {
-			CLOSING, VIEWING,
-			/**
-			 * 玩家正在查看其他CUI，但是当前CUI仍然处于打开状态。这通常发生在玩家从一个CUI切换到另一个CUI时。<br>
-			 * Player is viewing another CUI, but the current CUI is still open. This
-			 * usually happens when a player switches from one CUI to another.
-			 */
-			VIEWING_OTHER,
 		}
 	}
 
