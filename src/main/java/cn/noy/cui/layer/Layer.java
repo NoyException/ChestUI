@@ -5,10 +5,12 @@ import cn.noy.cui.slot.Slot;
 import cn.noy.cui.slot.SlotHandler;
 import cn.noy.cui.ui.CUIContents;
 
+import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class Layer {
@@ -143,31 +145,35 @@ public class Layer {
 			return this;
 		}
 
-		public Editor editRow(int row, Consumer<SlotHandler> onEdit) {
+		public Editor editRow(int row, BiConsumer<SlotHandler, Integer> onEdit) {
 			for (int column = 0; column < maxColumn; column++) {
-				editSlot(row, column, onEdit);
+				int finalColumn = column;
+				editSlot(row, column, slotHandler -> onEdit.accept(slotHandler, finalColumn));
 			}
 			return this;
 		}
 
-		public Editor editColumn(int column, Consumer<SlotHandler> onEdit) {
+		public Editor editColumn(int column, BiConsumer<SlotHandler, Integer> onEdit) {
 			for (int row = 0; row < maxRow; row++) {
-				editSlot(row, column, onEdit);
+				int finalRow = row;
+				editSlot(row, column, slotHandler -> onEdit.accept(slotHandler, finalRow));
 			}
 			return this;
 		}
 
-		public Editor editAll(Consumer<SlotHandler> onEdit) {
+		public Editor editAll(TriConsumer<SlotHandler, Integer, Integer> onEdit) {
 			for (int row = 0; row < maxRow; row++) {
 				for (int column = 0; column < maxColumn; column++) {
-					editSlot(row, column, onEdit);
+					int finalRow = row;
+					int finalColumn = column;
+					editSlot(row, column, slotHandler -> onEdit.accept(slotHandler, finalRow, finalColumn));
 				}
 			}
 			return this;
 		}
 
 		public Editor clear() {
-			return editAll(SlotHandler::empty);
+			return editAll((slotHandler, row, column) -> slotHandler.empty());
 		}
 	}
 }

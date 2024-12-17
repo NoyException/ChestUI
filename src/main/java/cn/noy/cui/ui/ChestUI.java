@@ -90,16 +90,18 @@ public class ChestUI<T extends CUIHandler<T>> {
 		return defaultCamera;
 	}
 
-	public Camera<T> newCamera() {
+	public Camera<T> createCamera() {
 		var camera = defaultCamera.deepClone();
 		cameras.add(camera);
+		handler.onCreateCamera(camera);
 		return camera;
 	}
 
-	public Camera<T> newCamera(Position position, int rowSize, int columnSize, Camera.HorizontalAlign horizontalAlign,
-			Camera.VerticalAlign verticalAlign) {
+	public Camera<T> createCamera(Position position, int rowSize, int columnSize,
+			Camera.HorizontalAlign horizontalAlign, Camera.VerticalAlign verticalAlign) {
 		var camera = new Camera<>(this, position, rowSize, columnSize, horizontalAlign, verticalAlign, defaultTitle);
 		cameras.add(camera);
+		handler.onCreateCamera(camera);
 		return camera;
 	}
 
@@ -326,6 +328,7 @@ public class ChestUI<T extends CUIHandler<T>> {
 
 		void notifyReleaseCamera(Camera<T> camera) {
 			cameras.remove(camera);
+			handler.onDestroyCamera(camera);
 			if (camera == defaultCamera) {
 				destroy();
 			}

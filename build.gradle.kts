@@ -117,6 +117,10 @@ tasks.build {
     dependsOn("spotlessApply")
 }
 
+tasks.test {
+    dependsOn("spotlessApply")
+}
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {

@@ -17,12 +17,12 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Consumer;
 
 public class Camera<T extends CUIHandler<T>> {
+	// TODO: 将Manager从静态改为Plugin的成员变量
 	public static class Manager {
 		private static final Set<Camera<?>> CAMERAS = new HashSet<>();
 		private static final Map<Player, Stack<Camera<?>>> BY_PLAYER = new HashMap<>();
@@ -440,7 +440,7 @@ public class Camera<T extends CUIHandler<T>> {
 			if (slot == null) {
 				continue;
 			}
-			itemStack = slot.place(itemStack);
+			itemStack = slot.place(itemStack, player);
 			if (ItemStacks.isEmpty(itemStack)) {
 				return null;
 			}
@@ -450,7 +450,7 @@ public class Camera<T extends CUIHandler<T>> {
 			if (slot == null) {
 				continue;
 			}
-			itemStack = slot.place(itemStack);
+			itemStack = slot.place(itemStack, player);
 			if (ItemStacks.isEmpty(itemStack)) {
 				return null;
 			}
@@ -498,7 +498,7 @@ public class Camera<T extends CUIHandler<T>> {
 					if (slot == null) {
 						continue;
 					}
-					itemStack = slot.place(itemStack);
+					itemStack = slot.place(itemStack, player);
 					if (ItemStacks.isEmpty(itemStack)) {
 						return null;
 					}
@@ -508,7 +508,7 @@ public class Camera<T extends CUIHandler<T>> {
 					if (slot == null) {
 						continue;
 					}
-					itemStack = slot.place(itemStack);
+					itemStack = slot.place(itemStack, player);
 					if (ItemStacks.isEmpty(itemStack)) {
 						return null;
 					}
@@ -558,7 +558,7 @@ public class Camera<T extends CUIHandler<T>> {
 					if (ItemStacks.isEmpty(inSlot)) {
 						continue;
 					}
-					list.add(Pair.of(inSlot.getAmount(), slot::collect));
+					list.add(Pair.of(inSlot.getAmount(), itemStack1 -> slot.collect(itemStack1, player)));
 				}
 				for (Layer layer : activeLayers) {
 					var slot = layer.getRelativeSlot(row + topLeft.row(), column + topLeft.column());
@@ -569,7 +569,7 @@ public class Camera<T extends CUIHandler<T>> {
 					if (ItemStacks.isEmpty(inSlot)) {
 						continue;
 					}
-					list.add(Pair.of(inSlot.getAmount(), slot::collect));
+					list.add(Pair.of(inSlot.getAmount(), itemStack1 -> slot.collect(itemStack1, player)));
 				}
 			}
 		}
@@ -583,7 +583,7 @@ public class Camera<T extends CUIHandler<T>> {
 				}
 				int finalSlot = slot;
 				list.add(Pair.of(item.getAmount(), itemStack1 -> {
-					var result = ItemStacks.place(itemStack1, item);
+					var result = ItemStacks.place(itemStack1, item, false);
 					itemStack1 = result.placed();
 					inventory.setItem(finalSlot, result.remaining());
 					return itemStack1;

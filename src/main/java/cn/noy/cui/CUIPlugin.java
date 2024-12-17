@@ -3,6 +3,7 @@ package cn.noy.cui;
 import cn.noy.cui.prebuilt.cmd.CmdCUI;
 import cn.noy.cui.ui.CUIManager;
 
+import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.PluginCommand;
@@ -10,11 +11,16 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class CUIPlugin extends JavaPlugin {
-
+	private static ComponentLogger logger;
 	private final CUIManager cuiManager = new CUIManager(this);
+
+	public static ComponentLogger logger() {
+		return logger;
+	}
 
 	@Override
 	public void onEnable() {
+		logger = getComponentLogger();
 		cuiManager.setup();
 		bindCommand("cui", new CmdCUI(this));
 	}

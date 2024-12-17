@@ -45,7 +45,7 @@ public class ChestUITest {
 	public void testOpen() {
 		Assertions.assertEquals(1, cui.getCameraCount(), "应当只有一个默认相机");
 		Assertions.assertTrue(cui.getDefaultCamera().open(a, false), "应当能成功使用默认摄像头");
-		camera = cui.newCamera();
+		camera = cui.createCamera();
 		Assertions.assertTrue(camera.open(b, false), "应当能成功使用新建摄像头");
 		Assertions.assertEquals(2, cui.getCameraCount(), "添加相机后应该有两个相机");
 		Assertions.assertNull(camera.getInventory(), "服务器还没有tick，当前玩家应该还未展示CUI");
@@ -89,7 +89,7 @@ public class ChestUITest {
 		@Override
 		public void onInitialize(ChestUI<TestCUI> cui) {
 			cui.edit().setKeepAlive(true).setLayer(0, new Layer(1, 9).edit()
-					.editAll(slotHandler -> slotHandler.button(
+					.editAll((slotHandler, row, column) -> slotHandler.button(
 							builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
 					.editSlot(0, 0, slotHandler -> slotHandler.button(builder -> builder
 							.material(Material.RED_STAINED_GLASS_PANE).displayName("Previous").clickHandler(event -> {
