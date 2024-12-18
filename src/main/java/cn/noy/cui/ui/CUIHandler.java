@@ -20,11 +20,17 @@ public interface CUIHandler<T extends CUIHandler<T>> {
 	default void onDestroy() {
 	}
 
-	default boolean onOpen(Player viewer) {
+	default void onCreateCamera(Camera<T> camera) {
+	}
+
+	default void onDestroyCamera(Camera<T> camera) {
+	}
+
+	default boolean onOpen(Player viewer, Camera<T> camera) {
 		return true;
 	}
 
-	default boolean onClose(Player viewer) {
+	default boolean onClose(Player viewer, Camera<T> camera) {
 		return true;
 	}
 

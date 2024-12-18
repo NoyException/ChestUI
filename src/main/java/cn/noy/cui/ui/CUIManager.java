@@ -11,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
@@ -120,7 +121,8 @@ public class CUIManager implements Listener {
 					event.setCancelled(true);
 				}
 				case COLLECT_TO_CURSOR -> {
-					camera.collect(player, event.getCursor(), true);
+					var collected = camera.collect(player, event.getCursor(), true);
+					player.setItemOnCursor(collected);
 					event.setCancelled(true);
 				}
 			}

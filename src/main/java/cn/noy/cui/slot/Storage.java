@@ -1,20 +1,21 @@
 package cn.noy.cui.slot;
 
 import cn.noy.cui.event.CUIClickEvent;
-import cn.noy.cui.ui.CUIManager;
 import cn.noy.cui.ui.Camera;
 import cn.noy.cui.util.ItemStacks;
 
 import org.bukkit.GameMode;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Storage extends Slot {
 	public interface Source {
 		ItemStack get();
 
-		void set(ItemStack itemStack);
+		void set(ItemStack itemStack, @Nullable Player player);
 
 		boolean isDirty();
 
@@ -29,6 +30,10 @@ public class Storage extends Slot {
 				return true;
 			}
 			return current.getAmount() < current.getMaxStackSize() && current.isSimilar(itemStack);
+		}
+
+		default boolean bidirectional() {
+			return true;
 		}
 	}
 
@@ -46,95 +51,136 @@ public class Storage extends Slot {
 	}
 
 	@Override
-	public void click(@NotNull CUIClickEvent<?> event) {
-		event.setCancelled(true);
-		var itemStack = source.get();
-		var player = event.getPlayer();
-		var cursor = event.getCursor();
-		if (cursor != null && cursor.isEmpty())
-			cursor = null;
-		// Bukkit.getLogger().warning("Click "+event.getClickType());
-		switch (event.getClickType()) {
-			case DROP -> {
-				// 丢弃【一个】
-				if (itemStack.getAmount() > 0) {
-					var drop = itemStack.clone();
-					drop.setAmount(1);
-					itemStack.setAmount(itemStack.getAmount() - 1);
-					var location = player.getLocation();
-					location.getWorld().dropItemNaturally(location, drop);
-				}
-			}
-			case CONTROL_DROP -> {
-				// 丢弃【全部】
-				var location = player.getLocation();
-				location.getWorld().dropItemNaturally(location, itemStack);
-				itemStack = null;
-			}
-			case LEFT -> {
-				// 补充【全部】或交换【全部】
-				if (source.placeable(cursor)) {
-					var result = ItemStacks.place(itemStack, cursor);
-					itemStack = result.placed();
-					cursor = result.remaining();
-				} else {
-					var tmp = cursor;
-					cursor = itemStack;
-					itemStack = tmp;
-				}
-			}
-			case RIGHT -> {
-				// 补充【一个】或交换【全部】
-				if (source.placeable(cursor)) {
-					assert cursor != null;
-					var tmp = cursor.clone();
-					tmp.setAmount(1);
-					var result = ItemStacks.place(itemStack, tmp);
-					if (ItemStacks.isEmpty(result.remaining())) {
-						itemStack = result.placed();
-						cursor.setAmount(cursor.getAmount() - 1);
-					}
-				} else {
-					var tmp = cursor;
-					cursor = itemStack;
-					itemStack = tmp;
-				}
-			}
-			case SHIFT_LEFT, SHIFT_RIGHT -> {
-				// 取出【全部】
-				var first = player.getInventory().addItem(itemStack).values().stream().findFirst();
-				itemStack = first.orElse(null);
-			}
-			case MIDDLE -> {
-				// 克隆【一组】
-				if (player.getGameMode() == GameMode.CREATIVE && cursor == null) {
-					cursor = itemStack.clone();
-					cursor.setAmount(cursor.getMaxStackSize());
-				}
-			}
-			case DOUBLE_CLICK -> {
-				// 收集【全部】
-				var camera = Camera.Manager.getCamera(player);
-				if (camera != null) {
-					cursor = camera.collect(player, cursor, true);
-				}
-			}
-		}
-		source.set(itemStack);
-		event.setCursor(cursor);
+	public void set(ItemStack itemStack, @Nullable Player player) {
+		source.set(itemStack, player);
 	}
 
 	@Override
-	public ItemStack place(ItemStack itemStack) {
-		var result = ItemStacks.place(source.get(), itemStack);
-		source.set(result.placed());
+	public void click(@NotNull CUIClickEvent<?> event) {
+		event.setCancelled(true);
+		var player = event.getPlayer();
+		// Bukkit.getLogger().warning("Click "+event.getClickType());
+		if (source.bidirectional()) {
+			var itemStack = source.get();
+			var cursor = event.getCursor();
+			switch (event.getClickType()) {
+				case DROP -> {
+					// 丢弃【一个】
+					if (itemStack.getAmount() > 0) {
+						var drop = itemStack.clone();
+						drop.setAmount(1);
+						itemStack.setAmount(itemStack.getAmount() - 1);
+						var location = player.getLocation();
+						location.getWorld().dropItemNaturally(location, drop);
+					}
+				}
+				case CONTROL_DROP -> {
+					// 丢弃【全部】
+					var location = player.getLocation();
+					location.getWorld().dropItemNaturally(location, itemStack);
+					itemStack = null;
+				}
+				case LEFT -> {
+					// 补充【全部】或交换【全部】
+					if (source.placeable(cursor)) {
+						var result = ItemStacks.place(itemStack, cursor, false);
+						itemStack = result.placed();
+						cursor = result.remaining();
+					} else {
+						var tmp = cursor;
+						cursor = itemStack;
+						itemStack = tmp;
+					}
+				}
+				case RIGHT -> {
+					// 补充【一个】或交换【全部】
+					if (source.placeable(cursor)) {
+						assert cursor != null;
+						var tmp = cursor.clone();
+						tmp.setAmount(1);
+						var result = ItemStacks.place(itemStack, tmp, false);
+						if (ItemStacks.isEmpty(result.remaining())) {
+							itemStack = result.placed();
+							cursor.setAmount(cursor.getAmount() - 1);
+						}
+					} else {
+						var tmp = cursor;
+						cursor = itemStack;
+						itemStack = tmp;
+					}
+				}
+				case SHIFT_LEFT, SHIFT_RIGHT -> {
+					// 取出【全部】
+					var first = player.getInventory().addItem(itemStack).values().stream().findFirst();
+					itemStack = first.orElse(null);
+				}
+				case MIDDLE -> {
+					// 克隆【一组】
+					if (player.getGameMode() == GameMode.CREATIVE && cursor == null) {
+						cursor = itemStack.clone();
+						cursor.setAmount(cursor.getMaxStackSize());
+					}
+				}
+				case DOUBLE_CLICK -> {
+					// 收集【全部】
+					var camera = Camera.Manager.getCamera(player);
+					if (camera != null) {
+						cursor = camera.collect(player, cursor, true);
+					}
+				}
+			}
+			source.set(itemStack, player);
+			event.setCursor(cursor);
+		} else {
+			switch (event.getClickType()) {
+				case LEFT, RIGHT -> {
+					// 捡起【全部】
+					var itemStack = source.get();
+					var cursor = event.getCursor();
+					var result = ItemStacks.place(cursor, itemStack, false);
+					if (result.remaining() == null) {
+						cursor = result.placed();
+						itemStack = null;
+					}
+					source.set(itemStack, player);
+					event.setCursor(cursor);
+				}
+				case SHIFT_LEFT, SHIFT_RIGHT -> {
+					// 在Similar的情况下尽可能生产
+					ItemStack last = null;
+					while (true) {
+						var itemStack = source.get();
+						if (last != null && !ItemStacks.isSimilar(last, itemStack))
+							break;
+						last = itemStack;
+						source.set(null, player);
+
+						if (!ItemStacks.isEmpty(itemStack)) {
+							player.getInventory().addItem(itemStack);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	@Override
+	public ItemStack place(ItemStack itemStack, @Nullable Player player) {
+		if (!source.bidirectional()) {
+			return ItemStacks.clone(itemStack);
+		}
+		var result = ItemStacks.place(source.get(), itemStack, false);
+		source.set(result.placed(), player);
 		return result.remaining();
 	}
 
 	@Override
-	public ItemStack collect(ItemStack itemStack) {
-		var result = ItemStacks.place(itemStack, source.get());
-		source.set(result.remaining());
+	public ItemStack collect(ItemStack itemStack, @Nullable Player player) {
+		if (!source.bidirectional()) {
+			return ItemStacks.clone(itemStack);
+		}
+		var result = ItemStacks.place(itemStack, source.get(), false);
+		source.set(result.remaining(), player);
 		return result.placed();
 	}
 
@@ -175,7 +221,7 @@ public class Storage extends Slot {
 				}
 
 				@Override
-				public void set(ItemStack itemStack) {
+				public void set(ItemStack itemStack, @Nullable Player player) {
 					dirty = true;
 					this.itemStack = itemStack;
 				}
@@ -196,7 +242,7 @@ public class Storage extends Slot {
 		public Builder source(Inventory inventory, int rawSlot) {
 			storage.source = new Source() {
 				private boolean init = true;
-				private ItemStack itemStack;
+				private ItemStack actual;
 				private ItemStack expected;
 
 				@Override
@@ -205,27 +251,27 @@ public class Storage extends Slot {
 				}
 
 				@Override
-				public void set(ItemStack itemStack) {
+				public void set(ItemStack itemStack, @Nullable Player player) {
 					inventory.setItem(rawSlot, itemStack);
 				}
 
 				@Override
 				public boolean isDirty() {
-					expected = inventory.getItem(rawSlot);
+					expected = get();
 					if (init) {
 						return true;
 					}
-					return !ItemStacks.isSame(expected, itemStack);
+					return !ItemStacks.isSame(expected, actual);
 				}
 
 				@Override
 				public void clean() {
 					init = false;
 					if (expected == null) {
-						itemStack = null;
+						actual = null;
 						return;
 					}
-					itemStack = expected.clone();
+					actual = expected.clone();
 				}
 			};
 			return this;

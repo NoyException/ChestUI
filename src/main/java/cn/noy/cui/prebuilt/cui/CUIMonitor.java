@@ -19,7 +19,7 @@ public class CUIMonitor implements CUIHandler<CUIMonitor> {
 		this.displayCUIs = new Layer(5, 9);
 		this.cui = cui.edit().setLayer(1, displayCUIs).finish();
 		this.cui.getDefaultCamera().edit().setMask(1, new Layer(1, 9).edit()
-				.editAll(slotHandler -> slotHandler.button(
+				.editAll((slotHandler, row, column) -> slotHandler.button(
 						builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
 				.editSlot(0, 0, slotHandler -> slotHandler.button(builder -> builder
 						.material(Material.RED_STAINED_GLASS_PANE).displayName("Previous").clickHandler(event -> {

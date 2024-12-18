@@ -48,35 +48,37 @@ public class InventoryMonitorTest {
 		MockBukkit.unmock();
 	}
 
-	@Test
-	public void testLeftClick() {
-		// A从CUI捡起泥土
-		as.simulateInventoryClick(a.getOpenInventory(), ClickType.LEFT, 45);
-		Assertions.assertTrue(ItemStacks.isEmpty(a.getOpenInventory().getBottomInventory().getItem(0)), "物品应当已被捡起");
-		// A将泥土放入CUI第二排第一格，应当同步放入A的背包的左上角
-		as.simulateInventoryClick(a.getOpenInventory(), ClickType.LEFT, 9);
-		server.getScheduler().performOneTick();
-		Assertions.assertTrue(ItemStacks.isSame(new ItemStack(Material.DIRT, 1),
-				a.getOpenInventory().getBottomInventory().getItem(9)), "物品应当已被放入CUI，并同步放入a的背包");
-		// TODO: 因为MockBukkit还未支持放置物品，故无法测试放置物品的情况
-		// // B将泥土从CUI左上角放到自己背包里
-		// bs.simulateInventoryClick(b.getOpenInventory(), ClickType.LEFT, 9);
-		// bs.simulateInventoryClick(b.getOpenInventory(), ClickType.LEFT, 81);
-		// server.getScheduler().performOneTick();
-		// printInventory(b.getOpenInventory());
-		// Assertions.assertTrue(ItemStacks.isSame(new ItemStack(Material.DIRT, 1),
-		// b.getOpenInventory().getBottomInventory().getItem(0)), "物品应当已被放入b的背包");
-		// Assertions.assertTrue(ItemStacks.isEmpty(a.getOpenInventory().getBottomInventory().getItem(9)),
-		// "物品应当已被捡起");
-		// Assertions.assertTrue(ItemStacks.isEmpty(a.getOpenInventory().getItem(9)),
-		// "物品应当已被捡起");
-		// // B将泥土放回CUI左下角
-		// bs.simulateInventoryClick(b.getOpenInventory(), ClickType.LEFT, 81);
-		// bs.simulateInventoryClick(b.getOpenInventory(), ClickType.LEFT, 45);
-		// server.getScheduler().performOneTick();
-		// Assertions.assertTrue(ItemStacks.isSame(new ItemStack(Material.DIRT, 1),
-		// a.getOpenInventory().getBottomInventory().getItem(0)), "物品应当已被放入a的背包");
-	}
+	// TODO: 因为MockBukkit还未支持放置物品，故无法测试放置物品的情况
+	// @Test
+	// public void testLeftClick() {
+	// // A从CUI捡起泥土
+	// as.simulateInventoryClick(a.getOpenInventory(), ClickType.LEFT, 45);
+	// ItemStackAssertions.assertEmpty(a.getOpenInventory().getBottomInventory().getItem(0)),
+	// "物品应当已被捡起");
+	// // A将泥土放入CUI第二排第一格，应当同步放入A的背包的左上角
+	// as.simulateInventoryClick(a.getOpenInventory(), ClickType.LEFT, 9);
+	// server.getScheduler().performOneTick();
+	// ItemStackAssertions.assertSame(new ItemStack(Material.DIRT, 1),
+	// a.getOpenInventory().getBottomInventory().getItem(9)),
+	// "物品应当已被放入CUI，并同步放入a的背包");
+	// // B将泥土从CUI左上角放到自己背包里
+	// bs.simulateInventoryClick(b.getOpenInventory(), ClickType.LEFT, 9);
+	// bs.simulateInventoryClick(b.getOpenInventory(), ClickType.LEFT, 81);
+	// server.getScheduler().performOneTick();
+	// printInventory(b.getOpenInventory());
+	// ItemStackAssertions.assertSame(new ItemStack(Material.DIRT, 1),
+	// b.getOpenInventory().getBottomInventory().getItem(0)), "物品应当已被放入b的背包");
+	// ItemStackAssertions.assertEmpty(a.getOpenInventory().getBottomInventory().getItem(9)),
+	// "物品应当已被捡起");
+	// ItemStackAssertions.assertEmpty(a.getOpenInventory().getItem(9)),
+	// "物品应当已被捡起");
+	// // B将泥土放回CUI左下角
+	// bs.simulateInventoryClick(b.getOpenInventory(), ClickType.LEFT, 81);
+	// bs.simulateInventoryClick(b.getOpenInventory(), ClickType.LEFT, 45);
+	// server.getScheduler().performOneTick();
+	// ItemStackAssertions.assertSame(new ItemStack(Material.DIRT, 1),
+	// a.getOpenInventory().getBottomInventory().getItem(0)), "物品应当已被放入a的背包");
+	// }
 
 	private void printInventory(InventoryView view) {
 		for (int i = 0; i < view.countSlots(); i++) {

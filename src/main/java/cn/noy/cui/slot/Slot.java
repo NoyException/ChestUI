@@ -2,7 +2,9 @@ package cn.noy.cui.slot;
 
 import cn.noy.cui.event.CUIClickEvent;
 
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class Slot {
 	/**
@@ -38,6 +40,19 @@ public abstract class Slot {
 	}
 
 	/**
+	 * 设置槽位中的物品<br>
+	 * Set the item in the slot
+	 *
+	 * @param itemStack
+	 *            要设置的物品<br>
+	 *            The item to set
+	 * @param player
+	 *            玩家<br>
+	 *            The player
+	 */
+	public abstract void set(ItemStack itemStack, @Nullable Player player);
+
+	/**
 	 * 处理点击事件。如果事件没有被取消，它将会被传递到下一层<br>
 	 * Handle the click event. If the event is not cancelled, it will be passed to
 	 * the next layer
@@ -55,10 +70,13 @@ public abstract class Slot {
 	 * @param itemStack
 	 *            要放入的物品<br>
 	 *            The item to place
+	 * @param player
+	 *            玩家<br>
+	 *            The player
 	 * @return 剩余的物品，如果没有剩余则返回null<br>
 	 *         The remaining item, if there is no remaining item, return null
 	 */
-	public abstract ItemStack place(ItemStack itemStack);
+	public abstract ItemStack place(ItemStack itemStack, @Nullable Player player);
 
 	/**
 	 * 尝试收集槽位中的物品<br>
@@ -67,11 +85,14 @@ public abstract class Slot {
 	 * @param itemStack
 	 *            要收集的物品<br>
 	 *            The item to collect
+	 * @param player
+	 *            玩家<br>
+	 *            The player
 	 * @return 收集到的物品，如果没有收集到则返回最开始的要收集的物品<br>
 	 *         The collected item, if there is no collected item, return the
 	 *         original item to collect
 	 */
-	public abstract ItemStack collect(ItemStack itemStack);
+	public abstract ItemStack collect(ItemStack itemStack, @Nullable Player player);
 
 	/**
 	 * 深度克隆槽位<br>

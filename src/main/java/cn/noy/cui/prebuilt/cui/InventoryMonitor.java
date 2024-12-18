@@ -20,11 +20,11 @@ public class InventoryMonitor implements CUIHandler<InventoryMonitor> {
 	public void onInitialize(ChestUI<InventoryMonitor> cui) {
 		this.displayPlayers = new Layer(5, 9).edit().marginTop(1).finish();
 		this.monitorInventory = new Layer(5, 9).edit().marginTop(1)
-				.editRow(3, slotHandler -> slotHandler.button(
+				.editRow(3, (slotHandler, column) -> slotHandler.button(
 						builder -> builder.material(Material.WHITE_STAINED_GLASS_PANE).displayName(" ").build()))
 				.finish();
 		this.cui = cui.edit().setLayer(0, new Layer(1, 9).edit()
-				.editAll(slotHandler -> slotHandler.button(
+				.editAll((slotHandler, row, column) -> slotHandler.button(
 						builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
 				.editSlot(0, 0, slotHandler -> slotHandler.button(builder -> builder
 						.material(Material.RED_STAINED_GLASS_PANE).displayName("Previous").clickHandler(event -> {
