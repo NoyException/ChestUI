@@ -19,12 +19,12 @@ public class SlotHandler {
 		return slot.isDirty();
 	}
 
-	public void empty() {
-		slot = Empty.getInstance();
-	}
-
 	public void deepClone(@NotNull SlotHandler handler) {
 		slot = handler.slot.deepClone();
+	}
+
+	public void empty() {
+		slot = Empty.getInstance();
 	}
 
 	public void button(@NotNull Function<Button.Builder, Button> builder) {
