@@ -1,7 +1,9 @@
+import org.gradle.internal.os.OperatingSystem
+
 plugins {
     `java-library`
     `maven-publish`
-    `idea`
+    idea
 //    id("io.papermc.paperweight.userdev") version "1.7.7"
     id("com.diffplug.spotless") version "6.25.0"
 }
@@ -78,8 +80,13 @@ tasks.processResources {
 
 tasks.register<Exec>("setupServer") {
     workingDir = file("./devtools")
-    executable = "bash"
-    args("./setup-server.sh")
+    if (OperatingSystem.current().isWindows) {
+        executable = "cmd"
+        args("/c", "setup-server.bat")
+    } else {
+        executable = "bash"
+        args("./setup-server.sh")
+    }
     standardOutput = System.out
     errorOutput = System.err
 }
@@ -87,8 +94,13 @@ tasks.register<Exec>("setupServer") {
 tasks.register<Exec>("runServer") {
     dependsOn("setupServer")
     workingDir = file("./server")
-    executable = "bash"
-    args("./run.sh")
+    if (OperatingSystem.current().isWindows) {
+        executable = "cmd"
+        args("/c", "run.bat")
+    } else {
+        executable = "bash"
+        args("./run.sh")
+    }
     standardOutput = System.out
     errorOutput = System.err
 }
