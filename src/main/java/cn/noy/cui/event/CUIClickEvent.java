@@ -1,32 +1,46 @@
 package cn.noy.cui.event;
 
 import cn.noy.cui.ui.CUIHandler;
+import cn.noy.cui.ui.Camera;
 import cn.noy.cui.ui.ChestUI;
 import cn.noy.cui.util.Position;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
+import org.bukkit.event.Event;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
-public class CUIClickEvent<T extends CUIHandler<T>> extends CUIEvent<T> implements Cancellable {
+public class CUIClickEvent<T extends CUIHandler<T>> extends Event implements Cancellable {
+	private static final HandlerList HANDLERS = new HandlerList();
+	private final Camera<T> camera;
 	private final Player player;
 	private final ClickType clickType;
 	private final InventoryAction action;
-	// 相对于ChestUI的行列
+	// 相对于ChestUI的点击位置
 	private final Position position;
 	private ItemStack cursor;
 	private boolean cancel;
 
-	public CUIClickEvent(ChestUI<T> chestUI, Player player, ClickType clickType, InventoryAction action,
+	public CUIClickEvent(Camera<T> camera, Player player, ClickType clickType, InventoryAction action,
 			Position position, ItemStack cursor) {
-		super(chestUI);
+		this.camera = camera;
 		this.player = player;
 		this.clickType = clickType;
 		this.action = action;
 		this.position = position;
 		this.cursor = cursor;
+	}
+
+	public ChestUI<T> getChestUI() {
+		return camera.getChestUI();
+	}
+
+	public Camera<T> getCamera() {
+		return camera;
 	}
 
 	public Player getPlayer() {
@@ -61,5 +75,15 @@ public class CUIClickEvent<T extends CUIHandler<T>> extends CUIEvent<T> implemen
 	@Override
 	public void setCancelled(boolean cancel) {
 		this.cancel = cancel;
+	}
+
+	@SuppressWarnings("unused")
+	public static HandlerList getHandlerList() {
+		return HANDLERS;
+	}
+
+	@Override
+	public @NotNull HandlerList getHandlers() {
+		return HANDLERS;
 	}
 }

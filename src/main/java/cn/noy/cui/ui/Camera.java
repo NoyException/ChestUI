@@ -75,7 +75,7 @@ public class Camera<T extends CUIHandler<T>> {
 	 * 用于保活的计数，玩家使用该相机则计数+1，不使用则计数-1，从本相机跳到别的相机计数不变（因为会跳回来）
 	 */
 	private final HashMap<Player, Integer> keepAliveCount = new HashMap<>();
-	private final TreeMap<Integer, LayerWrapper> mask = new TreeMap<>();
+	private final TreeMap<Integer, LayerWrapper> layers = new TreeMap<>();
 	private final HashMap<Layer, Integer> layerPriority = new HashMap<>();
 	private final InventoryHolder holder = new DummyHolder();
 	private Position position;
@@ -89,6 +89,7 @@ public class Camera<T extends CUIHandler<T>> {
 
 	private boolean recreate = true;
 	private boolean dirty = true;
+	private boolean destroyed;
 
 	public Camera(ChestUI<T> chestUI, Position position, int rowSize, int columnSize, HorizontalAlign horizontalAlign,
 			VerticalAlign verticalAlign, Component title) {
@@ -133,12 +134,14 @@ public class Camera<T extends CUIHandler<T>> {
 		return chestUI.getDefaultCamera() == this;
 	}
 
-	public List<Layer> getActiveMasks(boolean ascending) {
-		if (ascending) {
-			return mask.values().stream().filter(wrapper -> wrapper.active).map(wrapper -> wrapper.layer).toList();
-		}
-		return mask.descendingMap().values().stream().filter(wrapper -> wrapper.active).map(wrapper -> wrapper.layer)
-				.toList();
+	public NavigableMap<Integer, Layer> getActiveLayers() {
+		var map = chestUI.getActiveLayers();
+		layers.forEach((priority, wrapper) -> {
+			if (wrapper.active) {
+				map.put(priority, wrapper.layer);
+			}
+		});
+		return map;
 	}
 
 	public @NotNull Position getPosition() {
@@ -201,6 +204,9 @@ public class Camera<T extends CUIHandler<T>> {
 
 	// TODO: 测试切换Camera
 	public boolean open(Player viewer, boolean asChild) {
+		if (destroyed) {
+			throw new IllegalStateException("Camera has been destroyed");
+		}
 		if (!asChild) {
 			boolean success = Manager.closeAll(viewer, false);
 			if (!success) {
@@ -308,11 +314,13 @@ public class Camera<T extends CUIHandler<T>> {
 		new ArrayList<>(viewers).forEach(player -> closeCascade(player, true));
 		chestUI.getTrigger().notifyReleaseCamera(this);
 		Manager.CAMERAS.remove(this);
+		destroyed = true;
 	}
 
 	public void sync(boolean force) {
+		var activeLayers = getActiveLayers();
 		if (!recreate && !dirty && !force) {
-			if (getActiveMasks(false).stream().noneMatch(Layer::isDirty))
+			if (activeLayers.values().stream().noneMatch(Layer::isDirty))
 				return;
 		}
 		if (recreate) {
@@ -321,34 +329,29 @@ public class Camera<T extends CUIHandler<T>> {
 		}
 		dirty = false;
 
-		var topLeft = getTopLeft();
-		var contents = chestUI.getContents();
-		getActiveMasks(false).forEach(layer -> layer.display(contents, topLeft.row(), topLeft.column()));
+		var contents = new CUIContents<>(this);
+		activeLayers.descendingMap().values().forEach(layer -> layer.display(contents));
 
 		for (int row = 0; row < rowSize; row++) {
 			for (int column = 0; column < columnSize; column++) {
 				var index = row * columnSize + column;
-				var absoluteRow = row + topLeft.row();
-				var absoluteColumn = column + topLeft.column();
-				inventory.setItem(index, contents.getItem(absoluteRow, absoluteColumn));
+				inventory.setItem(index, contents.getItem(row, column));
 			}
 		}
 	}
 
 	public void update() {
 		if (!keepAlive && keepAliveCount.isEmpty()) {
-			// 如果是默认Camera，只要还有其他Camera存活，那么即使无人使用也不能销毁
-			// 一但默认Camera被销毁，ChestUI会同步销毁
-			if (isDefault() && chestUI.getCameraCount() > 1) {
+			// 如果是默认Camera，只要CUI保活，或者还有其他Camera存活，那么即使无人使用也不能销毁
+			// 因为一但默认Camera被销毁，ChestUI会同步销毁
+			if (isDefault() && (chestUI.isKeepAlive() || chestUI.getCameraCount() > 1)) {
 				return;
 			}
 			destroy();
 			return;
 		}
 
-		var force = chestUI.getTrigger().update();
-
-		sync(force);
+		sync(false);
 
 		// openInventory可能会触发事件，从而导致ConcurrentModificationException
 		new ArrayList<>(viewers).forEach(player -> {
@@ -384,7 +387,7 @@ public class Camera<T extends CUIHandler<T>> {
 	public void click(Player player, ClickType clickType, InventoryAction action, int row, int column,
 			ItemStack cursor) {
 		var topLeft = getTopLeft();
-		var event = new CUIClickEvent<>(chestUI, player, clickType, action,
+		var event = new CUIClickEvent<>(this, player, clickType, action,
 				new Position(row + topLeft.row(), column + topLeft.column()), cursor);
 		Bukkit.getPluginManager().callEvent(event);
 		if (event.isCancelled()) {
@@ -392,15 +395,8 @@ public class Camera<T extends CUIHandler<T>> {
 		}
 
 		// 深度低的先click
-		for (Layer layer : getActiveMasks(true)) {
-			layer.click(event, topLeft.row(), topLeft.column());
-			if (event.isCancelled()) {
-				player.setItemOnCursor(event.getCursor());
-				return;
-			}
-		}
-		for (Layer layer : chestUI.getActiveLayers(true)) {
-			layer.click(event, 0, 0);
+		for (Layer layer : getActiveLayers().values()) {
+			layer.click(event);
 			if (event.isCancelled()) {
 				player.setItemOnCursor(event.getCursor());
 				return;
@@ -432,21 +428,10 @@ public class Camera<T extends CUIHandler<T>> {
 			return null;
 		}
 
-		var topLeft = getTopLeft();
-
 		// 深度低的先place
-		for (Layer layer : getActiveMasks(true)) {
-			var slot = layer.getRelativeSlot(row, column);
-			if (slot == null) {
-				continue;
-			}
-			itemStack = slot.place(itemStack, player);
-			if (ItemStacks.isEmpty(itemStack)) {
-				return null;
-			}
-		}
-		for (Layer layer : chestUI.getActiveLayers(true)) {
-			var slot = layer.getRelativeSlot(row + topLeft.row(), column + topLeft.column());
+		// TODO: 改为事件驱动
+		for (Layer layer : getActiveLayers().values()) {
+			var slot = layer.getRelativeSlot(this, row, column);
 			if (slot == null) {
 				continue;
 			}
@@ -477,7 +462,7 @@ public class Camera<T extends CUIHandler<T>> {
 			return null;
 		}
 
-		var event = new CUIAddItemEvent<>(chestUI, player, itemStack);
+		var event = new CUIAddItemEvent<>(this, player, itemStack);
 		Bukkit.getPluginManager().callEvent(event);
 		if (event.isCancelled()) {
 			return itemStack;
@@ -488,23 +473,11 @@ public class Camera<T extends CUIHandler<T>> {
 		}
 
 		// 深度低的先addItem
-		var topLeft = getTopLeft();
-		var activeMasks = getActiveMasks(true);
-		var activeLayers = chestUI.getActiveLayers(true);
+		var activeLayers = getActiveLayers().values();
 		for (int row = 0; row < rowSize; row++) {
 			for (int column = 0; column < columnSize; column++) {
-				for (Layer layer : activeMasks) {
-					var slot = layer.getRelativeSlot(row, column);
-					if (slot == null) {
-						continue;
-					}
-					itemStack = slot.place(itemStack, player);
-					if (ItemStacks.isEmpty(itemStack)) {
-						return null;
-					}
-				}
 				for (Layer layer : activeLayers) {
-					var slot = layer.getRelativeSlot(row + topLeft.row(), column + topLeft.column());
+					var slot = layer.getRelativeSlot(this, row, column);
 					if (slot == null) {
 						continue;
 					}
@@ -544,24 +517,12 @@ public class Camera<T extends CUIHandler<T>> {
 		}
 		var list = new ArrayList<Pair<Integer, Collectable>>();
 
-		var topLeft = getTopLeft();
-		var activeMasks = getActiveMasks(true);
-		var activeLayers = chestUI.getActiveLayers(true);
+		// TODO: 改为事件驱动
+		var activeLayers = getActiveLayers().values();
 		for (int row = 0; row < rowSize; row++) {
 			for (int column = 0; column < columnSize; column++) {
-				for (Layer layer : activeMasks) {
-					var slot = layer.getRelativeSlot(row, column);
-					if (slot == null) {
-						continue;
-					}
-					var inSlot = slot.get();
-					if (ItemStacks.isEmpty(inSlot)) {
-						continue;
-					}
-					list.add(Pair.of(inSlot.getAmount(), itemStack1 -> slot.collect(itemStack1, player)));
-				}
 				for (Layer layer : activeLayers) {
-					var slot = layer.getRelativeSlot(row + topLeft.row(), column + topLeft.column());
+					var slot = layer.getRelativeSlot(this, row, column);
 					if (slot == null) {
 						continue;
 					}
@@ -603,7 +564,7 @@ public class Camera<T extends CUIHandler<T>> {
 
 	public Camera<T> deepClone() {
 		var clone = new Camera<>(chestUI, position, rowSize, columnSize, horizontalAlign, verticalAlign, title);
-		mask.forEach((priority, layerWrapper) -> clone.edit().setMask(priority, layerWrapper.layer.deepClone()));
+		layers.forEach((priority, layerWrapper) -> clone.edit().setLayer(priority, layerWrapper.layer.deepClone()));
 		return clone;
 	}
 
@@ -680,8 +641,8 @@ public class Camera<T extends CUIHandler<T>> {
 			return this;
 		}
 
-		public Editor setMask(int priority, Layer layer) {
-			var legacy = mask.put(priority, new LayerWrapper(layer));
+		public Editor setLayer(int priority, Layer layer) {
+			var legacy = layers.put(priority, new LayerWrapper(layer));
 			if (legacy != null) {
 				layerPriority.remove(legacy.layer);
 			}
@@ -691,7 +652,7 @@ public class Camera<T extends CUIHandler<T>> {
 		}
 
 		public Editor removeMask(int priority) {
-			var wrapper = mask.remove(priority);
+			var wrapper = layers.remove(priority);
 			if (wrapper != null) {
 				layerPriority.remove(wrapper.layer);
 			}
@@ -700,7 +661,7 @@ public class Camera<T extends CUIHandler<T>> {
 		}
 
 		public Editor setActive(int priority, boolean active) {
-			var wrapper = mask.get(priority);
+			var wrapper = layers.get(priority);
 			if (wrapper != null) {
 				wrapper.active = active;
 				dirty = true;
@@ -711,7 +672,7 @@ public class Camera<T extends CUIHandler<T>> {
 		public Editor setActive(Layer layer, boolean active) {
 			var priority = getPriority(layer);
 			if (priority >= 0) {
-				mask.get(priority).active = active;
+				layers.get(priority).active = active;
 				dirty = true;
 			}
 			return this;

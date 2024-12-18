@@ -1,6 +1,5 @@
 package cn.noy.cui.prebuilt.cui;
 
-import cn.noy.cui.CUIPlugin;
 import cn.noy.cui.layer.Layer;
 import cn.noy.cui.slot.SlotHandler;
 import cn.noy.cui.ui.*;
@@ -17,13 +16,13 @@ public class CUIMonitor implements CUIHandler<CUIMonitor> {
 	@Override
 	public void onInitialize(ChestUI<CUIMonitor> cui) {
 		this.displayCUIs = new Layer(5, 9);
-		this.cui = cui.edit().setLayer(1, displayCUIs).finish();
-		this.cui.getDefaultCamera().edit().setMask(1, new Layer(1, 9).edit()
+		this.cui = cui.edit().setKeepAlive(true).setLayer(1, displayCUIs).setLayer(0, new Layer(1, 9).edit()
+				.relative(true)
 				.editAll((slotHandler, row, column) -> slotHandler.button(
 						builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
 				.editSlot(0, 0, slotHandler -> slotHandler.button(builder -> builder
 						.material(Material.RED_STAINED_GLASS_PANE).displayName("Previous").clickHandler(event -> {
-							var camera = Camera.Manager.getCamera(event.getPlayer());
+							var camera = event.getCamera();
 							var position = camera.getPosition();
 							if (position.row() <= 0)
 								return;
@@ -31,13 +30,13 @@ public class CUIMonitor implements CUIHandler<CUIMonitor> {
 						}).build()))
 				.editSlot(0, 8, slotHandler -> slotHandler.button(builder -> builder
 						.material(Material.GREEN_STAINED_GLASS_PANE).displayName("Next").clickHandler(event -> {
-							var camera = Camera.Manager.getCamera(event.getPlayer());
+							var camera = event.getCamera();
 							var position = camera.getPosition();
 							if ((position.row() / 5 + 1) * 45 >= size)
 								return;
 							camera.edit().move(5, 0);
 						}).build()))
-				.finish());
+				.finish()).finish();
 	}
 
 	@Override

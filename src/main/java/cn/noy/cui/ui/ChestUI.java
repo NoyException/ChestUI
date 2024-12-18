@@ -10,6 +10,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ChestUI<T extends CUIHandler<T>> {
 	private final CUIPlugin plugin;
@@ -23,7 +24,6 @@ public class ChestUI<T extends CUIHandler<T>> {
 	private final HashMap<Layer, Integer> layerDepths = new HashMap<>();
 	private final Camera<T> defaultCamera;
 	private Component defaultTitle;
-	private CUIContents contents;
 
 	private boolean closable = true;
 	private boolean keepAlive;
@@ -32,8 +32,6 @@ public class ChestUI<T extends CUIHandler<T>> {
 	private final T handler;
 	private final int id;
 	private final Trigger trigger;
-	private boolean dirty;
-	private boolean synced;
 
 	ChestUI(CUIPlugin plugin, @NotNull T handler, int id) {
 		this.plugin = plugin;
@@ -141,13 +139,10 @@ public class ChestUI<T extends CUIHandler<T>> {
 		return layerDepths.getOrDefault(layer, -1);
 	}
 
-	public List<Layer> getActiveLayers(boolean ascending) {
-		if (ascending) {
-			return layers.values().stream().filter(layerWrapper -> layerWrapper.active)
-					.map(layerWrapper -> layerWrapper.layer).toList();
-		}
-		return layers.descendingMap().values().stream().filter(layerWrapper -> layerWrapper.active)
-				.map(layerWrapper -> layerWrapper.layer).toList();
+	public NavigableMap<Integer, Layer> getActiveLayers() {
+		return layers.entrySet().stream().filter(entry -> entry.getValue().active)
+				.map(entry -> Map.entry(entry.getKey(), entry.getValue().layer))
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, TreeMap::new));
 	}
 
 	public boolean isActive(int depth) {
@@ -165,10 +160,6 @@ public class ChestUI<T extends CUIHandler<T>> {
 
 	public long getTicksLived() {
 		return ticks;
-	}
-
-	CUIContents getContents() {
-		return contents.clone();
 	}
 
 	public boolean isClosable() {
@@ -231,7 +222,10 @@ public class ChestUI<T extends CUIHandler<T>> {
 		}
 
 		public Editor setLayer(int depth, Layer layer) {
-			if (maxDepth >= 0 && (depth < 0 || depth >= maxDepth))
+			if (depth < 0) {
+				throw new IllegalArgumentException("depth must be greater than or equal to 0");
+			}
+			if (maxDepth >= 0 && depth >= maxDepth)
 				throw new IllegalArgumentException("depth must be between 0 and " + maxDepth);
 
 			if (layer == null) {
@@ -243,7 +237,6 @@ public class ChestUI<T extends CUIHandler<T>> {
 				layerDepths.remove(legacy.layer);
 			}
 			layerDepths.put(layer, depth);
-			dirty = true;
 			return this;
 		}
 
@@ -252,7 +245,6 @@ public class ChestUI<T extends CUIHandler<T>> {
 			if (legacy != null) {
 				layerDepths.remove(legacy.layer);
 			}
-			dirty = true;
 			return this;
 		}
 
@@ -264,7 +256,6 @@ public class ChestUI<T extends CUIHandler<T>> {
 			if (wrapper.active == active)
 				return this;
 			wrapper.active = active;
-			dirty = true;
 			return this;
 		}
 
@@ -295,35 +286,6 @@ public class ChestUI<T extends CUIHandler<T>> {
 			if (!keepAlive && cameras.isEmpty()) {
 				destroy();
 			}
-			synced = false;
-		}
-
-		private boolean sync(boolean force) {
-			if (!force && synced) {
-				return false;
-			}
-			// 深度高的先display
-			var activeLayers = getActiveLayers(false);
-			if (!force && !dirty) {
-				if (activeLayers.stream().noneMatch(Layer::isDirty))
-					return false;
-			}
-			var contents = new CUIContents(maxRow, maxColumn);
-			activeLayers.forEach(layer -> layer.display(contents, 0, 0));
-			ChestUI.this.contents = contents;
-			dirty = false;
-			synced = true;
-			return true;
-		}
-
-		/**
-		 * 更新并同步界面状态<br>
-		 * Update and synchronize interface status
-		 */
-		public boolean update() {
-			var updated = sync(state == State.UNINITIALIZED);
-			state = State.READY;
-			return updated;
 		}
 
 		void notifyReleaseCamera(Camera<T> camera) {

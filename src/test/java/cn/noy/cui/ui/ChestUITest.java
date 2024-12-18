@@ -81,6 +81,9 @@ public class ChestUITest {
 		Assertions.assertEquals(1, cui.getCameraCount(), "新建摄像头应当已经销毁");
 		cui.getDefaultCamera().setKeepAlive(false);
 		server.getScheduler().performOneTick();
+		Assertions.assertEquals(1, cui.getCameraCount(), "默认摄像头应当还未销毁");
+		cui.edit().setKeepAlive(false);
+		server.getScheduler().performOneTick();
 		Assertions.assertEquals(0, cui.getCameraCount(), "默认摄像头应当已经销毁");
 		Assertions.assertEquals(ChestUI.State.DESTROYED, cui.getState(), "ChestUI应当已经销毁");
 	}

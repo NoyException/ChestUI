@@ -6,13 +6,27 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 
-public class CUIContents {
+public class CUIContents<T extends CUIHandler<T>> {
+	private final Camera<T> camera;
 	private final int maxRow, maxColumn;
 	private final HashMap<Position, ItemStack> contents = new HashMap<>();
 
-	public CUIContents(int maxRow, int maxColumn) {
-		this.maxRow = maxRow;
-		this.maxColumn = maxColumn;
+	public CUIContents(Camera<T> camera) {
+		this.camera = camera;
+		this.maxRow = camera.getRowSize();
+		this.maxColumn = camera.getColumnSize();
+	}
+
+	public Camera<T> getCamera() {
+		return camera;
+	}
+
+	public int getMaxRow() {
+		return maxRow;
+	}
+
+	public int getMaxColumn() {
+		return maxColumn;
 	}
 
 	public boolean isValidPosition(Position position) {
@@ -45,8 +59,8 @@ public class CUIContents {
 	}
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
-	public CUIContents clone() {
-		var clone = new CUIContents(maxRow, maxColumn);
+	public CUIContents<T> clone() {
+		var clone = new CUIContents<>(camera);
 		clone.contents.putAll(contents);
 		return clone;
 	}

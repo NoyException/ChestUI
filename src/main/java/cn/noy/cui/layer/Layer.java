@@ -5,6 +5,8 @@ import cn.noy.cui.slot.Slot;
 import cn.noy.cui.slot.SlotHandler;
 import cn.noy.cui.ui.CUIContents;
 
+import cn.noy.cui.ui.Camera;
+import cn.noy.cui.util.Position;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,6 +20,8 @@ public class Layer {
 	private final int maxColumn;
 	private int marginLeft;
 	private int marginTop;
+	// margin的位置是相对摄像头还是绝对值
+	private boolean relative;
 	private final SlotHandler[][] slots;
 
 	public Layer(int maxRow, int maxColumn) {
@@ -42,12 +46,21 @@ public class Layer {
 		return marginTop;
 	}
 
+	public boolean isRelative() {
+		return relative;
+	}
+
 	public boolean isDirty() {
 		return Arrays.stream(slots).flatMap(Arrays::stream).filter(Objects::nonNull).anyMatch(SlotHandler::isDirty);
 	}
 
+	// 检查坐标是否超出范围
+	public boolean isValidPosition(int row, int column) {
+		return row >= 0 && row < maxRow && column >= 0 && column < maxColumn;
+	}
+
 	private @Nullable SlotHandler getSlotHandler(int row, int column) {
-		if (row < 0 || row >= maxRow || column < 0 || column >= maxColumn) {
+		if (!isValidPosition(row, column)) {
 			return null;
 		}
 		var handler = slots[row][column];
@@ -66,31 +79,39 @@ public class Layer {
 		return slotHandler.getSlot();
 	}
 
-	public @Nullable Slot getRelativeSlot(int row, int column) {
-		return getSlot(row - marginTop, column - marginLeft);
+	public @Nullable Slot getRelativeSlot(Camera<?> camera, int row, int column) {
+		if (relative) {
+			return getSlot(row - marginTop, column - marginLeft);
+		}
+		var topLeft = camera.getTopLeft();
+		return getSlot(row - marginTop + topLeft.row(), column - marginLeft + topLeft.column());
 	}
 
-	public void display(CUIContents contents, int rowOffset, int columnOffset) {
-		for (int row = 0; row < maxRow; row++) {
-			for (int column = 0; column < maxColumn; column++) {
-				var slot = slots[row][column];
-				if (slot == null)
+	public void display(CUIContents<?> contents) {
+		var camera = contents.getCamera();
+		for (int row = 0; row < contents.getMaxRow(); row++) {
+			for (int column = 0; column < contents.getMaxColumn(); column++) {
+				var slot = getRelativeSlot(camera, row, column);
+				if (slot == null) {
 					continue;
-
-				var absoluteRow = marginTop + row + rowOffset;
-				var absoluteColumn = marginLeft + column + columnOffset;
-				var itemStack = contents.getItem(absoluteRow, absoluteColumn);
+				}
+				var itemStack = contents.getItem(row, column);
 				if (itemStack != null)
 					itemStack = itemStack.clone();
-				contents.setItem(absoluteRow, absoluteColumn, slot.getSlot().display(itemStack));
+				contents.setItem(row, column, slot.display(itemStack));
 			}
 		}
 	}
 
-	public void click(CUIClickEvent<?> event, int rowOffset, int columnOffset) {
+	public void click(CUIClickEvent<?> event) {
 		var position = event.getPosition();
-		var row = position.row() - marginTop - rowOffset;
-		var column = position.column() - marginLeft - columnOffset;
+		var row = position.row() - marginTop;
+		var column = position.column() - marginLeft;
+		if (relative) {
+			var topLeft = event.getCamera().getTopLeft();
+			row -= topLeft.row();
+			column -= topLeft.column();
+		}
 		if (row < 0 || row >= maxRow || column < 0 || column >= maxColumn) {
 			return;
 		}
@@ -133,6 +154,11 @@ public class Layer {
 
 		public Editor marginTop(int marginTop) {
 			Layer.this.marginTop = marginTop;
+			return this;
+		}
+
+		public Editor relative(boolean relative) {
+			Layer.this.relative = relative;
 			return this;
 		}
 

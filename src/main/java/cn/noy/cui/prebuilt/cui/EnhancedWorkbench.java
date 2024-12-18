@@ -58,6 +58,6 @@ public class EnhancedWorkbench implements CUIHandler<EnhancedWorkbench> {
 	public void onCreateCamera(Camera<EnhancedWorkbench> camera) {
 		var inputLayer = craftingTable.generateInputLayer(0, camera);
 		var outputLayer = craftingTable.generateOutputLayer(0, camera).edit().marginLeft(6).finish();
-		camera.edit().setMask(0, inputLayer).setMask(1, outputLayer).finish();
+		camera.edit().setLayer(-1, inputLayer).setLayer(-2, outputLayer).finish();
 	}
 }
