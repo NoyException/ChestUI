@@ -3,7 +3,9 @@ package cn.noy.cui.ui;
 import cn.noy.cui.CUIPlugin;
 import cn.noy.cui.util.ItemStacks;
 
+import com.google.common.collect.HashBiMap;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -11,9 +13,14 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.event.server.PluginEnableEvent;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
+import org.reflections.Reflections;
+import org.reflections.util.ClasspathHelper;
+import org.reflections.util.ConfigurationBuilder;
+import org.reflections.util.FilterBuilder;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -28,9 +35,40 @@ public class CUIManager implements Listener {
 	}
 
 	private BukkitTask task;
-	private final HashSet<ChestUI<?>> cuis = new HashSet<>();
+	private final HashBiMap<NamespacedKey, Class<?>> cuiClasses = HashBiMap.create();
+	private final HashBiMap<String, ChestUI<?>> cuis = HashBiMap.create();
 	private final HashMap<Class<?>, Integer> maxId = new HashMap<>();
 	private final Queue<Runnable> pending = new LinkedList<>();
+
+	public List<ChestUI<?>> getCUIs() {
+		return new ArrayList<>(cuis.values());
+	}
+
+	public List<ChestUI<?>> getCUIs(NamespacedKey key) {
+		return cuis.values().stream().filter(cui -> cui.getName().startsWith(key.toString())).toList();
+	}
+
+	public List<NamespacedKey> getRegisteredCUINames() {
+		return new ArrayList<>(cuiClasses.keySet());
+	}
+
+	public List<NamespacedKey> getRegisteredCUINames(Plugin plugin) {
+		return cuiClasses.keySet().stream()
+				.filter(namespacedKey -> namespacedKey.getNamespace().equalsIgnoreCase(plugin.getName())).toList();
+	}
+
+	public ChestUI<?> createCUI(Plugin plugin, String name) {
+		return createCUI(NamespacedKey.fromString(name, plugin));
+	}
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	public ChestUI<?> createCUI(NamespacedKey key) {
+		var clazz = cuiClasses.get(key);
+		if (clazz == null) {
+			return null;
+		}
+		return createCUI((Class) clazz);
+	}
 
 	public <T extends CUIHandler<T>> ChestUI<T> createCUI(@NotNull Class<T> handlerClass) {
 		T handler;
@@ -44,14 +82,15 @@ public class CUIManager implements Listener {
 		}
 		var id = maxId.getOrDefault(handlerClass, 1);
 		maxId.put(handlerClass, id + 1);
-		var cui = new ChestUI<>(plugin, handler, id);
-		handler.onInitialize(cui);
-		cuis.add(cui);
+		var key = cuiClasses.inverse().get(handlerClass);
+		var name = key != null ? key.toString() : handlerClass.getCanonicalName();
+		var cui = new ChestUI<>(plugin, handler, name, id);
+		cuis.put(cui.getName(), cui);
 		return cui;
 	}
 
-	public List<ChestUI<?>> getCUIs() {
-		return new ArrayList<>(cuis);
+	public ChestUI<?> getCUI(String name) {
+		return cuis.get(name);
 	}
 
 	private void tick() {
@@ -63,7 +102,7 @@ public class CUIManager implements Listener {
 			task.run();
 		}
 
-		cuis.forEach(cui -> cui.getTrigger().tick());
+		cuis.values().forEach(cui -> cui.getTrigger().tick());
 		Camera.Manager.forEachCamera(Camera::update);
 	}
 
@@ -73,6 +112,7 @@ public class CUIManager implements Listener {
 		}
 		task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 0, 1);
 		Bukkit.getPluginManager().registerEvents(this, plugin);
+		scanPlugin(plugin);
 	}
 
 	public void teardown() {
@@ -81,11 +121,44 @@ public class CUIManager implements Listener {
 		}
 		task.cancel();
 		task = null;
-		new ArrayList<>(cuis).forEach(ChestUI::destroy);
+		getCUIs().forEach(ChestUI::destroy);
 	}
 
 	void notifyDestroy(ChestUI<?> cui) {
-		pending.add(() -> cuis.remove(cui));
+		pending.add(() -> cuis.inverse().remove(cui));
+	}
+
+	private void scanPlugin(Plugin plg) {
+		// 使用目标插件的 ClassLoader 创建 Reflections 实例
+		Reflections reflections = new Reflections(
+				new ConfigurationBuilder().setUrls(ClasspathHelper.forClassLoader(plg.getClass().getClassLoader()))
+						.filterInputsBy(new FilterBuilder().includePackage(plg.getClass().getPackageName())));
+
+		Set<Class<?>> annotatedClasses = reflections.getTypesAnnotatedWith(CUI.class);
+
+		plugin.getLogger()
+				.info("Found " + annotatedClasses.size() + " classes with @CUI annotation in " + plg.getName());
+		for (Class<?> clazz : annotatedClasses) {
+			// 判断是否实现了CUIHandler
+			if (!CUIHandler.class.isAssignableFrom(clazz)) {
+				plugin.getLogger().warning("Class `" + clazz.getCanonicalName() + "` does not implement CUIHandler");
+				continue;
+			}
+			// 处理带有@CUISize注解的类
+			CUI annotation = clazz.getAnnotation(CUI.class);
+			cuiClasses.put(NamespacedKey.fromString(annotation.value(), plg), clazz);
+		}
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onPluginEnable(PluginEnableEvent event) {
+		Plugin plg = event.getPlugin();
+		// 检查插件是否依赖本插件
+		if (!plg.getPluginMeta().getPluginDependencies().contains(plugin.getName())
+				&& !plg.getPluginMeta().getPluginSoftDependencies().contains(plugin.getName())) {
+			return;
+		}
+		scanPlugin(plg);
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)

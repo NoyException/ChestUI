@@ -6,6 +6,7 @@ plugins {
     idea
 //    id("io.papermc.paperweight.userdev") version "1.7.7"
     id("com.diffplug.spotless") version "6.25.0"
+    id("com.gradleup.shadow") version "9.0.0-beta4"
 }
 
 group = "cn.noy"
@@ -26,6 +27,7 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
+    implementation("org.reflections:reflections:0.10.2")
 //    paperweight.paperDevBundle("1.21.1-R0.1-SNAPSHOT")
 
     testImplementation("org.mockbukkit.mockbukkit:mockbukkit-v1.21:4.15.0")
@@ -125,12 +127,18 @@ tasks.register<Jar>("sourcesJar") {
     archiveClassifier.set("sources")
 }
 
+tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
+    archiveClassifier.set("")
+    mergeServiceFiles()
+    relocate("org.reflections", "cn.noy.cui.shadow.org.reflections")
+}
+
 tasks.build {
-    dependsOn("spotlessApply")
+    dependsOn(tasks.spotlessApply, tasks.shadowJar)
 }
 
 tasks.test {
-    dependsOn("spotlessApply")
+    dependsOn(tasks.spotlessApply)
 }
 
 publishing {

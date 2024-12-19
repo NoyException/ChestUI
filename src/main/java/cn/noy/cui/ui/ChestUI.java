@@ -23,6 +23,7 @@ public class ChestUI<T extends CUIHandler<T>> {
 	private final TreeMap<Integer, LayerWrapper> layers = new TreeMap<>();
 	private final HashMap<Layer, Integer> layerDepths = new HashMap<>();
 	private final Camera<T> defaultCamera;
+	private int nextCameraId = 0;
 	private Component defaultTitle;
 
 	private boolean closable = true;
@@ -30,12 +31,14 @@ public class ChestUI<T extends CUIHandler<T>> {
 	private long ticks;
 
 	private final T handler;
+	private final String name;
 	private final int id;
 	private final Trigger trigger;
 
-	ChestUI(CUIPlugin plugin, @NotNull T handler, int id) {
+	ChestUI(CUIPlugin plugin, @NotNull T handler, String name, int id) {
 		this.plugin = plugin;
 		this.handler = handler;
+		this.name = name;
 		this.id = id;
 		this.trigger = new Trigger();
 
@@ -56,15 +59,19 @@ public class ChestUI<T extends CUIHandler<T>> {
 		} else {
 			defaultTitle = Component.empty();
 		}
+		// 先初始化，再创建默认摄像头
+		handler.onInitialize(this);
+
 		if (clazz.isAnnotationPresent(DefaultCamera.class)) {
 			var def = clazz.getAnnotation(DefaultCamera.class);
-			defaultCamera = new Camera<>(this, new Position(def.row(), def.column()), def.rowSize(), def.columnSize(),
-					def.horizontalAlign(), def.verticalAlign(), defaultTitle);
+			defaultCamera = new Camera<>(this, getNextCameraId(), new Position(def.row(), def.column()), def.rowSize(),
+					def.columnSize(), def.horizontalAlign(), def.verticalAlign(), defaultTitle);
 		} else {
-			defaultCamera = new Camera<>(this, new Position(0, 0), 3, 9, Camera.HorizontalAlign.LEFT,
+			defaultCamera = new Camera<>(this, getNextCameraId(), new Position(0, 0), 3, 9, Camera.HorizontalAlign.LEFT,
 					Camera.VerticalAlign.TOP, defaultTitle);
 		}
 		cameras.add(defaultCamera);
+		handler.onCreateCamera(defaultCamera);
 	}
 
 	public CUIPlugin getPlugin() {
@@ -81,7 +88,11 @@ public class ChestUI<T extends CUIHandler<T>> {
 	}
 
 	public String getName() {
-		return getHandlerClass().getName() + '#' + id;
+		return name + '#' + id;
+	}
+
+	int getNextCameraId() {
+		return nextCameraId++;
 	}
 
 	public Camera<T> getDefaultCamera() {
@@ -97,7 +108,8 @@ public class ChestUI<T extends CUIHandler<T>> {
 
 	public Camera<T> createCamera(Position position, int rowSize, int columnSize,
 			Camera.HorizontalAlign horizontalAlign, Camera.VerticalAlign verticalAlign) {
-		var camera = new Camera<>(this, position, rowSize, columnSize, horizontalAlign, verticalAlign, defaultTitle);
+		var camera = new Camera<>(this, getNextCameraId(), position, rowSize, columnSize, horizontalAlign,
+				verticalAlign, defaultTitle);
 		cameras.add(camera);
 		handler.onCreateCamera(camera);
 		return camera;
@@ -283,9 +295,6 @@ public class ChestUI<T extends CUIHandler<T>> {
 		public void tick() {
 			ticks++;
 			handler.onTick();
-			if (!keepAlive && cameras.isEmpty()) {
-				destroy();
-			}
 		}
 
 		void notifyReleaseCamera(Camera<T> camera) {
@@ -295,5 +304,10 @@ public class ChestUI<T extends CUIHandler<T>> {
 				destroy();
 			}
 		}
+	}
+
+	@Override
+	public int hashCode() {
+		return getName().hashCode();
 	}
 }
