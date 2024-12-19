@@ -10,10 +10,7 @@ import cn.noy.cui.crafting.consumer.ingredient.MaterialMatchedIngredient;
 import cn.noy.cui.crafting.producer.ShapelessProducer;
 import cn.noy.cui.crafting.producer.product.ExactProduct;
 import cn.noy.cui.layer.Layer;
-import cn.noy.cui.ui.CUIHandler;
-import cn.noy.cui.ui.Camera;
-import cn.noy.cui.ui.ChestUI;
-import cn.noy.cui.ui.DefaultCamera;
+import cn.noy.cui.ui.*;
 import org.bukkit.Material;
 import org.bukkit.entity.Boat;
 
@@ -21,6 +18,8 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 @DefaultCamera(rowSize = 5)
+@CUITitle("Enhanced Workbench")
+@CUI("ew")
 public class EnhancedWorkbench implements CUIHandler<EnhancedWorkbench> {
 	private CraftingTable craftingTable;
 

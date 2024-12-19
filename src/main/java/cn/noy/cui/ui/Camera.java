@@ -6,6 +6,7 @@ import cn.noy.cui.layer.Layer;
 import cn.noy.cui.util.ItemStacks;
 import cn.noy.cui.util.Position;
 
+import com.google.common.collect.HashBiMap;
 import net.kyori.adventure.text.Component;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -24,15 +25,15 @@ import java.util.function.Consumer;
 public class Camera<T extends CUIHandler<T>> {
 	// TODO: 将Manager从静态改为Plugin的成员变量
 	public static class Manager {
-		private static final Set<Camera<?>> CAMERAS = new HashSet<>();
+		private static final HashBiMap<String, Camera<?>> CAMERAS = HashBiMap.create();
 		private static final Map<Player, Stack<Camera<?>>> BY_PLAYER = new HashMap<>();
 
 		public static void forEachCamera(Consumer<? super Camera<?>> action) {
-			new ArrayList<>(CAMERAS).forEach(action);
+			new ArrayList<>(CAMERAS.values()).forEach(action);
 		}
 
 		public static List<Camera<?>> getCameras() {
-			return new ArrayList<>(CAMERAS);
+			return new ArrayList<>(CAMERAS.values());
 		}
 
 		public static Camera<?> getCamera(Player player) {
@@ -40,6 +41,10 @@ public class Camera<T extends CUIHandler<T>> {
 			if (stack.empty())
 				return null;
 			return stack.peek();
+		}
+
+		public static Camera<?> getCamera(String name) {
+			return CAMERAS.get(name);
 		}
 
 		public static boolean closeTop(Player player, boolean force) {
@@ -70,6 +75,7 @@ public class Camera<T extends CUIHandler<T>> {
 	}
 
 	private final ChestUI<T> chestUI;
+	private final int id;
 	private final HashSet<Player> viewers = new HashSet<>();
 	/**
 	 * 用于保活的计数，玩家使用该相机则计数+1，不使用则计数-1，从本相机跳到别的相机计数不变（因为会跳回来）
@@ -91,12 +97,13 @@ public class Camera<T extends CUIHandler<T>> {
 	private boolean dirty = true;
 	private boolean destroyed;
 
-	public Camera(ChestUI<T> chestUI, Position position, int rowSize, int columnSize, HorizontalAlign horizontalAlign,
-			VerticalAlign verticalAlign, Component title) {
+	public Camera(ChestUI<T> chestUI, int id, Position position, int rowSize, int columnSize,
+			HorizontalAlign horizontalAlign, VerticalAlign verticalAlign, Component title) {
 		this.chestUI = chestUI;
+		this.id = id;
 		edit().setPosition(position).setRowSize(rowSize).setColumnSize(columnSize).setHorizontalAlign(horizontalAlign)
 				.setVerticalAlign(verticalAlign).setTitle(title);
-		Manager.CAMERAS.add(this);
+		Manager.CAMERAS.put(getName(), this);
 	}
 
 	public Editor edit() {
@@ -105,6 +112,10 @@ public class Camera<T extends CUIHandler<T>> {
 
 	public ChestUI<T> getChestUI() {
 		return chestUI;
+	}
+
+	public String getName() {
+		return chestUI.getName() + "#" + id;
 	}
 
 	/**
@@ -313,7 +324,7 @@ public class Camera<T extends CUIHandler<T>> {
 	public void destroy() {
 		new ArrayList<>(viewers).forEach(player -> closeCascade(player, true));
 		chestUI.getTrigger().notifyReleaseCamera(this);
-		Manager.CAMERAS.remove(this);
+		Manager.CAMERAS.inverse().remove(this);
 		destroyed = true;
 	}
 
@@ -428,6 +439,8 @@ public class Camera<T extends CUIHandler<T>> {
 			return null;
 		}
 
+		// 拖拽式放置时，如果都放置失败，则Layer不会置脏，但由于事件未被cancel，所以会显示放在了箱子里，因此需要刷新
+		dirty = true;
 		// 深度低的先place
 		// TODO: 改为事件驱动
 		for (Layer layer : getActiveLayers().values()) {
@@ -563,7 +576,8 @@ public class Camera<T extends CUIHandler<T>> {
 	}
 
 	public Camera<T> deepClone() {
-		var clone = new Camera<>(chestUI, position, rowSize, columnSize, horizontalAlign, verticalAlign, title);
+		var clone = new Camera<>(chestUI, chestUI.getNextCameraId(), position, rowSize, columnSize, horizontalAlign,
+				verticalAlign, title);
 		layers.forEach((priority, layerWrapper) -> clone.edit().setLayer(priority, layerWrapper.layer.deepClone()));
 		return clone;
 	}

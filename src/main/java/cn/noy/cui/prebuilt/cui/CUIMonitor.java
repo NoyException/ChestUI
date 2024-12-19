@@ -8,6 +8,7 @@ import org.bukkit.Material;
 
 @DefaultCamera(rowSize = 6)
 @CUITitle("CUI Monitor")
+@CUI("cm")
 public class CUIMonitor implements CUIHandler<CUIMonitor> {
 	private ChestUI<CUIMonitor> cui;
 	private Layer displayCUIs;
@@ -64,7 +65,8 @@ public class CUIMonitor implements CUIHandler<CUIMonitor> {
 				} else {
 					displayCUIs.edit().editSlot(row, column, slotHandler -> slotHandler.button(builder -> builder
 							.material(Material.CHEST).displayName(target.getDefaultTitle())
-							.lore(String.format("&b%d&r" + " camera(s)", target.getCameraCount()))
+							.lore("name: &b" + target.getName(),
+									String.format("&b%d&r" + " camera(s)", target.getCameraCount()))
 							.clickHandler(event -> target.getDefaultCamera().open(event.getPlayer(), true)).build()));
 				}
 			}

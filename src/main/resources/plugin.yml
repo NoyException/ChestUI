@@ -5,4 +5,4 @@ api-version: '1.21'
 commands:
   cui:
     description: Open the CUI
-    usage: /<command> [help|open|close|]
+    usage: For help, type /<command> help
