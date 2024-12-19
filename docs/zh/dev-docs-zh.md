@@ -53,6 +53,7 @@ public class TestCUI implements CUIHandler<TestCUI> {
 
 你可以为你的CUI添加一些注解，来更方便地初始化：
 
+- @CUI: 定义CUI的id，这样就能在游戏内通过/cui操作该CUI
 - @DefaultCamera: 初始化默认Camera（默认是3*9的大小）
 - @CUITitle: 初始化标题
 - @CUISize: 初始化CUI大小，默认无限大
@@ -60,6 +61,7 @@ public class TestCUI implements CUIHandler<TestCUI> {
 ### 插入图层
 
 ```java
+@CUI("test")
 public class TestCUI implements CUIHandler<TestCUI> {
     private ChestUI<TestCUI> cui;
     @Override

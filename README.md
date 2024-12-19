@@ -17,21 +17,19 @@ A Feature-rich Minecraft Chest UI
 
 - [ ] Support Layer mapping
 
-## Prebuilt CUIs
+## Commands
 
-### CUI Monitor
+- `/cui help`: Show help
+- `/cui ...`: 10+ commands, see `/cui help` for more information
 
-Used to monitor all existing CUIs. Click on the listed CUI to open it.
+## Admin Manual
 
-```minecraft
-/cui open cm
-```
+I'm sorry but only chinese version is available now. Please refer to [管理员手册](docs%2Fzh%2Fadmin-manual-zh.md)
 
-### Inventory Monitor
+## Developer Docs
 
-Used to monitor the inventory of all online players.
-Click on the player's skull to view their inventory, and even take items from it.
+[开发者文档](docs%2Fzh%2Fdev-docs-zh.md)
 
-```minecraft
-/cui open im
-```
+## Join Us
+
+[加入我们.md](docs%2Fzh%2Fjoin-us-zh.md)
