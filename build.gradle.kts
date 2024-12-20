@@ -154,7 +154,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/NoyException/ChestUI")
+            url = uri("https://maven.pkg.github.com/PolyVoxel/ChestUI")
             credentials {
                 username = System.getenv("USERNAME")
                 password = System.getenv("TOKEN")
