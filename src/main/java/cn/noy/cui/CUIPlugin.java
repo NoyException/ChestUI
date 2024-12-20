@@ -3,6 +3,7 @@ package cn.noy.cui;
 import cn.noy.cui.prebuilt.cmd.CmdCUI;
 import cn.noy.cui.ui.CUIManager;
 
+import cn.noy.cui.ui.CameraManager;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandExecutor;
@@ -13,6 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class CUIPlugin extends JavaPlugin {
 	private static ComponentLogger logger;
 	private final CUIManager cuiManager = new CUIManager(this);
+	private final CameraManager cameraManager = new CameraManager(this);
 
 	public static ComponentLogger logger() {
 		return logger;
@@ -42,5 +44,9 @@ public class CUIPlugin extends JavaPlugin {
 
 	public CUIManager getCUIManager() {
 		return cuiManager;
+	}
+
+	public CameraManager getCameraManager() {
+		return cameraManager;
 	}
 }

@@ -133,7 +133,7 @@ public class Storage extends Slot {
 				}
 				case DOUBLE_CLICK -> {
 					// 收集【全部】
-					var camera = Camera.Manager.getCamera(player);
+					var camera = event.getCamera();
 					if (camera != null) {
 						cursor = camera.collect(player, cursor, true);
 					}

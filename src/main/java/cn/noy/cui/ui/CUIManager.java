@@ -63,7 +63,7 @@ public class CUIManager implements Listener {
 
 	private void tick() {
 		cuiTypes.values().forEach(CUITypeHandler::tick);
-		Camera.Manager.forEachCamera(Camera::update);
+		plugin.getCameraManager().forEachCamera(Camera::update);
 	}
 
 	public void setup() {
@@ -177,8 +177,8 @@ public class CUIManager implements Listener {
 			return;
 
 		switch (event.getReason()) {
-			case PLAYER -> Camera.Manager.closeTop(player, false);
-			case DISCONNECT -> Camera.Manager.closeAll(player, true);
+			case PLAYER -> plugin.getCameraManager().closeTop(player, false);
+			case DISCONNECT -> plugin.getCameraManager().closeAll(player, true);
 		}
 	}
 
@@ -187,7 +187,7 @@ public class CUIManager implements Listener {
 		if (!(event.getWhoClicked() instanceof Player player))
 			return;
 
-		var camera = Camera.Manager.getCamera(player);
+		var camera = plugin.getCameraManager().getCamera(player);
 		if (camera == null)
 			return;
 
@@ -217,7 +217,7 @@ public class CUIManager implements Listener {
 		if (!(event.getWhoClicked() instanceof Player player))
 			return;
 
-		var camera = Camera.Manager.getCamera(player);
+		var camera = plugin.getCameraManager().getCamera(player);
 		if (camera == null)
 			return;
 

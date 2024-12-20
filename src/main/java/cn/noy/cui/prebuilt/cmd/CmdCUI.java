@@ -83,8 +83,8 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 						continue;
 					}
 					var success = mode == 1
-							? Camera.Manager.closeTop(player, force)
-							: Camera.Manager.closeAll(player, force);
+							? plugin.getCameraManager().closeTop(player, force)
+							: plugin.getCameraManager().closeAll(player, force);
 					if (!success) {
 						sender.sendMessage("Failed to close camera for " + player.getName());
 					}
@@ -107,9 +107,14 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 					sender.sendMessage("CUI type not found: " + args[1]);
 					return true;
 				} else if (parsed.instanceId() == null) {
-					var cui = parsed.typeHandler().createInstance();
-					if (args.length == 3 && args[2].equals("keepAlive")) {
-						cui.edit().setKeepAlive(true).finish();
+					try {
+						var cui = parsed.typeHandler().createInstance();
+						if (args.length == 3 && args[2].equals("keepAlive")) {
+							cui.edit().setKeepAlive(true).finish();
+						}
+					} catch (Exception e) {
+						sender.sendMessage("Failed to create CUI instance: " + e.getMessage());
+						return true;
 					}
 				} else if (parsed.cameraId() == null) {
 					var cui = parsed.typeHandler().getInstance(parsed.instanceId());

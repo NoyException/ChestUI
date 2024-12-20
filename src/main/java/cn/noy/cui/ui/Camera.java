@@ -6,7 +6,6 @@ import cn.noy.cui.layer.Layer;
 import cn.noy.cui.util.ItemStacks;
 import cn.noy.cui.util.Position;
 
-import com.google.common.collect.HashBiMap;
 import net.kyori.adventure.text.Component;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -20,60 +19,9 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 public class Camera<T extends CUIHandler<T>> {
-	// TODO: 将Manager从静态改为Plugin的成员变量
-	public static class Manager {
-		private static final HashBiMap<String, Camera<?>> CAMERAS = HashBiMap.create();
-		private static final Map<Player, Stack<Camera<?>>> BY_PLAYER = new HashMap<>();
-
-		public static void forEachCamera(Consumer<? super Camera<?>> action) {
-			new ArrayList<>(CAMERAS.values()).forEach(action);
-		}
-
-		public static List<Camera<?>> getCameras() {
-			return new ArrayList<>(CAMERAS.values());
-		}
-
-		public static Camera<?> getCamera(Player player) {
-			var stack = BY_PLAYER.computeIfAbsent(player, p -> new Stack<>());
-			if (stack.empty())
-				return null;
-			return stack.peek();
-		}
-
-		public static Camera<?> getCamera(String name) {
-			return CAMERAS.get(name);
-		}
-
-		public static boolean closeTop(Player player, boolean force) {
-			var stack = BY_PLAYER.computeIfAbsent(player, p -> new Stack<>());
-			if (stack.empty())
-				return true;
-			var closed = stack.peek().close(player, force);
-			if (!closed)
-				return false;
-			// 切换回来
-			if (!stack.empty())
-				stack.peek().viewers.add(player);
-			return true;
-		}
-
-		public static boolean closeAll(Player player, boolean force) {
-			var stack = BY_PLAYER.computeIfAbsent(player, p -> new Stack<>());
-			if (stack.empty())
-				return true;
-			while (!stack.empty()) {
-				var closed = stack.peek().close(player, force);
-				if (!closed)
-					return false;
-			}
-			BY_PLAYER.remove(player);
-			return true;
-		}
-	}
-
+	private final CameraManager manager;
 	private final ChestUI<T> chestUI;
 	private final int id;
 	private final HashSet<Player> viewers = new HashSet<>();
@@ -103,7 +51,8 @@ public class Camera<T extends CUIHandler<T>> {
 		this.id = id;
 		edit().setPosition(position).setRowSize(rowSize).setColumnSize(columnSize).setHorizontalAlign(horizontalAlign)
 				.setVerticalAlign(verticalAlign).setTitle(title);
-		Manager.CAMERAS.put(getName(), this);
+		this.manager = chestUI.getPlugin().getCameraManager();
+		manager.registerCamera(this);
 	}
 
 	public Editor edit() {
@@ -221,20 +170,19 @@ public class Camera<T extends CUIHandler<T>> {
 		return open(viewer, false);
 	}
 
-	// TODO: 测试切换Camera
 	public boolean open(Player viewer, boolean asChild) {
 		if (destroyed) {
 			throw new IllegalStateException("Camera has been destroyed");
 		}
 		if (!asChild) {
-			boolean success = Manager.closeAll(viewer, false);
+			boolean success = manager.closeAll(viewer, false);
 			if (!success) {
 				return false;
 			}
 		}
 		viewers.add(viewer);
 		keepAliveCount.compute(viewer, (player, count) -> count == null ? 1 : count + 1);
-		var stack = Manager.BY_PLAYER.computeIfAbsent(viewer, player -> new Stack<>());
+		var stack = manager.getCameraStack(viewer);
 		if (!stack.empty()) {
 			var parent = stack.peek();
 			if (parent != null) {
@@ -265,7 +213,7 @@ public class Camera<T extends CUIHandler<T>> {
 			return false;
 		}
 
-		var stack = Manager.BY_PLAYER.get(viewer);
+		var stack = manager.getCameraStack(viewer);
 		if (stack == null || stack.empty()) {
 			return false;
 		}
@@ -300,7 +248,7 @@ public class Camera<T extends CUIHandler<T>> {
 		if (count <= 0) {
 			return false;
 		}
-		var stack = Manager.BY_PLAYER.get(viewer);
+		var stack = manager.getCameraStack(viewer);
 		if (stack == null || stack.empty()) {
 			return false;
 		}
@@ -332,7 +280,7 @@ public class Camera<T extends CUIHandler<T>> {
 	public void destroy() {
 		new ArrayList<>(viewers).forEach(player -> closeCascade(player, true));
 		chestUI.getTrigger().notifyReleaseCamera(this);
-		Manager.CAMERAS.inverse().remove(this);
+		manager.unregisterCamera(this);
 		destroyed = true;
 	}
 
