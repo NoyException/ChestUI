@@ -10,7 +10,7 @@ import org.bukkit.inventory.PlayerInventory;
 
 @DefaultCamera(rowSize = 6)
 @CUITitle("Inventory Monitor")
-@CUI("im")
+@CUI(name = "im")
 public class InventoryMonitor implements CUIHandler<InventoryMonitor> {
 	private ChestUI<InventoryMonitor> cui;
 	private Layer displayPlayers;

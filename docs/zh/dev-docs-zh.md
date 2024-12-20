@@ -38,6 +38,7 @@ dependencies {
 自定义CUI需要实现 `CUIHandler<T>` 接口，其中 `T` 为你的CUI的类型，例如：
 
 ```java
+@CUI(name = "test")
 public class TestCUI implements CUIHandler<TestCUI> {
     private ChestUI<TestCUI> cui;
 	@Override
@@ -53,7 +54,7 @@ public class TestCUI implements CUIHandler<TestCUI> {
 
 你可以为你的CUI添加一些注解，来更方便地初始化：
 
-- @CUI: 定义CUI的id，这样就能在游戏内通过/cui操作该CUI
+- @CUI: **只有标注该注解，你的CUI才会被注册。**定义CUI的id以及是否是单例。单例会在加载时自动生成一个实例
 - @DefaultCamera: 初始化默认Camera（默认是3*9的大小）
 - @CUITitle: 初始化标题
 - @CUISize: 初始化CUI大小，默认无限大
@@ -61,7 +62,7 @@ public class TestCUI implements CUIHandler<TestCUI> {
 ### 插入图层
 
 ```java
-@CUI("test")
+@CUI(name = "test")
 public class TestCUI implements CUIHandler<TestCUI> {
     private ChestUI<TestCUI> cui;
     @Override
@@ -106,7 +107,8 @@ public class TestCUI implements CUIHandler<TestCUI> {
 ```java
 // 先获取本plugin实例
 var cuiPlugin = JavaPlugin.getPlugin(CUIPlugin.class);
-var cui = cuiPlugin.getCUIManager().createCUI(TestCUI.class);
+var cuiTypeHandler = cuiPlugin.getCUIManager().getCUITypeHandler(TestCUI.class);
+var cui = cuiTypeHandler.createInstance();
 ```
 
 接下来，你可以选择获取默认摄像头，或者创建一个摄像头

@@ -20,6 +20,7 @@ public class ChestUITest {
 	public static void setup() {
 		server = MockBukkit.mock();
 		plugin = MockBukkit.load(CUIPlugin.class);
+		plugin.getCUIManager().registerCUI(TestCUI.class, plugin, "test", false);
 		a = server.addPlayer("a");
 		b = server.addPlayer("b");
 		// 因为mock的player的getTopInventory会返回null，故手动先打开一个inventory
@@ -41,7 +42,7 @@ public class ChestUITest {
 	@Test
 	@Order(1)
 	public void testCreate() {
-		cui = plugin.getCUIManager().createCUI(TestCUI.class);
+		cui = plugin.getCUIManager().getCUITypeHandler(TestCUI.class).createInstance();
 		Assertions.assertNotNull(cui);
 	}
 

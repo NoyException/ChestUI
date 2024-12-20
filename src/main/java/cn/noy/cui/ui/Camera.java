@@ -114,6 +114,10 @@ public class Camera<T extends CUIHandler<T>> {
 		return chestUI;
 	}
 
+	public int getId() {
+		return id;
+	}
+
 	public String getName() {
 		return chestUI.getName() + "#" + id;
 	}

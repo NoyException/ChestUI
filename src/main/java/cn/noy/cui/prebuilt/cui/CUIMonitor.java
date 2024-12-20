@@ -8,6 +8,7 @@ import org.bukkit.Material;
 
 @DefaultCamera(rowSize = 6)
 @CUITitle("CUI Monitor")
+@CUI(name = "monitor", singleton = true)
 public class CUIMonitor implements CUIHandler<CUIMonitor> {
 	private ChestUI<CUIMonitor> cui;
 	private Layer displayCUIs;

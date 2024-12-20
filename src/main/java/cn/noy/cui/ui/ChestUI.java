@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 public class ChestUI<T extends CUIHandler<T>> {
 	private final CUIPlugin plugin;
-	private final HashSet<Camera<T>> cameras = new HashSet<>();
+	private final HashMap<Integer, Camera<T>> cameras = new HashMap<>();
 	private State state = State.UNINITIALIZED;
 
 	private final int maxRow;
@@ -70,8 +70,10 @@ public class ChestUI<T extends CUIHandler<T>> {
 			defaultCamera = new Camera<>(this, getNextCameraId(), new Position(0, 0), 3, 9, Camera.HorizontalAlign.LEFT,
 					Camera.VerticalAlign.TOP, defaultTitle);
 		}
-		cameras.add(defaultCamera);
+		cameras.put(defaultCamera.getId(), defaultCamera);
 		handler.onCreateCamera(defaultCamera);
+
+		state = State.READY;
 	}
 
 	public CUIPlugin getPlugin() {
@@ -101,7 +103,7 @@ public class ChestUI<T extends CUIHandler<T>> {
 
 	public Camera<T> createCamera() {
 		var camera = defaultCamera.deepClone();
-		cameras.add(camera);
+		cameras.put(camera.getId(), camera);
 		handler.onCreateCamera(camera);
 		return camera;
 	}
@@ -110,13 +112,17 @@ public class ChestUI<T extends CUIHandler<T>> {
 			Camera.HorizontalAlign horizontalAlign, Camera.VerticalAlign verticalAlign) {
 		var camera = new Camera<>(this, getNextCameraId(), position, rowSize, columnSize, horizontalAlign,
 				verticalAlign, defaultTitle);
-		cameras.add(camera);
+		cameras.put(camera.getId(), camera);
 		handler.onCreateCamera(camera);
 		return camera;
 	}
 
 	public List<Camera<T>> getCameras() {
-		return new ArrayList<>(cameras);
+		return new ArrayList<>(cameras.values());
+	}
+
+	public Camera<T> getCamera(int cameraId) {
+		return cameras.get(cameraId);
 	}
 
 	public int getCameraCount() {
@@ -185,8 +191,7 @@ public class ChestUI<T extends CUIHandler<T>> {
 	public void destroy() {
 		state = State.DESTROYING;
 		handler.onDestroy();
-		new ArrayList<>(cameras).forEach(Camera::destroy);
-		plugin.getCUIManager().notifyDestroy(this);
+		new ArrayList<>(cameras.values()).forEach(Camera::destroy);
 		state = State.DESTROYED;
 	}
 
@@ -299,12 +304,12 @@ public class ChestUI<T extends CUIHandler<T>> {
 					wrapper.layer.tick();
 				}
 			}
-			cameras.forEach(Camera::tick);
+			cameras.values().forEach(Camera::tick);
 			handler.onTick();
 		}
 
 		void notifyReleaseCamera(Camera<T> camera) {
-			cameras.remove(camera);
+			cameras.remove(camera.getId());
 			handler.onDestroyCamera(camera);
 			if (camera == defaultCamera) {
 				destroy();

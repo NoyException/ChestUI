@@ -27,7 +27,7 @@ public class InventoryMonitorTest {
 		server = MockBukkit.mock();
 		plugin = MockBukkit.load(CUIPlugin.class);
 		a = server.addPlayer("a");
-		cui = plugin.getCUIManager().createCUI(InventoryMonitor.class);
+		cui = plugin.getCUIManager().getCUITypeHandler(InventoryMonitor.class).createInstance();
 		Assertions.assertNotNull(cui);
 		Assertions.assertTrue(cui.getDefaultCamera().open(a, false), "应当能打开默认摄像头");
 		server.getScheduler().performOneTick();

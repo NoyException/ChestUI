@@ -1,10 +1,9 @@
 package cn.noy.cui.prebuilt.cmd;
 
 import cn.noy.cui.CUIPlugin;
-import cn.noy.cui.prebuilt.cui.CUIMonitor;
 
-import cn.noy.cui.ui.Camera;
-import cn.noy.cui.ui.ChestUI;
+import cn.noy.cui.prebuilt.cui.CUIMonitor;
+import cn.noy.cui.ui.*;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
@@ -21,11 +20,9 @@ import java.util.List;
 
 public class CmdCUI implements CommandExecutor, TabCompleter {
 	private final CUIPlugin plugin;
-	private final ChestUI<CUIMonitor> cuiMonitor;
 
 	public CmdCUI(CUIPlugin plugin) {
 		this.plugin = plugin;
-		this.cuiMonitor = plugin.getCUIManager().createCUI(CUIMonitor.class);
 	}
 
 	public void printHelp(@NotNull CommandSender sender) {
@@ -92,44 +89,41 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 						sender.sendMessage("Failed to close camera for " + player.getName());
 					}
 				}
-				sender.sendMessage("Closed");
 				return true;
 			}
 			case "create" -> {
 				if (args.length == 1) {
 					return false;
 				}
-				var name = args[1];
-				NamespacedKey key;
-				if (!name.contains("#")) {
-					try {
-						key = NamespacedKey.fromString(name);
-					} catch (IllegalArgumentException e) {
-						sender.sendMessage("Invalid CUI name: " + name);
-						return false;
-					}
+				CUIManager.ParseResult parsed;
+				try {
+					parsed = plugin.getCUIManager().parse(args[1]);
+				} catch (IllegalArgumentException e) {
+					sender.sendMessage("Invalid CUI name: " + args[1]);
+					return false;
+				}
 
-					var cui = plugin.getCUIManager().createCUI(key);
-					if (cui == null) {
-						sender.sendMessage("CUI not found: " + name);
-						return true;
-					}
+				if (parsed.typeHandler() == null) {
+					sender.sendMessage("CUI type not found: " + args[1]);
+					return true;
+				} else if (parsed.instanceId() == null) {
+					var cui = parsed.typeHandler().createInstance();
 					if (args.length == 3 && args[2].equals("keepAlive")) {
 						cui.edit().setKeepAlive(true).finish();
 					}
-					sender.sendMessage("Create CUI instance " + cui.getName());
-				} else {
-					var cui = plugin.getCUIManager().getCUI(name);
+				} else if (parsed.cameraId() == null) {
+					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
 					if (cui == null) {
-						sender.sendMessage("CUI instance not found: " + name);
+						sender.sendMessage("CUI instance not found: " + args[1]);
 						return true;
 					}
 					var camera = cui.createCamera();
 					if (camera == null) {
-						sender.sendMessage("Failed to create camera for CUI instance: " + name);
+						sender.sendMessage("Failed to create camera for CUI instance: " + args[1]);
 						return true;
 					}
-					sender.sendMessage("Create camera " + camera.getName());
+				} else {
+					sender.sendMessage("Do not specify camera id when creating CUI instance or Camera");
 				}
 				return true;
 			}
@@ -137,76 +131,82 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 				if (args.length == 1) {
 					return false;
 				}
-				var name = args[1];
-				String[] split = name.split("#");
-				if (split.length == 2) {
-					var cui = plugin.getCUIManager().getCUI(name);
+				CUIManager.ParseResult parsed;
+				try {
+					parsed = plugin.getCUIManager().parse(args[1]);
+				} catch (IllegalArgumentException e) {
+					sender.sendMessage("Invalid CUI name: " + args[1]);
+					return false;
+				}
+				if (parsed.typeHandler() == null) {
+					sender.sendMessage("CUI type not found: " + args[1]);
+					return true;
+				} else if (parsed.instanceId() == null) {
+					var cuis = parsed.typeHandler().getInstances();
+					for (var cui : cuis) {
+						cui.destroy();
+					}
+				} else if (parsed.cameraId() == null) {
+					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
 					if (cui == null) {
-						sender.sendMessage("CUI instance not found: " + name);
+						sender.sendMessage("CUI instance not found: " + args[1]);
 						return true;
 					}
 					cui.destroy();
-					sender.sendMessage("Destroyed");
-					return true;
-				} else if (split.length == 3) {
-					var camera = Camera.Manager.getCamera(name);
+				} else {
+					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
+					if (cui == null) {
+						sender.sendMessage("CUI instance not found: " + args[1]);
+						return true;
+					}
+					var camera = cui.getCamera(parsed.cameraId());
 					if (camera == null) {
-						sender.sendMessage("Camera not found: " + name);
+						sender.sendMessage("Camera not found: " + args[1]);
 						return true;
 					}
 					camera.destroy();
-					sender.sendMessage("Destroyed");
-					return true;
-				} else {
-					sender.sendMessage("Invalid CUI instance or camera name: " + name);
-					return false;
 				}
+				return true;
 			}
 			case "list" -> {
 				if (args.length == 1) {
 					return false;
 				}
-				var name = args[1];
-				String[] split = name.split("#");
-				if (split.length == 1) {
-					var key = NamespacedKey.fromString(name);
-					if (key == null) {
-						sender.sendMessage("Invalid CUI name: " + name);
-						return true;
-					}
-					var cuis = plugin.getCUIManager().getCUIs(key);
-					if (cuis.isEmpty()) {
-						sender.sendMessage("No CUI instance found for " + name);
-						return true;
-					}
-					sender.sendMessage("CUI instances of " + name + ":");
-					sender.sendMessage(" - " + String.join(", ", cuis.stream().map(ChestUI::getName).toList()));
+				CUIManager.ParseResult parsed;
+				try {
+					parsed = plugin.getCUIManager().parse(args[1]);
+				} catch (IllegalArgumentException e) {
+					sender.sendMessage("Invalid CUI name: " + args[1]);
+					return false;
+				}
+				if (parsed.typeHandler() == null) {
+					sender.sendMessage("CUI type not found: " + args[1]);
 					return true;
-				} else if (split.length == 2) {
-					var cui = plugin.getCUIManager().getCUI(name);
+				} else if (parsed.instanceId() == null) {
+					var cuis = parsed.typeHandler().getInstances();
+					sender.sendMessage("CUI instances of " + args[1] + ":");
+					sender.sendMessage(" - " + String.join(", ", cuis.stream().map(ChestUI::getName).toList()));
+				} else if (parsed.cameraId() == null) {
+					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
 					if (cui == null) {
-						sender.sendMessage("CUI instance not found: " + name);
+						sender.sendMessage("CUI instance not found: " + args[1]);
 						return true;
 					}
 					var cameras = cui.getCameras();
-					if (cameras.isEmpty()) {
-						sender.sendMessage("No camera found for CUI instance: " + name);
-						return true;
-					}
-					sender.sendMessage("Cameras of " + name + ":");
+					sender.sendMessage("Cameras of " + args[1] + ":");
 					sender.sendMessage(" - " + String.join(", ", cameras.stream().map(Camera::getName).toList()));
-					return true;
 				} else {
-					sender.sendMessage("Invalid CUI instance or camera name: " + name);
-					return false;
+					sender.sendMessage("Do not specify camera id when listing CUI instance or Camera");
 				}
+				return true;
 			}
 			case "monitor" -> {
 				if (!(sender instanceof Player player)) {
 					sender.sendMessage("Player required");
 					return false;
 				}
-				var success = cuiMonitor.getDefaultCamera().open(player, false);
+				var cui = plugin.getCUIManager().getCUITypeHandler(CUIMonitor.class).getInstance();
+				var success = cui.getDefaultCamera().open(player, false);
 				if (!success) {
 					sender.sendMessage("Failed to open CUI monitor");
 				}
@@ -216,74 +216,60 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 				if (args.length == 1) {
 					return false;
 				}
-				var name = args[1];
-				String[] split = name.split("#");
-				if (split.length == 2) {
-					var cui = plugin.getCUIManager().getCUI(name);
-					if (cui == null) {
-						sender.sendMessage("CUI instance not found: " + name);
-						return true;
-					}
-					var camera = cui.getDefaultCamera();
-					if (camera == null) {
-						sender.sendMessage("Default camera not found for CUI instance: " + name);
-						return true;
-					}
-					if (args.length < 3) {
-						if (!(sender instanceof Player player)) {
-							sender.sendMessage("Player required");
-							return false;
-						}
-						var success = camera.open(player, false);
-						if (!success) {
-							sender.sendMessage("Failed to open camera " + camera.getName());
-						}
-					} else {
-						var entities = Bukkit.getServer().selectEntities(sender, args[2]);
-						var asChild = args.length == 4 && args[3].equals("asChild");
-						for (Entity entity : entities) {
-							if (!(entity instanceof Player player)) {
-								sender.sendMessage("Only player can open camera");
-								continue;
-							}
-							var success = camera.open(player, asChild);
-							if (!success) {
-								sender.sendMessage(
-										"Failed to open camera " + camera.getName() + " for " + player.getName());
-							}
-						}
-					}
-					sender.sendMessage("Opened");
-					return true;
-				} else if (split.length == 3) {
-					var camera = Camera.Manager.getCamera(name);
-					if (camera == null) {
-						sender.sendMessage("Camera not found: " + name);
-						return true;
-					}
-					if (args.length == 4) {
-						var target = plugin.getServer().getPlayer(args[3]);
-						if (target == null) {
-							sender.sendMessage("Player not found: " + args[3]);
-							return true;
-						}
-						var success = camera.open(target, false);
-						if (!success) {
-							sender.sendMessage(
-									"Failed to open camera " + camera.getName() + " for " + target.getName());
-						}
-					} else {
-						var success = camera.open((Player) sender, false);
-						if (!success) {
-							sender.sendMessage("Failed to open camera " + camera.getName());
-						}
-					}
-					sender.sendMessage("Opened");
-					return true;
-				} else {
-					sender.sendMessage("Invalid CUI instance or camera name: " + name);
+				CUIManager.ParseResult parsed;
+				try {
+					parsed = plugin.getCUIManager().parse(args[1]);
+				} catch (IllegalArgumentException e) {
+					sender.sendMessage("Invalid CUI name: " + args[1]);
 					return false;
 				}
+				if (parsed.typeHandler() == null) {
+					sender.sendMessage("CUI type not found: " + args[1]);
+					return true;
+				}
+				Camera<?> camera;
+
+				if (parsed.instanceId() == null) {
+					if (parsed.typeHandler().isSingleton()) {
+						camera = parsed.typeHandler().getInstance().getDefaultCamera();
+					} else {
+						sender.sendMessage("Instance id required for non-singleton CUI type");
+						return true;
+					}
+				} else if (parsed.cameraId() == null) {
+					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
+					if (cui == null) {
+						sender.sendMessage("CUI instance not found: " + args[1]);
+						return true;
+					}
+					camera = cui.getDefaultCamera();
+				} else {
+					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
+					if (cui == null) {
+						sender.sendMessage("CUI instance not found: " + args[1]);
+						return true;
+					}
+					camera = cui.getCamera(parsed.cameraId());
+				}
+
+				if (camera == null) {
+					sender.sendMessage("Camera not found: " + args[1]);
+					return true;
+				}
+
+				var entities = args.length == 3 ? Bukkit.getServer().selectEntities(sender, args[2]) : List.of(sender);
+				var asChild = args.length == 4 && args[3].equals("asChild");
+				for (var entity : entities) {
+					if (!(entity instanceof Player player)) {
+						sender.sendMessage("Only player can open camera");
+						continue;
+					}
+					var success = camera.open(player, asChild);
+					if (!success) {
+						sender.sendMessage("Failed to open camera for " + player.getName());
+					}
+				}
+				return true;
 			}
 		}
 	}

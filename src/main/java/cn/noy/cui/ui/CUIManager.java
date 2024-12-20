@@ -4,7 +4,6 @@ import cn.noy.cui.CUIPlugin;
 import cn.noy.cui.util.ItemStacks;
 
 import com.destroystokyo.paper.event.server.ServerTickEndEvent;
-import com.google.common.collect.HashBiMap;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -15,17 +14,12 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.server.PluginEnableEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
-import org.jetbrains.annotations.NotNull;
 import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 import org.reflections.util.FilterBuilder;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,74 +31,38 @@ public class CUIManager implements Listener {
 	}
 
 	private boolean initialized = false;
-	private final HashBiMap<NamespacedKey, Class<?>> cuiClasses = HashBiMap.create();
-	private final HashBiMap<String, ChestUI<?>> cuis = HashBiMap.create();
-	private final HashMap<Class<?>, Integer> maxId = new HashMap<>();
-	private final Queue<Runnable> pending = new LinkedList<>();
+	private final HashMap<NamespacedKey, CUITypeHandler<?>> cuiTypes = new HashMap<>();
+	private final HashMap<Class<?>, CUITypeHandler<?>> cuiTypesByClass = new HashMap<>();
 
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	public List<ChestUI<?>> getCUIs() {
-		return new ArrayList<>(cuis.values());
-	}
-
-	public List<ChestUI<?>> getCUIs(NamespacedKey key) {
-		return cuis.values().stream().filter(cui -> cui.getName().startsWith(key.toString())).toList();
+		return (List) cuiTypes.values().stream().flatMap(type -> type.getInstances().stream()).toList();
 	}
 
 	public List<NamespacedKey> getRegisteredCUINames() {
-		return new ArrayList<>(cuiClasses.keySet());
+		return new ArrayList<>(cuiTypes.keySet());
 	}
 
 	public List<NamespacedKey> getRegisteredCUINames(Plugin plugin) {
-		return cuiClasses.keySet().stream()
+		return cuiTypes.keySet().stream()
 				.filter(namespacedKey -> namespacedKey.getNamespace().equalsIgnoreCase(plugin.getName())).toList();
 	}
 
-	public ChestUI<?> createCUI(Plugin plugin, String name) {
-		return createCUI(NamespacedKey.fromString(name, plugin));
+	public CUITypeHandler<?> getCUITypeHandler(NamespacedKey key) {
+		return cuiTypes.get(key);
 	}
 
-	@SuppressWarnings({"unchecked", "rawtypes"})
-	public ChestUI<?> createCUI(NamespacedKey key) {
-		var clazz = cuiClasses.get(key);
-		if (clazz == null) {
-			return null;
-		}
-		return createCUI((Class) clazz);
+	public CUITypeHandler<?> getCUITypeHandler(Plugin plugin, String name) {
+		return cuiTypes.get(NamespacedKey.fromString(name, plugin));
 	}
 
-	public <T extends CUIHandler<T>> ChestUI<T> createCUI(@NotNull Class<T> handlerClass) {
-		T handler;
-		try {
-			Constructor<T> constructor = handlerClass.getConstructor();
-			handler = constructor.newInstance();
-		} catch (NoSuchMethodException | InstantiationException | IllegalAccessException
-				| InvocationTargetException e) {
-			throw new RuntimeException(
-					"CUI Handler `" + handlerClass.getCanonicalName() + "` must have a public no-args constructor");
-		}
-		var id = maxId.getOrDefault(handlerClass, 1);
-		maxId.put(handlerClass, id + 1);
-		var key = cuiClasses.inverse().get(handlerClass);
-		var name = key != null ? key.toString() : handlerClass.getCanonicalName();
-		var cui = new ChestUI<>(plugin, handler, name, id);
-		cuis.put(cui.getName(), cui);
-		return cui;
-	}
-
-	public ChestUI<?> getCUI(String name) {
-		return cuis.get(name);
+	@SuppressWarnings("unchecked")
+	public <T extends CUIHandler<T>> CUITypeHandler<T> getCUITypeHandler(Class<T> clazz) {
+		return (CUITypeHandler<T>) cuiTypesByClass.get(clazz);
 	}
 
 	private void tick() {
-		while (true) {
-			var task = pending.poll();
-			if (task == null) {
-				break;
-			}
-			task.run();
-		}
-
-		cuis.values().forEach(cui -> cui.getTrigger().tick());
+		cuiTypes.values().forEach(CUITypeHandler::tick);
 		Camera.Manager.forEachCamera(Camera::update);
 	}
 
@@ -124,10 +82,57 @@ public class CUIManager implements Listener {
 		getCUIs().forEach(ChestUI::destroy);
 	}
 
-	void notifyDestroy(ChestUI<?> cui) {
-		pending.add(() -> cuis.inverse().remove(cui));
+	public record ParseResult(CUITypeHandler<?> typeHandler, Integer instanceId, Integer cameraId) {
 	}
 
+	public ParseResult parse(String name) throws IllegalArgumentException {
+		var split = name.split("#");
+		if (split.length < 1) {
+			throw new IllegalArgumentException("Invalid CUI name: " + name);
+		}
+		var key = NamespacedKey.fromString(split[0]);
+		var typeHandler = getCUITypeHandler(key);
+		if (typeHandler == null) {
+			return new ParseResult(null, null, null);
+		}
+		if (split.length < 2) {
+			return new ParseResult(typeHandler, null, null);
+		}
+		var instanceId = Integer.parseInt(split[1]);
+		if (split.length < 3) {
+			return new ParseResult(typeHandler, instanceId, null);
+		}
+		var cameraId = Integer.parseInt(split[2]);
+		return new ParseResult(typeHandler, instanceId, cameraId);
+	}
+
+	/**
+	 * 如果你的CUIHandler注解了{@link CUI}，则应当会被自动注册。如果因为某些原因未被注册，可以手动调用此方法注册。<br>
+	 * If your CUIHandler is annotated with {@link CUI}, it should be automatically
+	 * registered. If not, you can manually
+	 *
+	 * @param handlerClass
+	 *            CUIHandler的实现类
+	 * @param plugin
+	 *            注册的插件
+	 * @param name
+	 *            CUI的名称
+	 * @param singleton
+	 *            是否为单例
+	 * @param <T>
+	 *            CUIHandler的实现类
+	 */
+	public <T extends CUIHandler<T>> void registerCUI(Class<T> handlerClass, Plugin plugin, String name,
+			boolean singleton) {
+		var key = NamespacedKey.fromString(name, plugin);
+		if (cuiTypes.containsKey(key)) {
+			throw new IllegalArgumentException("CUI `" + key + "` has already been registered");
+		}
+		cuiTypes.put(key, new CUITypeHandler<>(this.plugin, handlerClass, key, singleton));
+		cuiTypesByClass.put(handlerClass, cuiTypes.get(key));
+	}
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
 	private void scanPlugin(Plugin plg) {
 		// 使用目标插件的 ClassLoader 创建 Reflections 实例
 		Reflections reflections = new Reflections(
@@ -145,8 +150,8 @@ public class CUIManager implements Listener {
 				continue;
 			}
 			// 处理带有@CUI注解的类
-			CUI annotation = clazz.getAnnotation(CUI.class);
-			cuiClasses.put(NamespacedKey.fromString(annotation.value(), plg), clazz);
+			var annotation = clazz.getAnnotation(CUI.class);
+			registerCUI((Class) clazz, plg, annotation.name(), annotation.singleton());
 		}
 	}
 

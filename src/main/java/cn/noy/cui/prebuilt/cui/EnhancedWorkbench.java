@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 @DefaultCamera(rowSize = 5)
 @CUITitle("Enhanced Workbench")
-@CUI("ew")
+@CUI(name = "ew")
 public class EnhancedWorkbench implements CUIHandler<EnhancedWorkbench> {
 	private CraftingTable craftingTable;
 
