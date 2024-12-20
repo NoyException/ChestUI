@@ -48,6 +48,11 @@ public class InventoryMonitorTest {
 		MockBukkit.unmock();
 	}
 
+	private void tick() {
+		server.getScheduler().performOneTick();
+		plugin.getCUIManager().onTickEnd(null);
+	}
+
 	// TODO: 因为MockBukkit还未支持放置物品，故无法测试放置物品的情况
 	// @Test
 	// public void testLeftClick() {

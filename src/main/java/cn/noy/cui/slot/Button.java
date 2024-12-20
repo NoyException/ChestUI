@@ -25,26 +25,19 @@ import java.util.function.Consumer;
 public class Button extends Slot {
 	private Consumer<CUIClickEvent<?>> clickHandler;
 	private ItemStack itemStack;
-	private boolean dirty = true;
 
 	private Button() {
 	}
 
 	@Override
-	public boolean isDirty() {
-		return dirty;
-	}
-
-	@Override
 	public ItemStack display(ItemStack legacy) {
-		dirty = false;
 		return itemStack;
 	}
 
 	@Override
 	public void set(ItemStack itemStack, @Nullable Player player) {
 		this.itemStack = itemStack;
-		dirty = true;
+		markDirty();
 	}
 
 	@Override

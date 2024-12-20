@@ -3,6 +3,7 @@ package cn.noy.cui.ui;
 import cn.noy.cui.CUIPlugin;
 import cn.noy.cui.util.ItemStacks;
 
+import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import com.google.common.collect.HashBiMap;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -14,6 +15,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.server.PluginEnableEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
@@ -34,7 +36,7 @@ public class CUIManager implements Listener {
 		this.plugin = plugin;
 	}
 
-	private BukkitTask task;
+	private boolean initialized = false;
 	private final HashBiMap<NamespacedKey, Class<?>> cuiClasses = HashBiMap.create();
 	private final HashBiMap<String, ChestUI<?>> cuis = HashBiMap.create();
 	private final HashMap<Class<?>, Integer> maxId = new HashMap<>();
@@ -107,20 +109,18 @@ public class CUIManager implements Listener {
 	}
 
 	public void setup() {
-		if (task != null) {
+		if (initialized) {
 			throw new IllegalStateException("CUIManager has already been initialized");
 		}
-		task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 0, 1);
+		initialized = true;
 		Bukkit.getPluginManager().registerEvents(this, plugin);
 		scanPlugin(plugin);
 	}
 
 	public void teardown() {
-		if (task == null) {
+		if (!initialized) {
 			throw new IllegalStateException("CUIManager has not been initialized");
 		}
-		task.cancel();
-		task = null;
 		getCUIs().forEach(ChestUI::destroy);
 	}
 
@@ -144,7 +144,7 @@ public class CUIManager implements Listener {
 				plugin.getLogger().warning("Class `" + clazz.getCanonicalName() + "` does not implement CUIHandler");
 				continue;
 			}
-			// 处理带有@CUISize注解的类
+			// 处理带有@CUI注解的类
 			CUI annotation = clazz.getAnnotation(CUI.class);
 			cuiClasses.put(NamespacedKey.fromString(annotation.value(), plg), clazz);
 		}
@@ -159,6 +159,11 @@ public class CUIManager implements Listener {
 			return;
 		}
 		scanPlugin(plg);
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onTickEnd(ServerTickEndEvent event) {
+		tick();
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
@@ -219,9 +224,14 @@ public class CUIManager implements Listener {
 		}
 
 		event.getNewItems().forEach((rawSlot, itemStack) -> {
-			if (view.convertSlot(rawSlot) != rawSlot)
+			if (view.convertSlot(rawSlot) != rawSlot) {
 				return;
+			}
+			if (ItemStacks.isEmpty(itemStack)) {
+				return;
+			}
 
+			itemStack.setAmount(itemStack.getAmount() - ItemStacks.getAmount(view.getItem(rawSlot)));
 			var remaining = camera.place(player, itemStack, rawSlot / 9, rawSlot % 9);
 			if (!ItemStacks.isEmpty(remaining)) {
 				amount.addAndGet(remaining.getAmount());

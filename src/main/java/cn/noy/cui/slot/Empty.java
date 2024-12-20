@@ -16,11 +16,6 @@ public class Empty extends Slot {
 	}
 
 	@Override
-	public boolean isDirty() {
-		return false;
-	}
-
-	@Override
 	public ItemStack display(ItemStack legacy) {
 		return legacy;
 	}

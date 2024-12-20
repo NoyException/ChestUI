@@ -20,6 +20,10 @@ public class ItemStacks {
 		return itemStack.getAmount() >= itemStack.getMaxStackSize();
 	}
 
+	public static int getAmount(ItemStack itemStack) {
+		return isEmpty(itemStack) ? 0 : itemStack.getAmount();
+	}
+
 	public static boolean isSimilar(ItemStack a, ItemStack b) {
 		var aEmpty = isEmpty(a);
 		var bEmpty = isEmpty(b);

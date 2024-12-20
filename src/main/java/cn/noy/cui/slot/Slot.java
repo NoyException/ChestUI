@@ -2,19 +2,25 @@ package cn.noy.cui.slot;
 
 import cn.noy.cui.event.CUIClickEvent;
 
+import cn.noy.cui.layer.Layer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class Slot {
-	/**
-	 * 检查槽位是否脏<br>
-	 * Check if the slot is dirty
-	 *
-	 * @return 如果槽位脏，返回true，否则返回false<br>
-	 *         If the slot is dirty, return true, otherwise return false
-	 */
-	public abstract boolean isDirty();
+	private Runnable dirtyMarker;
+
+	void bind(Runnable dirtyMarker) {
+		this.dirtyMarker = dirtyMarker;
+		markDirty();
+	}
+
+	protected void markDirty() {
+		dirtyMarker.run();
+	}
+
+	public void tick() {
+	}
 
 	/**
 	 * 展示槽位中的物品<br>

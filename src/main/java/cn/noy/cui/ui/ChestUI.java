@@ -294,6 +294,12 @@ public class ChestUI<T extends CUIHandler<T>> {
 
 		public void tick() {
 			ticks++;
+			for (LayerWrapper wrapper : layers.values()) {
+				if (wrapper.active) {
+					wrapper.layer.tick();
+				}
+			}
+			cameras.forEach(Camera::tick);
 			handler.onTick();
 		}
 

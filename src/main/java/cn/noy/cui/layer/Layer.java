@@ -23,6 +23,7 @@ public class Layer {
 	// margin的位置是相对摄像头还是绝对值
 	private boolean relative;
 	private final SlotHandler[][] slots;
+	private boolean dirty;
 
 	public Layer(int maxRow, int maxColumn) {
 		this.maxRow = maxRow;
@@ -51,7 +52,23 @@ public class Layer {
 	}
 
 	public boolean isDirty() {
-		return Arrays.stream(slots).flatMap(Arrays::stream).filter(Objects::nonNull).anyMatch(SlotHandler::isDirty);
+		return dirty;
+	}
+
+	public void markDirty() {
+		dirty = true;
+	}
+
+	public void tick() {
+		dirty = false;
+		for (int row = 0; row < maxRow; row++) {
+			for (int column = 0; column < maxColumn; column++) {
+				var slot = slots[row][column];
+				if (slot != null) {
+					slot.getSlot().tick();
+				}
+			}
+		}
 	}
 
 	// 检查坐标是否超出范围
@@ -65,7 +82,7 @@ public class Layer {
 		}
 		var handler = slots[row][column];
 		if (handler == null) {
-			handler = new SlotHandler();
+			handler = new SlotHandler(this);
 			slots[row][column] = handler;
 		}
 		return handler;
@@ -133,7 +150,7 @@ public class Layer {
 			for (int column = 0; column < maxColumn; column++) {
 				var slot = slots[row][column];
 				if (slot != null) {
-					layer.slots[row][column] = new SlotHandler();
+					layer.slots[row][column] = new SlotHandler(layer);
 					layer.slots[row][column].deepClone(slot);
 				}
 			}

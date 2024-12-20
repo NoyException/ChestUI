@@ -1,41 +1,45 @@
 package cn.noy.cui.slot;
 
+import cn.noy.cui.layer.Layer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
 
 public class SlotHandler {
+	private final Layer layer;
 	private Slot slot;
 
-	public SlotHandler() {
-		slot = new Button.Builder().build();
+	public SlotHandler(Layer layer) {
+		this.layer = layer;
+		setSlot(new Button.Builder().build());
+	}
+
+	private void setSlot(@NotNull Slot slot) {
+		slot.bind(layer::markDirty);
+		this.slot = slot;
 	}
 
 	public Slot getSlot() {
 		return slot;
 	}
 
-	public boolean isDirty() {
-		return slot.isDirty();
-	}
-
 	public void deepClone(@NotNull SlotHandler handler) {
-		slot = handler.slot.deepClone();
+		setSlot(handler.slot.deepClone());
 	}
 
 	public void empty() {
-		slot = Empty.getInstance();
+		setSlot(Empty.getInstance());
 	}
 
 	public void button(@NotNull Function<Button.Builder, Button> builder) {
-		slot = builder.apply(new Button.Builder());
+		setSlot(builder.apply(new Button.Builder()));
 	}
 
 	public void filter(@NotNull Function<Filter.Builder, Filter> builder) {
-		slot = builder.apply(new Filter.Builder());
+		setSlot(builder.apply(new Filter.Builder()));
 	}
 
 	public void storage(@NotNull Function<Storage.Builder, Storage> builder) {
-		slot = builder.apply(new Storage.Builder());
+		setSlot(builder.apply(new Storage.Builder()));
 	}
 }

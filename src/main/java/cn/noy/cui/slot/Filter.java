@@ -12,16 +12,9 @@ import java.util.function.Function;
 public class Filter extends Slot {
 	private Function<ItemStack, ItemStack> filter;
 	private Consumer<CUIClickEvent<?>> clickHandler;
-	private boolean dirty = true;
-
-	@Override
-	public boolean isDirty() {
-		return dirty;
-	}
 
 	@Override
 	public ItemStack display(ItemStack legacy) {
-		dirty = false;
 		return filter.apply(legacy.clone());
 	}
 
@@ -31,8 +24,9 @@ public class Filter extends Slot {
 
 	@Override
 	public void click(CUIClickEvent<?> event) {
-		if (clickHandler != null)
+		if (clickHandler != null) {
 			clickHandler.accept(event);
+		}
 	}
 
 	@Override

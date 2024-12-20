@@ -8,7 +8,6 @@ import org.bukkit.Material;
 
 @DefaultCamera(rowSize = 6)
 @CUITitle("CUI Monitor")
-@CUI("cm")
 public class CUIMonitor implements CUIHandler<CUIMonitor> {
 	private ChestUI<CUIMonitor> cui;
 	private Layer displayCUIs;
@@ -42,6 +41,10 @@ public class CUIMonitor implements CUIHandler<CUIMonitor> {
 
 	@Override
 	public void onTick() {
+		if (cui.getTicksLived() % 10 != 0) {
+			return;
+		}
+
 		var cuis = cui.getPlugin().getCUIManager().getCUIs();
 		size = cuis.size();
 		var maxRow = (size - 1) / 9 + 1;
@@ -63,11 +66,17 @@ public class CUIMonitor implements CUIHandler<CUIMonitor> {
 											.displayName(target.getDefaultTitle())
 											.lore("&7A CUI Monitor like" + " this", "&cCannot be monitored").build()));
 				} else {
-					displayCUIs.edit().editSlot(row, column, slotHandler -> slotHandler.button(builder -> builder
-							.material(Material.CHEST).displayName(target.getDefaultTitle())
-							.lore("name: &b" + target.getName(),
-									String.format("&b%d&r" + " camera(s)", target.getCameraCount()))
-							.clickHandler(event -> target.getDefaultCamera().open(event.getPlayer(), true)).build()));
+					displayCUIs.edit()
+							.editSlot(row, column,
+									slotHandler -> slotHandler.button(builder -> builder.material(Material.CHEST)
+											.displayName(target.getDefaultTitle())
+											.lore("name: &b" + target.getName(),
+													String.format("&b%d&r" + " camera(s)", target.getCameraCount()))
+											.clickHandler(event -> {
+												if (target.getState() == ChestUI.State.READY) {
+													target.getDefaultCamera().open(event.getPlayer(), true);
+												}
+											}).build()));
 				}
 			}
 		}

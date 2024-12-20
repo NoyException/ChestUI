@@ -213,6 +213,10 @@ public class Camera<T extends CUIHandler<T>> {
 		return new Position(row, column);
 	}
 
+	public boolean open(Player viewer) {
+		return open(viewer, false);
+	}
+
 	// TODO: 测试切换Camera
 	public boolean open(Player viewer, boolean asChild) {
 		if (destroyed) {
@@ -355,10 +359,15 @@ public class Camera<T extends CUIHandler<T>> {
 		if (!keepAlive && keepAliveCount.isEmpty()) {
 			// 如果是默认Camera，只要CUI保活，或者还有其他Camera存活，那么即使无人使用也不能销毁
 			// 因为一但默认Camera被销毁，ChestUI会同步销毁
-			if (isDefault() && (chestUI.isKeepAlive() || chestUI.getCameraCount() > 1)) {
+			if (!isDefault() || (!chestUI.isKeepAlive() && chestUI.getCameraCount() <= 1)) {
+				destroy();
 				return;
 			}
-			destroy();
+		}
+
+		if (viewers.isEmpty()) {
+			// Layer的dirty只在某一tick生效，所以在没有玩家的情况下，需要手动置脏
+			dirty = true;
 			return;
 		}
 
@@ -370,6 +379,14 @@ public class Camera<T extends CUIHandler<T>> {
 				player.openInventory(inventory);
 			}
 		});
+	}
+
+	public void tick() {
+		for (LayerWrapper wrapper : layers.values()) {
+			if (wrapper.active) {
+				wrapper.layer.tick();
+			}
+		}
 	}
 
 	/**

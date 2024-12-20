@@ -1,13 +1,16 @@
 package cn.noy.cui.slot;
 
+import cn.noy.cui.CUIPlugin;
 import cn.noy.cui.event.CUIClickEvent;
 import cn.noy.cui.ui.Camera;
 import cn.noy.cui.util.ItemStacks;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,9 +20,12 @@ public class Storage extends Slot {
 
 		void set(ItemStack itemStack, @Nullable Player player);
 
-		boolean isDirty();
+		void setDirtyMarker(Runnable dirtyMarker);
 
-		void clean();
+		default void tick() {
+		}
+
+		Source deepClone();
 
 		default boolean placeable(ItemStack itemStack) {
 			if (ItemStacks.isEmpty(itemStack)) {
@@ -37,16 +43,20 @@ public class Storage extends Slot {
 		}
 	}
 
-	private Source source;
+	private final Source source;
+
+	private Storage(Source source) {
+		this.source = source;
+		source.setDirtyMarker(this::markDirty);
+	}
 
 	@Override
-	public boolean isDirty() {
-		return source.isDirty();
+	public void tick() {
+		source.tick();
 	}
 
 	@Override
 	public ItemStack display(ItemStack legacy) {
-		source.clean();
 		return source.get();
 	}
 
@@ -186,19 +196,21 @@ public class Storage extends Slot {
 
 	@Override
 	public Slot deepClone() {
-		var storage = new Storage();
-		storage.source = source;
-		return storage;
+		return new Storage(source.deepClone());
 	}
 
 	public static class Builder {
-		private final Storage storage = new Storage();
+		private Source source;
 
 		Builder() {
 		}
 
+		public Storage build() {
+			return new Storage(source);
+		}
+
 		public Builder source(Source source) {
-			storage.source = source;
+			this.source = source;
 			return this;
 		}
 
@@ -211,74 +223,85 @@ public class Storage extends Slot {
 		}
 
 		public Builder source(ItemStack initial) {
-			storage.source = new Source() {
-				private ItemStack itemStack = initial;
-				private boolean dirty = true;
-
-				@Override
-				public ItemStack get() {
-					return itemStack;
-				}
-
-				@Override
-				public void set(ItemStack itemStack, @Nullable Player player) {
-					dirty = true;
-					this.itemStack = itemStack;
-				}
-
-				@Override
-				public boolean isDirty() {
-					return dirty;
-				}
-
-				@Override
-				public void clean() {
-					dirty = false;
-				}
-			};
+			source = new ItemStackSource(initial);
 			return this;
 		}
 
 		public Builder source(Inventory inventory, int rawSlot) {
-			storage.source = new Source() {
-				private boolean init = true;
-				private ItemStack actual;
-				private ItemStack expected;
-
-				@Override
-				public ItemStack get() {
-					return inventory.getItem(rawSlot);
-				}
-
-				@Override
-				public void set(ItemStack itemStack, @Nullable Player player) {
-					inventory.setItem(rawSlot, itemStack);
-				}
-
-				@Override
-				public boolean isDirty() {
-					expected = get();
-					if (init) {
-						return true;
-					}
-					return !ItemStacks.isSame(expected, actual);
-				}
-
-				@Override
-				public void clean() {
-					init = false;
-					if (expected == null) {
-						actual = null;
-						return;
-					}
-					actual = expected.clone();
-				}
-			};
+			source = new InventorySource(inventory, rawSlot);
 			return this;
 		}
+	}
 
-		public Storage build() {
-			return storage;
+	private static class ItemStackSource implements Source {
+		private ItemStack itemStack;
+		private Runnable dirtyMarker;
+
+		public ItemStackSource(ItemStack initial) {
+			this.itemStack = initial;
+		}
+
+		@Override
+		public ItemStack get() {
+			return itemStack;
+		}
+
+		@Override
+		public void set(ItemStack itemStack, @Nullable Player player) {
+			this.itemStack = itemStack;
+			dirtyMarker.run();
+		}
+
+		@Override
+		public void setDirtyMarker(Runnable dirtyMarker) {
+			this.dirtyMarker = dirtyMarker;
+		}
+
+		@Override
+		public Source deepClone() {
+			return new ItemStackSource(ItemStacks.clone(itemStack));
+		}
+	}
+
+	private static class InventorySource implements Source {
+		private final Inventory inventory;
+		private final int rawSlot;
+		private Runnable dirtyMarker;
+		private ItemStack last;
+
+		public InventorySource(Inventory inventory, int rawSlot) {
+			this.inventory = inventory;
+			this.rawSlot = rawSlot;
+		}
+
+		@Override
+		public ItemStack get() {
+			return inventory.getItem(rawSlot);
+		}
+
+		@Override
+		public void set(ItemStack itemStack, @Nullable Player player) {
+			inventory.setItem(rawSlot, itemStack);
+			dirtyMarker.run();
+		}
+
+		@Override
+		public void setDirtyMarker(Runnable dirtyMarker) {
+			this.dirtyMarker = dirtyMarker;
+		}
+
+		@Override
+		public void tick() {
+			var current = get();
+			if (!ItemStacks.isSame(current, last)) {
+				dirtyMarker.run();
+				last = ItemStacks.clone(current);
+			}
+		}
+
+		@Override
+		public Source deepClone() {
+			return new InventorySource(inventory, rawSlot);
 		}
 	}
 }

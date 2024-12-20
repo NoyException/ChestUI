@@ -46,8 +46,8 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 
 		sender.sendMessage("/cui monitor: 打开CUI监视器.");
 
-		sender.sendMessage("/cui open <cui>#<id> (<player>): 打开指定<cui>类型实例的默认摄像头.");
-		sender.sendMessage("/cui open <cui>#<id>#<camera> (<player>): 打开指定<cui>类型实例的指定摄像头.");
+		sender.sendMessage("/cui open <cui>#<id> (<player>) (asChild): 打开指定<cui>类型实例的默认摄像头.");
+		sender.sendMessage("/cui open <cui>#<id>#<camera> (<player>) (asChild): 打开指定<cui>类型实例的指定摄像头.");
 	}
 
 	@Override
@@ -229,20 +229,7 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 						sender.sendMessage("Default camera not found for CUI instance: " + name);
 						return true;
 					}
-					if (args.length == 3) {
-						var entities = Bukkit.getServer().selectEntities(sender, args[2]);
-						for (Entity entity : entities) {
-							if (!(entity instanceof Player player)) {
-								sender.sendMessage("Only player can open camera");
-								continue;
-							}
-							var success = camera.open(player, false);
-							if (!success) {
-								sender.sendMessage(
-										"Failed to open camera " + camera.getName() + " for " + player.getName());
-							}
-						}
-					} else {
+					if (args.length < 3) {
 						if (!(sender instanceof Player player)) {
 							sender.sendMessage("Player required");
 							return false;
@@ -250,6 +237,20 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 						var success = camera.open(player, false);
 						if (!success) {
 							sender.sendMessage("Failed to open camera " + camera.getName());
+						}
+					} else {
+						var entities = Bukkit.getServer().selectEntities(sender, args[2]);
+						var asChild = args.length == 4 && args[3].equals("asChild");
+						for (Entity entity : entities) {
+							if (!(entity instanceof Player player)) {
+								sender.sendMessage("Only player can open camera");
+								continue;
+							}
+							var success = camera.open(player, asChild);
+							if (!success) {
+								sender.sendMessage(
+										"Failed to open camera " + camera.getName() + " for " + player.getName());
+							}
 						}
 					}
 					sender.sendMessage("Opened");
@@ -330,6 +331,9 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 				switch (args[0]) {
 					case "close" -> {
 						yield List.of("force");
+					}
+					case "open" -> {
+						yield List.of("asChild");
 					}
 					default -> {
 						yield List.of();

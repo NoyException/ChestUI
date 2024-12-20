@@ -60,13 +60,11 @@ public class CraftingTable {
 	}
 
 	private abstract static class Source implements Storage.Source {
-		private boolean init = true;
 		protected final int index;
 		protected final Camera<?> camera;
-		private final int row;
-		private final int column;
-		private ItemStack expected;
-		private ItemStack actual;
+		protected final int row;
+		protected final int column;
+		private Runnable dirtyMarker;
 
 		private Source(int index, Camera<?> camera, int row, int column) {
 			this.index = index;
@@ -85,25 +83,12 @@ public class CraftingTable {
 		@Override
 		public void set(ItemStack itemStack, @Nullable Player player) {
 			getMatrix()[row][column] = itemStack;
+			dirtyMarker.run();
 		}
 
 		@Override
-		public boolean isDirty() {
-			expected = get();
-			if (init) {
-				return true;
-			}
-			return !ItemStacks.isSame(expected, actual);
-		}
-
-		@Override
-		public void clean() {
-			init = false;
-			if (expected == null) {
-				actual = null;
-				return;
-			}
-			actual = expected.clone();
+		public void setDirtyMarker(Runnable dirtyMarker) {
+			this.dirtyMarker = dirtyMarker;
 		}
 	}
 
@@ -125,6 +110,11 @@ public class CraftingTable {
 				match(camera, player);
 			}
 		}
+
+		@Override
+		public Storage.Source deepClone() {
+			return new InputSource(index, camera, row, column);
+		}
 	}
 
 	private final class OutputSource extends Source {
@@ -145,11 +135,17 @@ public class CraftingTable {
 
 		@Override
 		public void set(ItemStack itemStack, @Nullable Player player) {
+			var dirty = !ItemStacks.isSame(get(), itemStack);
 			super.set(itemStack, player);
-			if (mode == Mode.AUTO && isDirty()) {
+			if (mode == Mode.AUTO && dirty) {
 				apply(camera);
 				match(camera, player);
 			}
+		}
+
+		@Override
+		public Storage.Source deepClone() {
+			return new OutputSource(index, camera, row, column);
 		}
 
 		@Override

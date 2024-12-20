@@ -33,6 +33,11 @@ public class ChestUITest {
 		MockBukkit.unmock();
 	}
 
+	private void tick() {
+		server.getScheduler().performOneTick();
+		plugin.getCUIManager().onTickEnd(null);
+	}
+
 	@Test
 	@Order(1)
 	public void testCreate() {
@@ -50,7 +55,7 @@ public class ChestUITest {
 		Assertions.assertEquals(2, cui.getCameraCount(), "添加相机后应该有两个相机");
 		Assertions.assertNull(camera.getInventory(), "服务器还没有tick，当前玩家应该还未展示CUI");
 		// 应当替换为server的tick
-		server.getScheduler().performOneTick();
+		tick();
 		Assertions.assertEquals(camera.getInventory(), b.getOpenInventory().getTopInventory(),
 				"打开CUI后的下一tick，玩家应当已经看见CUI");
 		camera.setClosable(false);
@@ -73,17 +78,17 @@ public class ChestUITest {
 		Assertions.assertTrue(camera.closeCascade(b, true), "应该能级联关闭摄像头");
 		Assertions.assertEquals(2, cui.getCameraCount(), "还未tick，摄像头还未销毁");
 		camera.setKeepAlive(true);
-		server.getScheduler().performOneTick();
+		tick();
 		Assertions.assertEquals(2, cui.getCameraCount(), "已经tick，但由于存在无法销毁的摄像头，所以默认摄像头也不会销毁");
 		camera.setKeepAlive(false);
 		cui.getDefaultCamera().setKeepAlive(true);
-		server.getScheduler().performOneTick();
+		tick();
 		Assertions.assertEquals(1, cui.getCameraCount(), "新建摄像头应当已经销毁");
 		cui.getDefaultCamera().setKeepAlive(false);
-		server.getScheduler().performOneTick();
+		tick();
 		Assertions.assertEquals(1, cui.getCameraCount(), "默认摄像头应当还未销毁");
 		cui.edit().setKeepAlive(false);
-		server.getScheduler().performOneTick();
+		tick();
 		Assertions.assertEquals(0, cui.getCameraCount(), "默认摄像头应当已经销毁");
 		Assertions.assertEquals(ChestUI.State.DESTROYED, cui.getState(), "ChestUI应当已经销毁");
 	}
