@@ -4,30 +4,19 @@
 
 注意把下列的 `version` 替换为最新的版本号。
 
-### Maven:
-
-pom.xml:
-```xml
-<dependency>
-  <groupId>cn.noy</groupId>
-  <artifactId>chest-ui</artifactId>
-  <version>version</version>
-</dependency>
-```
-
 ### Gradle:
-
-build.gradle:
-```groovy
-dependencies {
-  implementation 'cn.noy:chest-ui:version'
-}
-```
 
 build.gradle.kts:
 ```kotlin
+repositories {
+    maven {
+        name = "jitpack.io"
+        url = uri("https://www.jitpack.io")
+    }
+}
+
 dependencies {
-  implementation("cn.noy:chest-ui:version")
+    implementation("com.github.PolyVoxel:ChestUI:master-SNAPSHOT")
 }
 ```
 

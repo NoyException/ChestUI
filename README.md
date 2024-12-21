@@ -1,5 +1,7 @@
 # Chest UI
 
+[![](https://jitpack.io/v/PolyVoxel/ChestUI.svg)](https://jitpack.io/#PolyVoxel/ChestUI)
+
 [EN](README.md) | [中文](README-zh.md)
 
 A Feature-rich Minecraft Chest UI
