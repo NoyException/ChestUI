@@ -1,11 +1,14 @@
 package cn.noy.cui.ui;
 
 import cn.noy.cui.CUIPlugin;
+import cn.noy.cui.serialize.CUIData;
+import cn.noy.cui.serialize.SerializableCUITypeHandler;
 import cn.noy.cui.util.ItemStacks;
 
 import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -15,11 +18,14 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.ApiStatus;
 import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 import org.reflections.util.FilterBuilder;
+import org.yaml.snakeyaml.Yaml;
 
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -73,6 +79,7 @@ public class CUIManager implements Listener {
 		initialized = true;
 		Bukkit.getPluginManager().registerEvents(this, plugin);
 		scanPlugin(plugin);
+		registerCUIsFromFiles();
 	}
 
 	public void teardown() {
@@ -130,6 +137,53 @@ public class CUIManager implements Listener {
 		}
 		cuiTypes.put(key, new CUITypeHandler<>(this.plugin, handlerClass, key, singleton));
 		cuiTypesByClass.put(handlerClass, cuiTypes.get(key));
+	}
+
+	@ApiStatus.Experimental
+	public void registerCUI(CUIData data) {
+		if (cuiTypes.containsKey(data.getKey())) {
+			throw new IllegalArgumentException("CUI `" + data.getKey() + "` has already been registered");
+		}
+		var typeHandler = new SerializableCUITypeHandler(plugin, data);
+		cuiTypes.put(data.getKey(), typeHandler);
+	}
+
+	@ApiStatus.Experimental
+	public void registerCUI(File file) {
+		if (file.getName().endsWith(".json")) {
+			try (FileReader reader = new FileReader(file)) {
+				var data = CUIData.fromJson(reader);
+				registerCUI(data);
+			} catch (IOException e) {
+				plugin.getLogger().warning("Failed to read CUI file: " + file.getName());
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private void registerCUIsFromFiles() {
+		// 遍历folder/cui下的json文件
+		var cuiFolder = new File(plugin.getDataFolder(), "cui");
+		if (!cuiFolder.exists()) {
+			return;
+		}
+		if (!cuiFolder.isDirectory()) {
+			plugin.getLogger().warning("cui folder is not a directory");
+			return;
+		}
+		var files = cuiFolder.listFiles();
+		if (files == null) {
+			return;
+		}
+		var count = 0;
+		for (File file : files) {
+			if (!file.getName().endsWith(".json")) {
+				continue;
+			}
+			registerCUI(file);
+			count++;
+		}
+		plugin.getLogger().info("Registered " + count + " CUIs from files");
 	}
 
 	@SuppressWarnings({"unchecked", "rawtypes"})

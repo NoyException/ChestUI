@@ -1,10 +1,13 @@
 # Chest UI
 
+[EN](README.md) | [中文](README-zh.md)
+
 A Feature-rich Minecraft Chest UI
 
 ## Features
 
 - Customizable Chest UI (title, size, ...)
+- In addition to using the API, you can also customize CUI with Json files
 - Highly customizable crafting table, you can customize various recipes
 - Layered design, more flexible
 - Support switching relationship between CUIs, automatically open the last CUI when closed

@@ -6,23 +6,24 @@ import cn.noy.cui.prebuilt.cui.CUIMonitor;
 import cn.noy.cui.ui.*;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
+import org.bukkit.command.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.permissions.Permission;
+import org.bukkit.permissions.PermissionDefault;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class CmdCUI implements CommandExecutor, TabCompleter {
+public class CmdCUI implements TabExecutor {
 	private final CUIPlugin plugin;
+	private final Permission permission;
 
 	public CmdCUI(CUIPlugin plugin) {
 		this.plugin = plugin;
+		permission = new Permission("cui", PermissionDefault.OP);
 	}
 
 	public void printHelp(@NotNull CommandSender sender) {
@@ -50,6 +51,10 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 	@Override
 	public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label,
 			@NotNull String[] args) {
+		if (!sender.hasPermission(permission)) {
+			sender.sendMessage("No permission.");
+			return true;
+		}
 		if (args.length == 0) {
 			return false;
 		}
@@ -282,6 +287,9 @@ public class CmdCUI implements CommandExecutor, TabCompleter {
 	@Override
 	public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
 			@NotNull String label, @NotNull String[] args) {
+		if (!sender.hasPermission(permission)) {
+			return List.of();
+		}
 		return switch (args.length) {
 			case 1 -> List.of("close", "create", "destroy", "help", "list", "monitor", "open");
 			case 2 -> {

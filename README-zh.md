@@ -1,10 +1,13 @@
 # Chest UI
 
+[EN](README.md) | [中文](README-zh.md)
+
 一个功能丰富的 Minecraft 箱子UI
 
 ## 特性
 
 - 自定义箱子UI（标题、大小……）
+- 除了使用API，你还可以用Json文件来自定义CUI
 - 高度自定义的合成台，可以自定义各种配方
 - 分层设计，更加灵活
 - 支持CUI之间的切换关系，关闭时自动打开上一个CUI

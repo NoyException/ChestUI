@@ -57,8 +57,6 @@ public class ChestUI<T extends CUIHandler<T>> {
 		} else {
 			defaultTitle = Component.empty();
 		}
-		// 先初始化，再创建默认摄像头
-		handler.onInitialize(this);
 
 		if (clazz.isAnnotationPresent(DefaultCamera.class)) {
 			var def = clazz.getAnnotation(DefaultCamera.class);
@@ -71,6 +69,7 @@ public class ChestUI<T extends CUIHandler<T>> {
 		cameras.put(defaultCamera.getId(), defaultCamera);
 		handler.onCreateCamera(defaultCamera);
 
+		handler.onInitialize(this);
 		state = State.READY;
 	}
 

@@ -22,12 +22,12 @@ public class CUITypeHandler<T extends CUIHandler<T>> {
 		this.handlerClass = handlerClass;
 		this.key = key;
 		this.singleton = singleton;
-		if (singleton) {
-			createInstance().edit().setKeepAlive(true).finish();
-		}
 	}
 
 	public void tick() {
+		if (singleton && instances.isEmpty()) {
+			createInstance().edit().setKeepAlive(true).finish();
+		}
 		// 用for iter来在过程中移除
 		for (var iterator = instances.entrySet().iterator(); iterator.hasNext();) {
 			var entry = iterator.next();
@@ -39,30 +39,34 @@ public class CUITypeHandler<T extends CUIHandler<T>> {
 		}
 	}
 
-	public NamespacedKey getKey() {
+	public final NamespacedKey getKey() {
 		return key;
 	}
 
-	public boolean isSingleton() {
+	public final boolean isSingleton() {
 		return singleton;
 	}
 
-	public ChestUI<T> getInstance() {
+	public final ChestUI<T> getInstance() {
 		if (!singleton) {
 			throw new IllegalStateException("CUI `" + key + "` is not a singleton");
 		}
 		return instances.get(0);
 	}
 
-	public ChestUI<T> getInstance(int id) {
+	public final ChestUI<T> getInstance(int id) {
 		return instances.get(id);
 	}
 
-	public List<ChestUI<T>> getInstances() {
+	public final List<ChestUI<T>> getInstances() {
 		return new ArrayList<>(instances.values());
 	}
 
-	public ChestUI<T> createInstance() {
+	public final int getInstancesCount() {
+		return instances.size();
+	}
+
+	protected T createHandler() {
 		if (singleton && !instances.isEmpty()) {
 			throw new IllegalStateException("Singleton CUI `" + key + "` already exists");
 		}
@@ -75,6 +79,11 @@ public class CUITypeHandler<T extends CUIHandler<T>> {
 			throw new RuntimeException(
 					"CUI Handler `" + handlerClass.getCanonicalName() + "` must have a public no-args constructor");
 		}
+		return handler;
+	}
+
+	public final ChestUI<T> createInstance() {
+		var handler = createHandler();
 		var id = nextId++;
 		var cui = new ChestUI<>(plugin, handler, key.toString(), id);
 		instances.put(id, cui);

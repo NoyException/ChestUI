@@ -31,4 +31,16 @@ public record Position(int row, int column) implements Comparable<Position> {
 			return Integer.compare(row, position.row);
 		return Integer.compare(column, position.column);
 	}
+
+	@Override
+	public String toString() {
+		return "(" + row + ", " + column + ")";
+	}
+
+	public static Position fromString(String string) {
+		String[] parts = string.substring(1, string.length() - 1).split(", ");
+		int row = Integer.parseInt(parts[0]);
+		int column = Integer.parseInt(parts[1]);
+		return new Position(row, column);
+	}
 }
