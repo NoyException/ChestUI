@@ -33,7 +33,7 @@ public class CUITypeHandler<T extends CUIHandler<T>> {
 			var entry = iterator.next();
 			var cui = entry.getValue();
 			switch (cui.getState()) {
-				case READY -> cui.getTrigger().tick();
+				case READY -> cui.tick();
 				case DESTROYED -> iterator.remove();
 			}
 		}

@@ -33,14 +33,12 @@ public class ChestUI<T extends CUIHandler<T>> {
 	private final T handler;
 	private final String name;
 	private final int id;
-	private final Trigger trigger;
 
 	ChestUI(CUIPlugin plugin, @NotNull T handler, String name, int id) {
 		this.plugin = plugin;
 		this.handler = handler;
 		this.name = name;
 		this.id = id;
-		this.trigger = new Trigger();
 
 		var clazz = handler.getClass();
 		if (clazz.isAnnotationPresent(CUISize.class)) {
@@ -78,10 +76,6 @@ public class ChestUI<T extends CUIHandler<T>> {
 
 	public CUIPlugin getPlugin() {
 		return plugin;
-	}
-
-	public Trigger getTrigger() {
-		return trigger;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -293,27 +287,22 @@ public class ChestUI<T extends CUIHandler<T>> {
 		}
 	}
 
-	public class Trigger {
-		private Trigger() {
-		}
-
-		public void tick() {
-			ticks++;
-			for (LayerWrapper wrapper : layers.values()) {
-				if (wrapper.active) {
-					wrapper.layer.tick();
-				}
+	public void tick() {
+		ticks++;
+		for (LayerWrapper wrapper : layers.values()) {
+			if (wrapper.active) {
+				wrapper.layer.tick();
 			}
-			cameras.values().forEach(Camera::tick);
-			handler.onTick();
 		}
+		cameras.values().forEach(Camera::tick);
+		handler.onTick();
+	}
 
-		void notifyReleaseCamera(Camera<T> camera) {
-			cameras.remove(camera.getId());
-			handler.onDestroyCamera(camera);
-			if (camera == defaultCamera) {
-				destroy();
-			}
+	void notifyReleaseCamera(Camera<T> camera) {
+		cameras.remove(camera.getId());
+		handler.onDestroyCamera(camera);
+		if (camera == defaultCamera) {
+			destroy();
 		}
 	}
 

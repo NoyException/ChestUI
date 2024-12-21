@@ -279,7 +279,7 @@ public class Camera<T extends CUIHandler<T>> {
 	 */
 	public void destroy() {
 		new ArrayList<>(viewers).forEach(player -> closeCascade(player, true));
-		chestUI.getTrigger().notifyReleaseCamera(this);
+		chestUI.notifyReleaseCamera(this);
 		manager.unregisterCamera(this);
 		destroyed = true;
 	}
