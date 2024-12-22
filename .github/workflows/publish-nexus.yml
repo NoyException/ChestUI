@@ -1,4 +1,4 @@
-name: Publish to Github Packages
+name: Publish to Nexus
 
 on:
   release:
@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - master
+      - test-ci
 
 jobs:
   publish:
@@ -39,8 +40,7 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
-      - name: Publish to GitHub Packages
-        run: ./gradlew publishMavenJavaPublicationToGitHubPackagesRepository
+      - name: Publish to Nexus
+        run: ./gradlew publishMavenJavaPublicationToNexusRepository
         env:
-          USERNAME: ${{ github.actor }}
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}

@@ -12,7 +12,7 @@ plugins {
     id("com.gradleup.shadow") version "9.0.0-beta4"
 }
 
-group = "cn.noy"
+group = "fun.polyvoxel"
 version = "1.0.1-SNAPSHOT"
 
 repositories {
@@ -129,7 +129,7 @@ tasks.register<Jar>("sourcesJar") {
 tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
     archiveClassifier.set("")
     mergeServiceFiles()
-    relocate("org.reflections", "cn.noy.cui.shadow.org.reflections")
+    relocate("org.reflections", "fun.polyvoxel.cui.shadow.org.reflections")
 }
 
 tasks.build {
@@ -149,17 +149,37 @@ tasks.test {
     dependsOn(tasks.spotlessApply)
 }
 
+val versionString: String = version as String
+val isRelease: Boolean = !versionString.contains('-')
+val suffixedVersion: String = if (isRelease) {
+    versionString
+} else {
+    // Give the version a unique name by using the GitHub Actions run number
+    versionString + "+" + System.getenv("GITHUB_RUN_NUMBER")
+}
+
+val nexusUrl = "http://repo.polyvoxel.fun/repository/maven-" + if (isRelease) "releases" else "snapshots" + "/"
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             artifact(tasks["sourcesJar"])
-            groupId = "cn.noy"
+            groupId = project.group.toString()
             artifactId = "chest-ui"
 
             from(components["java"])
         }
     }
     repositories {
+        maven {
+            name = "Nexus"
+            url = uri(nexusUrl)
+            isAllowInsecureProtocol = true
+            credentials {
+                username = "admin"
+                password = System.getenv("NEXUS_PASSWORD")
+            }
+        }
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/PolyVoxel/ChestUI")
@@ -169,15 +189,6 @@ publishing {
             }
         }
     }
-}
-
-val versionString: String = version as String
-val isRelease: Boolean = !versionString.contains('-')
-val suffixedVersion: String = if (isRelease) {
-    versionString
-} else {
-    // Give the version a unique name by using the GitHub Actions run number
-    versionString + "+" + System.getenv("GITHUB_RUN_NUMBER")
 }
 
 // Helper methods
