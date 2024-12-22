@@ -158,7 +158,7 @@ val suffixedVersion: String = if (isRelease) {
     versionString + "+" + System.getenv("GITHUB_RUN_NUMBER")
 }
 
-val nexusUrl = "http://repo.polyvoxel.fun/repository/maven-" + if (isRelease) "releases" else "snapshots" + "/"
+val nexusUrl = "https://repo.polyvoxel.fun/repository/maven-" + if (isRelease) "releases" else "snapshots" + "/"
 
 publishing {
     publications {

@@ -1,9 +1,9 @@
 name: Publish to Hangar
 
 # TODO: 等我们真正准备好了再发布
-#on:
-#  release:
-#    types: [created]
+on:
+  release:
+    types: [created]
 #  push:
 #    branches:
 #      - master
