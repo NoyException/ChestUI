@@ -121,7 +121,6 @@ tasks.shadowJar {
 }
 
 tasks.register<Jar>("sourcesJar") {
-    dependsOn(tasks.shadowJar)
     from(sourceSets.main.get().allSource)
     archiveClassifier.set("sources")
 }

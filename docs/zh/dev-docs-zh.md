@@ -10,13 +10,13 @@ build.gradle.kts:
 ```kotlin
 repositories {
     maven {
-        name = "jitpack.io"
-        url = uri("https://www.jitpack.io")
+        name = "polyvoxel"
+        url = uri("https://repo.polyvoxel.fun/repository/maven-public/")
     }
 }
 
 dependencies {
-    implementation("com.github.PolyVoxel:ChestUI:master-SNAPSHOT")
+    implementation("fun.polyvoxel:chest-ui:1.0.1-SNAPSHOT")
 }
 ```
 
