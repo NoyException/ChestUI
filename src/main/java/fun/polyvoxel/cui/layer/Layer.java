@@ -139,6 +139,7 @@ public class Layer {
 		return new Editor();
 	}
 
+	@Deprecated
 	public Layer deepClone() {
 		var layer = new Layer(maxRow, maxColumn);
 		layer.marginLeft = marginLeft;

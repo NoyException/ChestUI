@@ -20,9 +20,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-public class Camera<T extends CUIHandler<T>> {
+public class Camera<T extends ChestUI<T>> {
 	private final CameraManager manager;
-	private final ChestUI<T> chestUI;
+	private final CUIInstance<T> cuiInstance;
 	private final int id;
 	private final HashSet<Player> viewers = new HashSet<>();
 	/**
@@ -30,12 +30,12 @@ public class Camera<T extends CUIHandler<T>> {
 	 */
 	private final HashMap<Player, Integer> keepAliveCount = new HashMap<>();
 	private final TreeMap<Integer, LayerWrapper> layers = new TreeMap<>();
-	private final HashMap<Layer, Integer> layerPriority = new HashMap<>();
+	private final HashMap<Layer, Integer> layerDepths = new HashMap<>();
 	private final InventoryHolder holder = new DummyHolder();
-	private Position position;
+	private Position position = new Position(0, 0);
 	private int rowSize = 3, columnSize = 9;
-	private HorizontalAlign horizontalAlign;
-	private VerticalAlign verticalAlign;
+	private HorizontalAlign horizontalAlign = HorizontalAlign.LEFT;
+	private VerticalAlign verticalAlign = VerticalAlign.TOP;
 	private boolean keepAlive;
 	private boolean closable = true;
 	private Component title;
@@ -45,13 +45,11 @@ public class Camera<T extends CUIHandler<T>> {
 	private boolean dirty = true;
 	private boolean destroyed;
 
-	public Camera(ChestUI<T> chestUI, int id, Position position, int rowSize, int columnSize,
-			HorizontalAlign horizontalAlign, VerticalAlign verticalAlign, Component title) {
-		this.chestUI = chestUI;
+	public Camera(CUIInstance<T> cuiInstance, int id) {
+		this.cuiInstance = cuiInstance;
 		this.id = id;
-		edit().setPosition(position).setRowSize(rowSize).setColumnSize(columnSize).setHorizontalAlign(horizontalAlign)
-				.setVerticalAlign(verticalAlign).setTitle(title);
-		this.manager = chestUI.getPlugin().getCameraManager();
+		this.title = cuiInstance.getDefaultTitle();
+		this.manager = cuiInstance.getPlugin().getCameraManager();
 		manager.registerCamera(this);
 	}
 
@@ -59,8 +57,8 @@ public class Camera<T extends CUIHandler<T>> {
 		return new Editor();
 	}
 
-	public ChestUI<T> getChestUI() {
-		return chestUI;
+	public CUIInstance<T> getCUIInstance() {
+		return cuiInstance;
 	}
 
 	public int getId() {
@@ -68,7 +66,7 @@ public class Camera<T extends CUIHandler<T>> {
 	}
 
 	public String getName() {
-		return chestUI.getName() + "#" + id;
+		return cuiInstance.getName() + "#" + id;
 	}
 
 	/**
@@ -94,12 +92,8 @@ public class Camera<T extends CUIHandler<T>> {
 		return inventory;
 	}
 
-	public boolean isDefault() {
-		return chestUI.getDefaultCamera() == this;
-	}
-
 	public NavigableMap<Integer, Layer> getActiveLayers() {
-		var map = chestUI.getActiveLayers();
+		var map = cuiInstance.getActiveLayers();
 		layers.forEach((priority, wrapper) -> {
 			if (wrapper.active) {
 				map.put(priority, wrapper.layer);
@@ -148,8 +142,13 @@ public class Camera<T extends CUIHandler<T>> {
 		return title;
 	}
 
-	public int getPriority(Layer layer) {
-		return layerPriority.getOrDefault(layer, -1);
+	public int getDepth(Layer layer) {
+		return layerDepths.getOrDefault(layer, -1);
+	}
+
+	public Layer getLayer(int depth) {
+		var wrapper = layers.get(depth);
+		return wrapper == null ? null : wrapper.layer;
 	}
 
 	public Position getTopLeft() {
@@ -173,6 +172,9 @@ public class Camera<T extends CUIHandler<T>> {
 	public boolean open(Player viewer, boolean asChild) {
 		if (destroyed) {
 			throw new IllegalStateException("Camera has been destroyed");
+		}
+		if (!cuiInstance.getHandler().onOpen(viewer, this)) {
+			return false;
 		}
 		if (!asChild) {
 			boolean success = manager.closeAll(viewer, false);
@@ -207,12 +209,14 @@ public class Camera<T extends CUIHandler<T>> {
 		if (!force && !closable) {
 			return false;
 		}
-
-		var exist = viewers.remove(viewer);
-		if (!exist) {
+		if (!viewers.contains(viewer)) {
+			return false;
+		}
+		if (!cuiInstance.getHandler().onClose(viewer, this)) {
 			return false;
 		}
 
+		viewers.remove(viewer);
 		var stack = manager.getCameraStack(viewer);
 		if (stack == null || stack.empty()) {
 			return false;
@@ -263,7 +267,7 @@ public class Camera<T extends CUIHandler<T>> {
 					count--;
 				}
 			} catch (EmptyStackException e) {
-				chestUI.getPlugin().getComponentLogger()
+				cuiInstance.getPlugin().getComponentLogger()
 						.error(Component.text("Player " + viewer.getName() + " has no camera to close"), e);
 				return false;
 			}
@@ -272,14 +276,13 @@ public class Camera<T extends CUIHandler<T>> {
 	}
 
 	/**
-	 * 销毁Camera。这会导致所有正在看这个Camera的玩家级联关闭。如果{@link #isDefault()}为真，则会同时销毁ChestUI。<br>
+	 * 销毁Camera。这会导致所有正在看这个Camera的玩家级联关闭。<br>
 	 * Destroy the Camera. This will cause all players who are watching this Camera
-	 * to close cascade. If {@link #isDefault()} is true, the ChestUI will also be
-	 * destroyed.
+	 * to close cascade.
 	 */
 	public void destroy() {
 		new ArrayList<>(viewers).forEach(player -> closeCascade(player, true));
-		chestUI.notifyReleaseCamera(this);
+		cuiInstance.notifyReleaseCamera(this);
 		manager.unregisterCamera(this);
 		destroyed = true;
 	}
@@ -309,12 +312,8 @@ public class Camera<T extends CUIHandler<T>> {
 
 	public void update() {
 		if (!keepAlive && keepAliveCount.isEmpty()) {
-			// 如果是默认Camera，只要CUI保活，或者还有其他Camera存活，那么即使无人使用也不能销毁
-			// 因为一但默认Camera被销毁，ChestUI会同步销毁
-			if (!isDefault() || (!chestUI.isKeepAlive() && chestUI.getCameraCount() <= 1)) {
-				destroy();
-				return;
-			}
+			destroy();
+			return;
 		}
 
 		if (viewers.isEmpty()) {
@@ -544,10 +543,14 @@ public class Camera<T extends CUIHandler<T>> {
 		return itemStack;
 	}
 
+	@Deprecated
 	public Camera<T> deepClone() {
-		var clone = new Camera<>(chestUI, chestUI.getNextCameraId(), position, rowSize, columnSize, horizontalAlign,
-				verticalAlign, title);
-		layers.forEach((priority, layerWrapper) -> clone.edit().setLayer(priority, layerWrapper.layer.deepClone()));
+		var clone = new Camera<>(cuiInstance, cuiInstance.getNextCameraId());
+		clone.edit().setPosition(position).setRowSize(rowSize).setColumnSize(columnSize)
+				.setHorizontalAlign(horizontalAlign).setVerticalAlign(verticalAlign).setTitle(title);
+		layers.forEach((priority, layerWrapper) -> {
+			clone.layers.put(priority, layerWrapper.deepClone());
+		});
 		return clone;
 	}
 
@@ -565,6 +568,13 @@ public class Camera<T extends CUIHandler<T>> {
 
 		LayerWrapper(Layer layer) {
 			this.layer = layer;
+		}
+
+		@Deprecated
+		public LayerWrapper deepClone() {
+			var clone = new LayerWrapper(layer.deepClone());
+			clone.active = active;
+			return clone;
 		}
 	}
 
@@ -624,12 +634,12 @@ public class Camera<T extends CUIHandler<T>> {
 			return this;
 		}
 
-		public Editor setLayer(int priority, Layer layer) {
-			var legacy = layers.put(priority, new LayerWrapper(layer));
+		public Editor setLayer(int depth, Layer layer) {
+			var legacy = layers.put(depth, new LayerWrapper(layer));
 			if (legacy != null) {
-				layerPriority.remove(legacy.layer);
+				layerDepths.remove(legacy.layer);
 			}
-			layerPriority.put(layer, priority);
+			layerDepths.put(layer, depth);
 			dirty = true;
 			return this;
 		}
@@ -637,7 +647,7 @@ public class Camera<T extends CUIHandler<T>> {
 		public Editor removeMask(int priority) {
 			var wrapper = layers.remove(priority);
 			if (wrapper != null) {
-				layerPriority.remove(wrapper.layer);
+				layerDepths.remove(wrapper.layer);
 			}
 			dirty = true;
 			return this;
@@ -653,7 +663,7 @@ public class Camera<T extends CUIHandler<T>> {
 		}
 
 		public Editor setActive(Layer layer, boolean active) {
-			var priority = getPriority(layer);
+			var priority = getDepth(layer);
 			if (priority >= 0) {
 				layers.get(priority).active = active;
 				dirty = true;

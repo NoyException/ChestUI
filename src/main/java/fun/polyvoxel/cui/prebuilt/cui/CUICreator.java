@@ -1,28 +1,26 @@
 package fun.polyvoxel.cui.prebuilt.cui;
 
 import fun.polyvoxel.cui.ui.*;
-import com.google.gson.JsonObject;
+import org.jetbrains.annotations.NotNull;
 
-@DefaultCamera(rowSize = 6)
-@CUITitle("CUI Creator")
 @CUI(name = "creator")
-public class CUICreator implements CUIHandler<CUICreator> {
-	private ChestUI<CUICreator> cui;
+public class CUICreator implements ChestUI<CUICreator> {
 
 	@Override
-	public void onInitialize(ChestUI<CUICreator> cui) {
+	public void onInitialize(CUIType<CUICreator> type) {
+
 	}
 
-	private static class JsonCUI implements CUIHandler<JsonCUI> {
-		private ChestUI<JsonCUI> cui;
-		private JsonObject jsonObject;
+	@Override
+	public @NotNull ChestUI.Handler<CUICreator> createHandler() {
+		return new Handler();
+	}
 
-		public void setJson() {
-
-		}
+	public static class Handler implements ChestUI.Handler<CUICreator> {
 
 		@Override
-		public void onInitialize(ChestUI<JsonCUI> cui) {
+		public void onInitialize(CUIInstance<CUICreator> cui) {
+
 		}
 	}
 }

@@ -6,7 +6,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 
-public class CUIContents<T extends CUIHandler<T>> {
+public class CUIContents<T extends ChestUI<T>> {
 	private final Camera<T> camera;
 	private final int maxRow, maxColumn;
 	private final HashMap<Position, ItemStack> contents = new HashMap<>();
@@ -56,12 +56,5 @@ public class CUIContents<T extends CUIHandler<T>> {
 
 	public void setItem(int row, int column, ItemStack item) {
 		setItem(new Position(row, column), item);
-	}
-
-	@SuppressWarnings("MethodDoesntCallSuperMethod")
-	public CUIContents<T> clone() {
-		var clone = new CUIContents<>(camera);
-		clone.contents.putAll(contents);
-		return clone;
 	}
 }

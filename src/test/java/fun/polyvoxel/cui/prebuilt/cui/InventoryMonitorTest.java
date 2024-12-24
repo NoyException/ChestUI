@@ -2,7 +2,7 @@ package fun.polyvoxel.cui.prebuilt.cui;
 
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.ui.Camera;
-import fun.polyvoxel.cui.ui.ChestUI;
+import fun.polyvoxel.cui.ui.CUIInstance;
 import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.InventoryView;
@@ -18,7 +18,7 @@ public class InventoryMonitorTest {
 	private static CUIPlugin plugin;
 	private static PlayerMock a, b;
 	private static PlayerSimulation as, bs;
-	private static ChestUI<InventoryMonitor> cui;
+	private static CUIInstance<InventoryMonitor> cui;
 	private static Camera<InventoryMonitor> camera;
 
 	@BeforeAll
@@ -26,9 +26,10 @@ public class InventoryMonitorTest {
 		server = MockBukkit.mock();
 		plugin = MockBukkit.load(CUIPlugin.class);
 		a = server.addPlayer("a");
-		cui = plugin.getCUIManager().getCUITypeHandler(InventoryMonitor.class).createInstance();
+		cui = plugin.getCUIManager().getCUIType(InventoryMonitor.class).createInstance();
 		Assertions.assertNotNull(cui);
-		Assertions.assertTrue(cui.getDefaultCamera().open(a, false), "应当能打开默认摄像头");
+		camera = cui.createCamera();
+		Assertions.assertTrue(camera.open(a, false), "应当能打开默认摄像头");
 		server.getScheduler().performOneTick();
 		as = new PlayerSimulation(a);
 		InventoryView view = a.getOpenInventory();
@@ -37,7 +38,7 @@ public class InventoryMonitorTest {
 		// 选择自己
 		as.simulateInventoryClick(view, ClickType.LEFT, 9);
 		b = server.addPlayer("b");
-		Assertions.assertTrue(cui.getDefaultCamera().open(b, false), "应当能打开默认摄像头");
+		Assertions.assertTrue(camera.open(b, false), "应当能打开默认摄像头");
 		bs = new PlayerSimulation(b);
 		server.getScheduler().performOneTick();
 	}

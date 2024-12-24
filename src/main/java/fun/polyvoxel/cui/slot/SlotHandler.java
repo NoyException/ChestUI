@@ -23,6 +23,7 @@ public class SlotHandler {
 		return slot;
 	}
 
+	@Deprecated
 	public void deepClone(@NotNull SlotHandler handler) {
 		setSlot(handler.slot.deepClone());
 	}

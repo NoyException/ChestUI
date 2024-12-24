@@ -1,7 +1,8 @@
 package fun.polyvoxel.cui.serialize;
 
-import fun.polyvoxel.cui.ui.ChestUI;
+import fun.polyvoxel.cui.ui.CUIInstance;
 import com.google.gson.*;
+import fun.polyvoxel.cui.ui.Camera;
 import org.bukkit.NamespacedKey;
 
 import java.io.Reader;
@@ -21,10 +22,13 @@ public class CUIData {
 	public int maxColumn = 9;
 	public final HashMap<Integer, LayerData> layers = new HashMap<>();
 
-	public void toChestUI(ChestUI<?> cui) {
-		cui.edit().setDefaultTitle(title);
-		cui.getDefaultCamera().edit().setRowSize(maxRow).setColumnSize(maxColumn);
+	public void toChestUI(CUIInstance<?> cui) {
+		cui.edit().setDefaultTitle(title).finish();
 		layers.forEach((depth, layerData) -> cui.edit().setLayer(depth, layerData.toLayer()));
+	}
+
+	public void toCamera(Camera<?> camera) {
+		camera.edit().setRowSize(maxRow).setColumnSize(maxColumn).finish();
 	}
 
 	public NamespacedKey getKey() {

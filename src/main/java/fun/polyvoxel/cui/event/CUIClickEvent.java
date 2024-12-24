@@ -1,8 +1,8 @@
 package fun.polyvoxel.cui.event;
 
-import fun.polyvoxel.cui.ui.CUIHandler;
-import fun.polyvoxel.cui.ui.Camera;
 import fun.polyvoxel.cui.ui.ChestUI;
+import fun.polyvoxel.cui.ui.Camera;
+import fun.polyvoxel.cui.ui.CUIInstance;
 import fun.polyvoxel.cui.util.Position;
 
 import org.bukkit.entity.Player;
@@ -14,7 +14,7 @@ import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-public class CUIClickEvent<T extends CUIHandler<T>> extends Event implements Cancellable {
+public class CUIClickEvent<T extends ChestUI<T>> extends Event implements Cancellable {
 	private static final HandlerList HANDLERS = new HandlerList();
 	private final Camera<T> camera;
 	private final Player player;
@@ -35,8 +35,8 @@ public class CUIClickEvent<T extends CUIHandler<T>> extends Event implements Can
 		this.cursor = cursor;
 	}
 
-	public ChestUI<T> getChestUI() {
-		return camera.getChestUI();
+	public CUIInstance<T> getChestUI() {
+		return camera.getCUIInstance();
 	}
 
 	public Camera<T> getCamera() {

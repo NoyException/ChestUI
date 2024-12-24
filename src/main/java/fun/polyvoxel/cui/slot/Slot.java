@@ -106,5 +106,6 @@ public abstract class Slot {
 	 * @return 克隆的槽位<br>
 	 *         The cloned slot
 	 */
+	@Deprecated
 	public abstract Slot deepClone();
 }

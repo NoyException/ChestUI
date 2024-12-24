@@ -2,7 +2,7 @@ package fun.polyvoxel.cui.ui;
 
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.serialize.CUIData;
-import fun.polyvoxel.cui.serialize.SerializableCUITypeHandler;
+import fun.polyvoxel.cui.serialize.SerializableChestUI;
 import fun.polyvoxel.cui.util.ItemStacks;
 
 import com.destroystokyo.paper.event.server.ServerTickEndEvent;
@@ -24,6 +24,8 @@ import org.reflections.util.ConfigurationBuilder;
 import org.reflections.util.FilterBuilder;
 
 import java.io.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,11 +37,11 @@ public class CUIManager implements Listener {
 	}
 
 	private boolean initialized = false;
-	private final HashMap<NamespacedKey, CUITypeHandler<?>> cuiTypes = new HashMap<>();
-	private final HashMap<Class<?>, CUITypeHandler<?>> cuiTypesByClass = new HashMap<>();
+	private final HashMap<NamespacedKey, CUIType<?>> cuiTypes = new HashMap<>();
+	private final HashMap<Class<?>, CUIType<?>> cuiTypesByClass = new HashMap<>();
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
-	public List<ChestUI<?>> getCUIs() {
+	public List<CUIInstance<?>> getCUIs() {
 		return (List) cuiTypes.values().stream().flatMap(type -> type.getInstances().stream()).toList();
 	}
 
@@ -52,21 +54,21 @@ public class CUIManager implements Listener {
 				.filter(namespacedKey -> namespacedKey.getNamespace().equalsIgnoreCase(plugin.getName())).toList();
 	}
 
-	public CUITypeHandler<?> getCUITypeHandler(NamespacedKey key) {
+	public CUIType<?> getCUIType(NamespacedKey key) {
 		return cuiTypes.get(key);
 	}
 
-	public CUITypeHandler<?> getCUITypeHandler(Plugin plugin, String name) {
+	public CUIType<?> getCUIType(Plugin plugin, String name) {
 		return cuiTypes.get(NamespacedKey.fromString(name, plugin));
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends CUIHandler<T>> CUITypeHandler<T> getCUITypeHandler(Class<T> clazz) {
-		return (CUITypeHandler<T>) cuiTypesByClass.get(clazz);
+	public <T extends ChestUI<T>> CUIType<T> getCUIType(Class<T> clazz) {
+		return (CUIType<T>) cuiTypesByClass.get(clazz);
 	}
 
 	private void tick() {
-		cuiTypes.values().forEach(CUITypeHandler::tick);
+		cuiTypes.values().forEach(CUIType::tick);
 		plugin.getCameraManager().forEachCamera(Camera::update);
 	}
 
@@ -84,10 +86,10 @@ public class CUIManager implements Listener {
 		if (!initialized) {
 			throw new IllegalStateException("CUIManager has not been initialized");
 		}
-		getCUIs().forEach(ChestUI::destroy);
+		getCUIs().forEach(CUIInstance::destroy);
 	}
 
-	public record ParseResult(CUITypeHandler<?> typeHandler, Integer instanceId, Integer cameraId) {
+	public record ParseResult(CUIType<?> typeHandler, Integer instanceId, Integer cameraId) {
 	}
 
 	public ParseResult parse(String name) throws IllegalArgumentException {
@@ -96,7 +98,7 @@ public class CUIManager implements Listener {
 			throw new IllegalArgumentException("Invalid CUI name: " + name);
 		}
 		var key = NamespacedKey.fromString(split[0]);
-		var typeHandler = getCUITypeHandler(key);
+		var typeHandler = getCUIType(key);
 		if (typeHandler == null) {
 			return new ParseResult(null, null, null);
 		}
@@ -127,13 +129,22 @@ public class CUIManager implements Listener {
 	 * @param <T>
 	 *            CUIHandler的实现类
 	 */
-	public <T extends CUIHandler<T>> void registerCUI(Class<T> handlerClass, Plugin plugin, String name,
+	public <T extends ChestUI<T>> void registerCUI(Class<T> handlerClass, Plugin plugin, String name,
 			boolean singleton) {
 		var key = NamespacedKey.fromString(name, plugin);
 		if (cuiTypes.containsKey(key)) {
 			throw new IllegalArgumentException("CUI `" + key + "` has already been registered");
 		}
-		cuiTypes.put(key, new CUITypeHandler<>(this.plugin, handlerClass, key, singleton));
+		T chestUI;
+		try {
+			Constructor<T> constructor = handlerClass.getConstructor();
+			chestUI = constructor.newInstance();
+		} catch (NoSuchMethodException | InstantiationException | IllegalAccessException
+				| InvocationTargetException e) {
+			throw new RuntimeException(
+					"CUI Handler `" + handlerClass.getCanonicalName() + "` must have a public no-args constructor");
+		}
+		cuiTypes.put(key, new CUIType<>(this.plugin, chestUI, key, singleton));
 		cuiTypesByClass.put(handlerClass, cuiTypes.get(key));
 	}
 
@@ -142,7 +153,7 @@ public class CUIManager implements Listener {
 		if (cuiTypes.containsKey(data.getKey())) {
 			throw new IllegalArgumentException("CUI `" + data.getKey() + "` has already been registered");
 		}
-		var typeHandler = new SerializableCUITypeHandler(plugin, data);
+		var typeHandler = new CUIType<>(plugin, new SerializableChestUI(data), data.getKey(), data.singleton);
 		cuiTypes.put(data.getKey(), typeHandler);
 	}
 
@@ -196,14 +207,16 @@ public class CUIManager implements Listener {
 		plugin.getLogger()
 				.info("Found " + annotatedClasses.size() + " classes with @CUI annotation in " + plg.getName());
 		for (Class<?> clazz : annotatedClasses) {
-			// 判断是否实现了CUIHandler
-			if (!CUIHandler.class.isAssignableFrom(clazz)) {
-				plugin.getLogger().warning("Class `" + clazz.getCanonicalName() + "` does not implement CUIHandler");
+			// 判断是否实现了ChestUI
+			if (!ChestUI.class.isAssignableFrom(clazz)) {
+				plugin.getLogger().warning("Class `" + clazz.getCanonicalName() + "` does not implement ChestUI");
 				continue;
 			}
 			// 处理带有@CUI注解的类
 			var annotation = clazz.getAnnotation(CUI.class);
-			registerCUI((Class) clazz, plg, annotation.name(), annotation.singleton());
+			if (annotation.autoRegister()) {
+				registerCUI((Class) clazz, plg, annotation.name(), annotation.singleton());
+			}
 		}
 	}
 

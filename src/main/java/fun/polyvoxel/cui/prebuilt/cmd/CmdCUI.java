@@ -5,7 +5,7 @@ import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.prebuilt.cui.CUIMonitor;
 import fun.polyvoxel.cui.ui.CUIManager;
 import fun.polyvoxel.cui.ui.Camera;
-import fun.polyvoxel.cui.ui.ChestUI;
+import fun.polyvoxel.cui.ui.CUIInstance;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.*;
@@ -46,7 +46,8 @@ public class CmdCUI implements TabExecutor {
 
 		sender.sendMessage("/cui monitor: 打开CUI监视器.");
 
-		sender.sendMessage("/cui open <cui>#<id> (<player>) (asChild): 打开指定<cui>类型实例的默认摄像头.");
+		// sender.sendMessage("/cui open <cui>#<id> (<player>) (asChild):
+		// 打开指定<cui>类型实例的默认摄像头.");
 		sender.sendMessage("/cui open <cui>#<id>#<camera> (<player>) (asChild): 打开指定<cui>类型实例的指定摄像头.");
 	}
 
@@ -134,6 +135,10 @@ public class CmdCUI implements TabExecutor {
 						sender.sendMessage("Failed to create camera for CUI instance: " + args[1]);
 						return true;
 					}
+					var keepAlive = args.length == 3 && args[2].equals("keepAlive");
+					if (keepAlive) {
+						camera.edit().setKeepAlive(true).finish();
+					}
 				} else {
 					sender.sendMessage("Do not specify camera id when creating CUI instance or Camera");
 				}
@@ -197,7 +202,7 @@ public class CmdCUI implements TabExecutor {
 				} else if (parsed.instanceId() == null) {
 					var cuis = parsed.typeHandler().getInstances();
 					sender.sendMessage("CUI instances of " + args[1] + ":");
-					sender.sendMessage(" - " + String.join(", ", cuis.stream().map(ChestUI::getName).toList()));
+					sender.sendMessage(" - " + String.join(", ", cuis.stream().map(CUIInstance::getName).toList()));
 				} else if (parsed.cameraId() == null) {
 					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
 					if (cui == null) {
@@ -208,7 +213,7 @@ public class CmdCUI implements TabExecutor {
 					sender.sendMessage("Cameras of " + args[1] + ":");
 					sender.sendMessage(" - " + String.join(", ", cameras.stream().map(Camera::getName).toList()));
 				} else {
-					sender.sendMessage("Do not specify camera id when listing CUI instance or Camera");
+					sender.sendMessage("Do not specify camera id when listing CUI instance or camera");
 				}
 				return true;
 			}
@@ -217,8 +222,8 @@ public class CmdCUI implements TabExecutor {
 					sender.sendMessage("Player required");
 					return false;
 				}
-				var cui = plugin.getCUIManager().getCUITypeHandler(CUIMonitor.class).getInstance();
-				var success = cui.getDefaultCamera().open(player, false);
+				var cui = plugin.getCUIManager().getCUIType(CUIMonitor.class).getInstance();
+				var success = cui.createCamera().open(player, false);
 				if (!success) {
 					sender.sendMessage("Failed to open CUI monitor");
 				}
@@ -241,20 +246,9 @@ public class CmdCUI implements TabExecutor {
 				}
 				Camera<?> camera;
 
-				if (parsed.instanceId() == null) {
-					if (parsed.typeHandler().isSingleton()) {
-						camera = parsed.typeHandler().getInstance().getDefaultCamera();
-					} else {
-						sender.sendMessage("Instance id required for non-singleton CUI type");
-						return true;
-					}
-				} else if (parsed.cameraId() == null) {
-					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
-					if (cui == null) {
-						sender.sendMessage("CUI instance not found: " + args[1]);
-						return true;
-					}
-					camera = cui.getDefaultCamera();
+				if (parsed.instanceId() == null || parsed.cameraId() == null) {
+					sender.sendMessage("Instance id and camera id required");
+					return false;
 				} else {
 					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
 					if (cui == null) {
