@@ -24,38 +24,40 @@ dependencies {
 
 ### 实现CUIHandler
 
-自定义CUI需要实现 `CUIHandler<T>` 接口，其中 `T` 为你的CUI的类型，例如：
+自定义CUI需要实现 `ChestUI<T>` 接口，其中 `T` 为你的CUI的类型，例如：
 
 ```java
 @CUI(name = "test")
-public class TestCUI implements CUIHandler<TestCUI> {
-    private ChestUI<TestCUI> cui;
-	@Override
-	public void onInitialize(ChestUI<TestCUI> cui) {
-        // 初始化CUI
-        this.cui = cui.edit()
-                .doSomething()
-                .doSomething()
-                .finish();
+public static class TestCUI implements ChestUI<TestCUI> {
+    @Override
+    public void onInitialize(CUIType<TestCUI> type) {
+    }
+
+    @Override
+    public ChestUI.@NotNull Handler<TestCUI> createHandler() {
+        return new Handler();
+    }
+
+    private static class Handler implements ChestUI.Handler<TestCUI> {
+        @Override
+        public void onInitialize(CUIInstance<TestCUI> cui) {
+        }
     }
 }
 ```
 
-你可以为你的CUI添加一些注解，来更方便地初始化：
+其中你必须实现createHandler()，返回一个对ChestUI.Handler<T>的实现。
 
-- @CUI: **只有标注该注解，你的CUI才会被注册。**定义CUI的id以及是否是单例。单例会在加载时自动生成一个实例
-- @DefaultCamera: 初始化默认Camera（默认是3*9的大小）
-- @CUITitle: 初始化标题
-- @CUISize: 初始化CUI大小，默认无限大
+你需要为你的CUI添加注解@CUI，只有标注该注解，你的CUI才会被注册。
+
+@CUI包含两个字段，定义CUI的id以及是否是单例。单例会在加载时自动生成一个实例。
 
 ### 插入图层
 
 ```java
-@CUI(name = "test")
-public class TestCUI implements CUIHandler<TestCUI> {
-    private ChestUI<TestCUI> cui;
+private static class Handler implements ChestUI.Handler<TestCUI> {
     @Override
-    public void onInitialize(ChestUI<TestCUI> cui) {
+    public void onInitialize(CUIInstance<TestCUI> cui) {
         cui.edit().setLayer(0, new Layer(1, 9).edit()
                 .editAll((slotHandler, row, column) -> slotHandler.button(
                         builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
