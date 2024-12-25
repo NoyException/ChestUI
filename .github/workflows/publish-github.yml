@@ -20,7 +20,7 @@ jobs:
       - name: Delete Old Version
         uses: actions/delete-package-versions@v5
         with:
-          package-name: 'cn.noy.chest-ui'
+          package-name: 'fun.polyvoxel.chest-ui'
           package-type: 'maven'
           delete-only-pre-release-versions: true
         continue-on-error: true
