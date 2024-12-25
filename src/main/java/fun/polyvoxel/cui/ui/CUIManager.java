@@ -1,5 +1,6 @@
 package fun.polyvoxel.cui.ui;
 
+import com.destroystokyo.paper.event.server.ServerTickStartEvent;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIRegisterEvent;
 import fun.polyvoxel.cui.serialize.CUIData;
@@ -71,6 +72,10 @@ public class CUIManager implements Listener {
 	@SuppressWarnings("unchecked")
 	public <T extends ChestUI<T>> CUIType<T> getCUIType(Class<T> clazz) {
 		return (CUIType<T>) cuiTypesByClass.get(clazz);
+	}
+
+	private void tickStart() {
+		cuiTypes.values().forEach(CUIType::tickStart);
 	}
 
 	private void tick() {
@@ -255,6 +260,11 @@ public class CUIManager implements Listener {
 			return;
 		}
 		scanPlugin(plg);
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	public void onTickStart(ServerTickStartEvent event) {
+		tickStart();
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR)

@@ -56,9 +56,11 @@ public class Layer {
 		dirty = true;
 	}
 
-	public void tick() {
-		// slot tick时可能会导致dirty被设置为true，所以要先重置
+	public void tickStart() {
 		dirty = false;
+	}
+
+	public void tick() {
 		for (int row = 0; row < rowSize; row++) {
 			for (int column = 0; column < columnSize; column++) {
 				var slot = slots[row][column];

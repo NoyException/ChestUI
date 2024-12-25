@@ -358,8 +358,11 @@ public class Camera<T extends ChestUI<T>> {
 		});
 	}
 
-	public void tick() {
+	public void tickStart() {
 		ticksLived++;
+	}
+
+	public void tick() {
 		handler.onTick();
 		for (LayerWrapper wrapper : layers.values()) {
 			if (wrapper.active) {

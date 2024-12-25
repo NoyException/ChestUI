@@ -152,14 +152,23 @@ public class CUIInstance<T extends ChestUI<T>> {
 		state = State.DESTROYED;
 	}
 
+	public void tickStart() {
+		dirty = false;
+		ticksLived++;
+		for (LayerWrapper wrapper : layers.values()) {
+			if (wrapper.active) {
+				wrapper.layer.tickStart();
+			}
+		}
+		cameras.values().forEach(Camera::tickStart);
+	}
+
 	public void tick() {
 		if (!keepAlive && cameras.isEmpty()) {
 			destroy();
 			return;
 		}
 
-		dirty = false;
-		ticksLived++;
 		handler.onTick();
 		for (LayerWrapper wrapper : layers.values()) {
 			if (wrapper.active) {

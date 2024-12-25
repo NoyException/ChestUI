@@ -50,6 +50,18 @@ public final class CUIType<T extends ChestUI<T>> {
 		return plugin;
 	}
 
+	public void tickStart() {
+		// 用for iter来在过程中移除
+		for (var iterator = instances.entrySet().iterator(); iterator.hasNext();) {
+			var entry = iterator.next();
+			var cui = entry.getValue();
+			switch (cui.getState()) {
+				case READY -> cui.tickStart();
+				case DESTROYED -> iterator.remove();
+			}
+		}
+	}
+
 	public void tick() {
 		// 用for iter来在过程中移除
 		for (var iterator = instances.entrySet().iterator(); iterator.hasNext();) {
