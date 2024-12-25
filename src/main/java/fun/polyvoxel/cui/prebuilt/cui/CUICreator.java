@@ -13,15 +13,21 @@ public class CUICreator implements ChestUI<CUICreator> {
 	}
 
 	@Override
-	public @NotNull ChestUI.Handler<CUICreator> createHandler() {
-		return new Handler();
+	public @NotNull ChestUI.InstanceHandler<CUICreator> createInstanceHandler() {
+		return new InstanceHandler();
 	}
 
-	public static class Handler implements ChestUI.Handler<CUICreator> {
+	public static class InstanceHandler implements ChestUI.InstanceHandler<CUICreator> {
 
 		@Override
 		public void onInitialize(CUIInstance<CUICreator> cui) {
 
+		}
+
+		@Override
+		public @NotNull CameraHandler<CUICreator> createCameraHandler() {
+			return camera -> {
+			};
 		}
 	}
 }

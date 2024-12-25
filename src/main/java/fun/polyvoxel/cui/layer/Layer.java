@@ -13,27 +13,27 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class Layer {
-	private final int maxRow;
-	private final int maxColumn;
+	private int rowSize;
+	private int columnSize;
 	private int marginLeft;
 	private int marginTop;
 	// margin的位置是相对摄像头还是绝对值
 	private boolean relative;
-	private final SlotHandler[][] slots;
+	private SlotHandler[][] slots;
 	private boolean dirty;
 
-	public Layer(int maxRow, int maxColumn) {
-		this.maxRow = maxRow;
-		this.maxColumn = maxColumn;
-		slots = new SlotHandler[maxRow][maxColumn];
+	public Layer(int rowSize, int columnSize) {
+		this.rowSize = rowSize;
+		this.columnSize = columnSize;
+		slots = new SlotHandler[rowSize][columnSize];
 	}
 
-	public int getMaxRow() {
-		return maxRow;
+	public int getRowSize() {
+		return rowSize;
 	}
 
-	public int getMaxColumn() {
-		return maxColumn;
+	public int getColumnSize() {
+		return columnSize;
 	}
 
 	public int getMarginLeft() {
@@ -57,9 +57,10 @@ public class Layer {
 	}
 
 	public void tick() {
+		// slot tick时可能会导致dirty被设置为true，所以要先重置
 		dirty = false;
-		for (int row = 0; row < maxRow; row++) {
-			for (int column = 0; column < maxColumn; column++) {
+		for (int row = 0; row < rowSize; row++) {
+			for (int column = 0; column < columnSize; column++) {
 				var slot = slots[row][column];
 				if (slot != null) {
 					slot.getSlot().tick();
@@ -70,7 +71,7 @@ public class Layer {
 
 	// 检查坐标是否超出范围
 	public boolean isValidPosition(int row, int column) {
-		return row >= 0 && row < maxRow && column >= 0 && column < maxColumn;
+		return row >= 0 && row < rowSize && column >= 0 && column < columnSize;
 	}
 
 	private @Nullable SlotHandler getSlotHandler(int row, int column) {
@@ -126,7 +127,7 @@ public class Layer {
 			row -= topLeft.row();
 			column -= topLeft.column();
 		}
-		if (row < 0 || row >= maxRow || column < 0 || column >= maxColumn) {
+		if (row < 0 || row >= rowSize || column < 0 || column >= columnSize) {
 			return;
 		}
 		var slot = slots[row][column];
@@ -141,11 +142,11 @@ public class Layer {
 
 	@Deprecated
 	public Layer deepClone() {
-		var layer = new Layer(maxRow, maxColumn);
+		var layer = new Layer(rowSize, columnSize);
 		layer.marginLeft = marginLeft;
 		layer.marginTop = marginTop;
-		for (int row = 0; row < maxRow; row++) {
-			for (int column = 0; column < maxColumn; column++) {
+		for (int row = 0; row < rowSize; row++) {
+			for (int column = 0; column < columnSize; column++) {
 				var slot = slots[row][column];
 				if (slot != null) {
 					layer.slots[row][column] = new SlotHandler(layer);
@@ -160,6 +161,28 @@ public class Layer {
 
 		public Layer finish() {
 			return Layer.this;
+		}
+
+		public Editor resize(int rowSize, int columnSize) {
+			var slots = new SlotHandler[rowSize][columnSize];
+			for (int row = 0, maxRow = Math.min(rowSize, Layer.this.rowSize); row < maxRow; row++) {
+				for (int column = 0,
+						maxColumn = Math.min(columnSize, Layer.this.columnSize); column < maxColumn; column++) {
+					slots[row][column] = Layer.this.slots[row][column];
+				}
+			}
+			Layer.this.rowSize = rowSize;
+			Layer.this.columnSize = columnSize;
+			Layer.this.slots = slots;
+			return this;
+		}
+
+		public Editor rowSize(int rowSize) {
+			return resize(rowSize, Layer.this.columnSize);
+		}
+
+		public Editor columnSize(int columnSize) {
+			return resize(Layer.this.rowSize, columnSize);
 		}
 
 		public Editor marginLeft(int marginLeft) {
@@ -187,7 +210,7 @@ public class Layer {
 		}
 
 		public Editor editRow(int row, BiConsumer<SlotHandler, Integer> onEdit) {
-			for (int column = 0; column < maxColumn; column++) {
+			for (int column = 0; column < columnSize; column++) {
 				int finalColumn = column;
 				editSlot(row, column, slotHandler -> onEdit.accept(slotHandler, finalColumn));
 			}
@@ -195,7 +218,7 @@ public class Layer {
 		}
 
 		public Editor editColumn(int column, BiConsumer<SlotHandler, Integer> onEdit) {
-			for (int row = 0; row < maxRow; row++) {
+			for (int row = 0; row < rowSize; row++) {
 				int finalRow = row;
 				editSlot(row, column, slotHandler -> onEdit.accept(slotHandler, finalRow));
 			}
@@ -203,11 +226,30 @@ public class Layer {
 		}
 
 		public Editor editAll(TriConsumer<SlotHandler, Integer, Integer> onEdit) {
-			for (int row = 0; row < maxRow; row++) {
-				for (int column = 0; column < maxColumn; column++) {
+			for (int row = 0; row < rowSize; row++) {
+				for (int column = 0; column < columnSize; column++) {
 					int finalRow = row;
 					int finalColumn = column;
 					editSlot(row, column, slotHandler -> onEdit.accept(slotHandler, finalRow, finalColumn));
+				}
+			}
+			return this;
+		}
+
+		public Editor tile(int maxIndex, boolean resizeIfOutOfBound, BiConsumer<SlotHandler, Integer> onEdit) {
+			if (resizeIfOutOfBound) {
+				int rowSize = (maxIndex - 1) / columnSize + 1;
+				if (rowSize > Layer.this.rowSize) {
+					resize(rowSize, columnSize);
+				}
+			}
+			for (int row = 0; row < rowSize; row++) {
+				for (int column = 0; column < columnSize; column++) {
+					int index = row * columnSize + column;
+					if (index >= maxIndex) {
+						return this;
+					}
+					editSlot(row, column, slotHandler -> onEdit.accept(slotHandler, index));
 				}
 			}
 			return this;

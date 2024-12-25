@@ -18,29 +18,37 @@ public interface ChestUI<T extends ChestUI<T>> {
 	void onInitialize(CUIType<T> type);
 
 	@NotNull
-	Handler<T> createHandler();
+	InstanceHandler<T> createInstanceHandler();
 
-	interface Handler<T extends ChestUI<T>> {
+	interface InstanceHandler<T extends ChestUI<T>> {
 
 		void onInitialize(CUIInstance<T> cui);
-
-		default void onTick() {
-		}
 
 		default void onDestroy() {
 		}
 
-		default void onCreateCamera(Camera<T> camera) {
+		default void onTick() {
 		}
 
-		default void onDestroyCamera(Camera<T> camera) {
+		@NotNull
+		CameraHandler<T> createCameraHandler();
+	}
+
+	interface CameraHandler<T extends ChestUI<T>> {
+
+		void onInitialize(Camera<T> camera);
+
+		default void onDestroy() {
 		}
 
-		default boolean onOpen(Player viewer, Camera<T> camera) {
+		default void onTick() {
+		}
+
+		default boolean onOpen(Player viewer) {
 			return true;
 		}
 
-		default boolean onClose(Player viewer, Camera<T> camera) {
+		default boolean onClose(Player viewer) {
 			return true;
 		}
 	}

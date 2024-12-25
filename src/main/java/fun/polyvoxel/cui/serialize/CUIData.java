@@ -25,12 +25,11 @@ public class CUIData {
 	public final HashMap<Integer, LayerData> layers = new HashMap<>();
 
 	public void toChestUI(CUIInstance<?> cui) {
-		cui.edit().setDefaultTitle(title).finish();
-		layers.forEach((depth, layerData) -> cui.edit().setLayer(depth, layerData.toLayer()));
+		layers.forEach((depth, layerData) -> cui.edit().layer(depth, layerData.toLayer()));
 	}
 
 	public void toCamera(Camera<?> camera) {
-		camera.edit().setRowSize(maxRow).setColumnSize(maxColumn).finish();
+		camera.edit().rowSize(maxRow).columnSize(maxColumn).finish();
 	}
 
 	public NamespacedKey getKey() {

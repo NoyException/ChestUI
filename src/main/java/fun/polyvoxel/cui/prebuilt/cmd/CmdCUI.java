@@ -42,7 +42,7 @@ public class CmdCUI implements TabExecutor {
 		sender.sendMessage("/cui destroy <cui>#<id>: 摧毁指定的<cui>类型的实例.");
 		sender.sendMessage("/cui destroy <cui>#<id>#<camera>: 摧毁指定的<cui>类型的实例的摄像头.");
 
-		sender.sendMessage("/cui display <cui> (<player>): 为指定玩家一键显示<cui>.");
+		sender.sendMessage("/cui display <cui> (<player>) (asChild): 为指定玩家一键显示<cui>.");
 
 		sender.sendMessage("/cui list <cui>: 列出指定<cui>类型的所有实例.");
 		sender.sendMessage("/cui list <cui>#<id>: 列出指定<cui>类型实例的所有摄像头.");
@@ -119,7 +119,7 @@ public class CmdCUI implements TabExecutor {
 					try {
 						var cui = parsed.cuiType().createInstance();
 						if (args.length == 3 && args[2].equals("keepAlive")) {
-							cui.edit().setKeepAlive(true).finish();
+							cui.edit().keepAlive(true).finish();
 						}
 					} catch (Exception e) {
 						sender.sendMessage("Failed to create CUI instance: " + e.getMessage());
@@ -138,7 +138,7 @@ public class CmdCUI implements TabExecutor {
 					}
 					var keepAlive = args.length == 3 && args[2].equals("keepAlive");
 					if (keepAlive) {
-						camera.edit().setKeepAlive(true).finish();
+						camera.edit().keepAlive(true).finish();
 					}
 				} else {
 					sender.sendMessage("Do not specify camera id when creating CUI instance or Camera");
@@ -211,12 +211,13 @@ public class CmdCUI implements TabExecutor {
 					return true;
 				}
 				var entities = args.length == 3 ? Bukkit.getServer().selectEntities(sender, args[2]) : List.of(sender);
+				var asChild = args.length == 4 && args[3].equals("asChild");
 				for (var entity : entities) {
 					if (!(entity instanceof Player player)) {
 						sender.sendMessage("Only player can display CUI");
 						continue;
 					}
-					var camera = parsed.cuiType().display(player);
+					var camera = parsed.cuiType().display(player, asChild);
 					if (camera == null) {
 						sender.sendMessage("Failed to display CUI for " + player.getName());
 					}
@@ -261,7 +262,7 @@ public class CmdCUI implements TabExecutor {
 					return false;
 				}
 				var cuiType = plugin.getCUIManager().getCUIType(CUIMonitor.class);
-				var camera = cuiType.display(player);
+				var camera = cuiType.display(player, false);
 				if (camera == null) {
 					sender.sendMessage("Failed to display CUI monitor for " + player.getName());
 				}
@@ -325,7 +326,7 @@ public class CmdCUI implements TabExecutor {
 			return List.of();
 		}
 		return switch (args.length) {
-			case 1 -> List.of("display", "monitor", "close", "create", "destroy", "help", "list", "open");
+			case 1 -> List.of("close", "create", "destroy", "display", "help", "list", "monitor", "open");
 			case 2 -> {
 				switch (args[0]) {
 					case "close" -> {
@@ -369,7 +370,7 @@ public class CmdCUI implements TabExecutor {
 					case "close" -> {
 						yield List.of("force");
 					}
-					case "open" -> {
+					case "display", "open" -> {
 						yield List.of("asChild");
 					}
 					default -> {

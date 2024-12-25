@@ -1,6 +1,7 @@
 package fun.polyvoxel.cui.ui;
 
 import fun.polyvoxel.cui.CUIPlugin;
+import fun.polyvoxel.cui.event.CUIRegisterEvent;
 import fun.polyvoxel.cui.serialize.CUIData;
 import fun.polyvoxel.cui.serialize.SerializableChestUI;
 import fun.polyvoxel.cui.util.ItemStacks;
@@ -42,7 +43,7 @@ public class CUIManager implements Listener {
 	private final HashMap<Class<?>, CUIType<?>> cuiTypesByClass = new HashMap<>();
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
-	public List<CUIInstance<?>> getCUIs() {
+	public List<CUIInstance<?>> getCUIInstances() {
 		return (List) cuiTypes.values().stream().flatMap(type -> type.getInstances().stream()).toList();
 	}
 
@@ -91,7 +92,7 @@ public class CUIManager implements Listener {
 		if (!initialized) {
 			throw new IllegalStateException("CUIManager has not been initialized");
 		}
-		getCUIs().forEach(CUIInstance::destroy);
+		getCUIInstances().forEach(CUIInstance::destroy);
 	}
 
 	public record ParseResult(CUIType<?> cuiType, Integer instanceId, Integer cameraId) {
@@ -118,23 +119,38 @@ public class CUIManager implements Listener {
 		return new ParseResult(type, instanceId, cameraId);
 	}
 
+	private void register(NamespacedKey key, CUIType<?> type) {
+		var event = new CUIRegisterEvent<>(type);
+		Bukkit.getPluginManager().callEvent(event);
+
+		cuiTypes.put(key, type);
+		if (!type.isSerializable()) {
+			cuiTypesByClass.put(type.getChestUI().getClass(), cuiTypes.get(key));
+		}
+	}
+
 	/**
-	 * 如果你的CUIHandler注解了{@link CUI}，则应当会被自动注册。如果因为某些原因未被注册，可以手动调用此方法注册。<br>
-	 * If your CUIHandler is annotated with {@link CUI}, it should be automatically
-	 * registered. If not, you can manually
+	 * 如果你的{@link ChestUI}注解了{@link CUI}，则应当会被自动注册。如果因为某些原因未被注册，可以手动调用此方法注册。<br>
+	 * If your {@link ChestUI} is annotated with {@link CUI}, it should be
+	 * automatically registered. If not, you can manually
 	 *
-	 * @param handlerClass
-	 *            CUIHandler的实现类
+	 * @param chestUIClass
+	 *            ChestUI的实现类<br>
+	 *            The implementation class of ChestUI
 	 * @param plugin
-	 *            注册的插件
+	 *            调用注册的插件<br>
+	 *            The plugin that calls the registration
 	 * @param name
-	 *            CUI的名称
+	 *            CUI的名称<br>
+	 *            The name of the CUI
 	 * @param singleton
-	 *            是否为单例
+	 *            是否为单例<br>
+	 *            Whether it is a singleton
 	 * @param <T>
-	 *            CUIHandler的实现类
+	 *            ChestUI的实现类<br>
+	 *            The implementation class of ChestUI
 	 */
-	public <T extends ChestUI<T>> void registerCUI(Class<T> handlerClass, Plugin plugin, String name, boolean singleton,
+	public <T extends ChestUI<T>> void registerCUI(Class<T> chestUIClass, Plugin plugin, String name, boolean singleton,
 			Material icon) {
 		var key = NamespacedKey.fromString(name, plugin);
 		if (cuiTypes.containsKey(key)) {
@@ -142,15 +158,14 @@ public class CUIManager implements Listener {
 		}
 		T chestUI;
 		try {
-			Constructor<T> constructor = handlerClass.getConstructor();
+			Constructor<T> constructor = chestUIClass.getConstructor();
 			chestUI = constructor.newInstance();
 		} catch (NoSuchMethodException | InstantiationException | IllegalAccessException
 				| InvocationTargetException e) {
 			throw new RuntimeException(
-					"CUI Handler `" + handlerClass.getCanonicalName() + "` must have a public no-args constructor");
+					"ChestUI `" + chestUIClass.getCanonicalName() + "` must have a public no-args constructor");
 		}
-		cuiTypes.put(key, new CUIType<>(this.plugin, chestUI, key, singleton, icon));
-		cuiTypesByClass.put(handlerClass, cuiTypes.get(key));
+		register(key, new CUIType<>(this.plugin, plugin, chestUI, key, singleton, icon));
 	}
 
 	@ApiStatus.Experimental
@@ -158,9 +173,8 @@ public class CUIManager implements Listener {
 		if (cuiTypes.containsKey(data.getKey())) {
 			throw new IllegalArgumentException("CUI `" + data.getKey() + "` has already been registered");
 		}
-		var typeHandler = new CUIType<>(plugin, new SerializableChestUI(data), data.getKey(), data.singleton,
-				data.icon);
-		cuiTypes.put(data.getKey(), typeHandler);
+		register(data.getKey(),
+				new CUIType<>(plugin, null, new SerializableChestUI(data), data.getKey(), data.singleton, data.icon));
 	}
 
 	@ApiStatus.Experimental

@@ -22,7 +22,7 @@ public class CUIAddItemEvent<T extends ChestUI<T>> extends Event implements Canc
 		this.itemStack = itemStack;
 	}
 
-	public CUIInstance<T> getChestUI() {
+	public CUIInstance<T> getCUIInstance() {
 		return camera.getCUIInstance();
 	}
 

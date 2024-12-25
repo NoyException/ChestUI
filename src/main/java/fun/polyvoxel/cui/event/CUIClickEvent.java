@@ -35,7 +35,7 @@ public class CUIClickEvent<T extends ChestUI<T>> extends Event implements Cancel
 		this.cursor = cursor;
 	}
 
-	public CUIInstance<T> getChestUI() {
+	public CUIInstance<T> getCUIInstance() {
 		return camera.getCUIInstance();
 	}
 

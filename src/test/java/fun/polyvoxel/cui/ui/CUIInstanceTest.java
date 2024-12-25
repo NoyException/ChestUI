@@ -50,7 +50,7 @@ public class CUIInstanceTest {
 	@Test
 	@Order(2)
 	public void testOpen() {
-		camera1 = cui.createCamera().edit().setKeepAlive(true).finish();
+		camera1 = cui.createCamera().edit().keepAlive(true).finish();
 		Assertions.assertEquals(1, cui.getCameraCount(), "应当只有一个默认相机");
 		Assertions.assertTrue(camera1.open(a, false), "应当能成功使用新建摄像头1");
 		camera2 = cui.createCamera();
@@ -90,7 +90,7 @@ public class CUIInstanceTest {
 		tick();
 		Assertions.assertEquals(0, cui.getCameraCount(), "摄像头1应当已经销毁");
 		Assertions.assertEquals(CUIInstance.State.READY, cui.getState(), "ChestUI应当还未销毁");
-		cui.edit().setKeepAlive(false);
+		cui.edit().keepAlive(false);
 		tick();
 		Assertions.assertEquals(CUIInstance.State.DESTROYED, cui.getState(), "ChestUI应当已经销毁");
 	}
@@ -102,15 +102,15 @@ public class CUIInstanceTest {
 		}
 
 		@Override
-		public ChestUI.@NotNull Handler<TestCUI> createHandler() {
-			return new Handler();
+		public @NotNull ChestUI.InstanceHandler<TestCUI> createInstanceHandler() {
+			return new InstanceHandler();
 		}
 
-		private static class Handler implements ChestUI.Handler<TestCUI> {
+		private static class InstanceHandler implements ChestUI.InstanceHandler<TestCUI> {
 			@Override
 			public void onInitialize(CUIInstance<TestCUI> cui) {
-				cui.edit().setKeepAlive(true)
-						.setLayer(0,
+				cui.edit().keepAlive(true)
+						.layer(0,
 								new Layer(1, 9).edit()
 										.editAll((slotHandler, row, column) -> slotHandler.button(builder -> builder
 												.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
@@ -126,6 +126,12 @@ public class CUIInstanceTest {
 																}).build()))
 										.finish())
 						.finish();
+			}
+
+			@Override
+			public @NotNull CameraHandler<TestCUI> createCameraHandler() {
+				return camera -> {
+				};
 			}
 		}
 	}

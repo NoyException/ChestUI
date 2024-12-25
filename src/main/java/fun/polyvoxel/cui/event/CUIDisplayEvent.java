@@ -12,11 +12,13 @@ public class CUIDisplayEvent<T extends ChestUI<T>> extends Event implements Canc
 	private static final HandlerList HANDLERS = new HandlerList();
 	private final CUIType<T> type;
 	private final Player player;
+	private boolean asChild;
 	private boolean cancel;
 
-	public CUIDisplayEvent(CUIType<T> type, Player player) {
+	public CUIDisplayEvent(CUIType<T> type, Player player, boolean asChild) {
 		this.type = type;
 		this.player = player;
+		this.asChild = asChild;
 	}
 
 	public CUIType<T> getCUIType() {
@@ -25,6 +27,14 @@ public class CUIDisplayEvent<T extends ChestUI<T>> extends Event implements Canc
 
 	public Player getPlayer() {
 		return player;
+	}
+
+	public boolean isAsChild() {
+		return asChild;
+	}
+
+	public void setAsChild(boolean asChild) {
+		this.asChild = asChild;
 	}
 
 	@Override

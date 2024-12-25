@@ -12,17 +12,17 @@ import org.jetbrains.annotations.NotNull;
 public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 	@Override
 	public void onInitialize(CUIType<InventoryMonitor> type) {
-		type.edit().triggerByDisplayCommand(
+		type.edit().defaultTitle("Inventory Monitor").triggerByDisplayCommand(
 				player -> new CUIType.TriggerResult<>(CUIType.TriggerResultType.CREATE_NEW_CAMERA, camera -> {
 				}));
 	}
 
 	@Override
-	public ChestUI.@NotNull Handler<InventoryMonitor> createHandler() {
-		return new Handler();
+	public @NotNull ChestUI.InstanceHandler<InventoryMonitor> createInstanceHandler() {
+		return new InstanceHandler();
 	}
 
-	private static class Handler implements ChestUI.Handler<InventoryMonitor> {
+	private static class InstanceHandler implements ChestUI.InstanceHandler<InventoryMonitor> {
 		private CUIInstance<InventoryMonitor> cui;
 		private Layer displayPlayers;
 		private int page = 0;
@@ -30,7 +30,7 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 		@Override
 		public void onInitialize(CUIInstance<InventoryMonitor> cui) {
 			this.displayPlayers = new Layer(5, 9).edit().marginTop(1).finish();
-			this.cui = cui.edit().setLayer(0, new Layer(1, 9).edit()
+			this.cui = cui.edit().layer(0, new Layer(1, 9).edit()
 					.editAll((slotHandler, row, column) -> slotHandler.button(
 							builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
 					.editSlot(0, 0, slotHandler -> slotHandler.button(builder -> builder
@@ -46,12 +46,12 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 									page++;
 								}
 							}).build()))
-					.finish()).setLayer(1, displayPlayers).finish();
+					.finish()).layer(1, displayPlayers).finish();
 		}
 
 		@Override
-		public void onCreateCamera(Camera<InventoryMonitor> camera) {
-			camera.edit().setRowSize(6);
+		public @NotNull ChestUI.CameraHandler<InventoryMonitor> createCameraHandler() {
+			return new CameraHandler();
 		}
 
 		private void updatePlayers() {
@@ -87,11 +87,11 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 
 		private void monitor(Camera<?> camera, Player player) {
 			var inventory = player.getInventory();
-			camera.edit().setLayer(-2,
+			camera.edit().layer(-2,
 					new Layer(1, 9).edit().editAll((slotHandler, row, column) -> slotHandler.button(
 							builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
 							.finish())
-					.setLayer(-1,
+					.layer(-1,
 							new Layer(5, 9).edit().marginTop(1)
 									.editRow(3, (slotHandler, column) -> slotHandler.button(builder -> builder
 											.material(Material.WHITE_STAINED_GLASS_PANE).displayName(" ").build()))
@@ -114,6 +114,13 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 		@Override
 		public void onTick() {
 			updatePlayers();
+		}
+
+		private static class CameraHandler implements ChestUI.CameraHandler<InventoryMonitor> {
+			@Override
+			public void onInitialize(Camera<InventoryMonitor> camera) {
+				camera.edit().rowSize(6);
+			}
 		}
 	}
 }

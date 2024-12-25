@@ -2,7 +2,6 @@ package fun.polyvoxel.cui.serialize;
 
 import fun.polyvoxel.cui.ui.CUIInstance;
 import fun.polyvoxel.cui.ui.CUIType;
-import fun.polyvoxel.cui.ui.Camera;
 import fun.polyvoxel.cui.ui.ChestUI;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,25 +14,25 @@ public class SerializableChestUI implements ChestUI<SerializableChestUI> {
 
 	@Override
 	public void onInitialize(CUIType<SerializableChestUI> type) {
-		type.edit().triggerByDisplayCommand(
+		type.edit().defaultTitle(cuiData.title).triggerByDisplayCommand(
 				player -> new CUIType.TriggerResult<>(CUIType.TriggerResultType.USE_DEFAULT_CAMERA, camera -> {
 				}));
 	}
 
 	@Override
-	public ChestUI.@NotNull Handler<SerializableChestUI> createHandler() {
-		return new Handler();
+	public @NotNull ChestUI.InstanceHandler<SerializableChestUI> createInstanceHandler() {
+		return new InstanceHandler();
 	}
 
-	private class Handler implements ChestUI.Handler<SerializableChestUI> {
+	private class InstanceHandler implements ChestUI.InstanceHandler<SerializableChestUI> {
 		@Override
 		public void onInitialize(CUIInstance<SerializableChestUI> cui) {
 			cuiData.toChestUI(cui);
 		}
 
 		@Override
-		public void onCreateCamera(Camera<SerializableChestUI> camera) {
-			cuiData.toCamera(camera);
+		public @NotNull CameraHandler<SerializableChestUI> createCameraHandler() {
+			return cuiData::toCamera;
 		}
 	}
 }

@@ -23,6 +23,7 @@ import java.util.*;
 public class Camera<T extends ChestUI<T>> {
 	private final CameraManager manager;
 	private final CUIInstance<T> cuiInstance;
+	private final ChestUI.CameraHandler<T> handler;
 	private final int id;
 	private final HashSet<Player> viewers = new HashSet<>();
 	/**
@@ -41,16 +42,20 @@ public class Camera<T extends ChestUI<T>> {
 	private Component title;
 	private Inventory inventory;
 
+	private long ticksLived;
 	private boolean recreate = true;
 	private boolean dirty = true;
-	private boolean destroyed;
+	private State state = State.UNINITIALIZED;
 
-	public Camera(CUIInstance<T> cuiInstance, int id) {
+	Camera(CUIInstance<T> cuiInstance, int id) {
 		this.cuiInstance = cuiInstance;
+		this.handler = cuiInstance.getHandler().createCameraHandler();
 		this.id = id;
 		this.title = cuiInstance.getDefaultTitle();
-		this.manager = cuiInstance.getPlugin().getCameraManager();
-		manager.registerCamera(this);
+		this.manager = cuiInstance.getCUIPlugin().getCameraManager();
+		this.manager.registerCamera(this);
+		this.handler.onInitialize(this);
+		state = State.READY;
 	}
 
 	public Editor edit() {
@@ -69,16 +74,24 @@ public class Camera<T extends ChestUI<T>> {
 		return cuiInstance.getName() + "#" + id;
 	}
 
+	public ChestUI.CameraHandler<T> getHandler() {
+		return handler;
+	}
+
 	/**
-	 * 获取所有正在使用该Camera或暂时切换到其他CUI的玩家<br>
-	 * Get all players who are using this Camera or temporarily switched to other
-	 * CUIs
+	 * 获取所有正在使用该Camera的玩家。需要注意的是，切换到别的摄像头的玩家不会在列表里。<br>
+	 * Get all players who are using this Camera. It should be noted that players
+	 * who switch to other cameras will not be in the list.
 	 *
 	 * @return 玩家列表<br>
 	 *         Player list
 	 */
 	public List<Player> getViewers() {
 		return new ArrayList<>(viewers);
+	}
+
+	public int getViewerCount() {
+		return viewers.size();
 	}
 
 	/**
@@ -94,9 +107,9 @@ public class Camera<T extends ChestUI<T>> {
 
 	public NavigableMap<Integer, Layer> getActiveLayers() {
 		var map = cuiInstance.getActiveLayers();
-		layers.forEach((priority, wrapper) -> {
+		layers.forEach((depth, wrapper) -> {
 			if (wrapper.active) {
-				map.put(priority, wrapper.layer);
+				map.put(depth, wrapper.layer);
 			}
 		});
 		return map;
@@ -138,6 +151,14 @@ public class Camera<T extends ChestUI<T>> {
 		this.keepAlive = keepAlive;
 	}
 
+	public long getTicksLived() {
+		return ticksLived;
+	}
+
+	public State getState() {
+		return state;
+	}
+
 	public Component getTitle() {
 		return title;
 	}
@@ -170,10 +191,10 @@ public class Camera<T extends ChestUI<T>> {
 	}
 
 	public boolean open(Player viewer, boolean asChild) {
-		if (destroyed) {
-			throw new IllegalStateException("Camera has been destroyed");
+		if (state != State.READY) {
+			return false;
 		}
-		if (!cuiInstance.getHandler().onOpen(viewer, this)) {
+		if (!handler.onOpen(viewer)) {
 			return false;
 		}
 		if (!asChild) {
@@ -212,7 +233,7 @@ public class Camera<T extends ChestUI<T>> {
 		if (!viewers.contains(viewer)) {
 			return false;
 		}
-		if (!cuiInstance.getHandler().onClose(viewer, this)) {
+		if (!handler.onClose(viewer)) {
 			return false;
 		}
 
@@ -267,7 +288,7 @@ public class Camera<T extends ChestUI<T>> {
 					count--;
 				}
 			} catch (EmptyStackException e) {
-				cuiInstance.getPlugin().getComponentLogger()
+				cuiInstance.getCUIPlugin().getComponentLogger()
 						.error(Component.text("Player " + viewer.getName() + " has no camera to close"), e);
 				return false;
 			}
@@ -281,15 +302,20 @@ public class Camera<T extends ChestUI<T>> {
 	 * to close cascade.
 	 */
 	public void destroy() {
+		if (state == State.DESTROYING || state == State.DESTROYED) {
+			return;
+		}
+		state = State.DESTROYING;
+		handler.onDestroy();
 		new ArrayList<>(viewers).forEach(player -> closeCascade(player, true));
 		cuiInstance.notifyReleaseCamera(this);
 		manager.unregisterCamera(this);
-		destroyed = true;
+		state = State.DESTROYED;
 	}
 
 	public void sync(boolean force) {
 		var activeLayers = getActiveLayers();
-		if (!recreate && !dirty && !force) {
+		if (!recreate && !dirty && !cuiInstance.isDirty() && !force) {
 			if (activeLayers.values().stream().noneMatch(Layer::isDirty))
 				return;
 		}
@@ -333,6 +359,8 @@ public class Camera<T extends ChestUI<T>> {
 	}
 
 	public void tick() {
+		ticksLived++;
+		handler.onTick();
 		for (LayerWrapper wrapper : layers.values()) {
 			if (wrapper.active) {
 				wrapper.layer.tick();
@@ -546,12 +574,16 @@ public class Camera<T extends ChestUI<T>> {
 	@Deprecated
 	public Camera<T> deepClone() {
 		var clone = new Camera<>(cuiInstance, cuiInstance.getNextCameraId());
-		clone.edit().setPosition(position).setRowSize(rowSize).setColumnSize(columnSize)
-				.setHorizontalAlign(horizontalAlign).setVerticalAlign(verticalAlign).setTitle(title);
-		layers.forEach((priority, layerWrapper) -> {
-			clone.layers.put(priority, layerWrapper.deepClone());
+		clone.edit().setPosition(position).rowSize(rowSize).columnSize(columnSize).horizontalAlign(horizontalAlign)
+				.verticalAlign(verticalAlign).title(title);
+		layers.forEach((depth, layerWrapper) -> {
+			clone.layers.put(depth, layerWrapper.deepClone());
 		});
 		return clone;
+	}
+
+	public enum State {
+		UNINITIALIZED, READY, DESTROYING, DESTROYED
 	}
 
 	public enum HorizontalAlign {
@@ -595,7 +627,7 @@ public class Camera<T extends ChestUI<T>> {
 			return this;
 		}
 
-		public Editor setRowSize(int rowSize) {
+		public Editor rowSize(int rowSize) {
 			if (rowSize < 1 || rowSize > 6) {
 				throw new IllegalArgumentException("Row size must be between 1 and 6");
 			}
@@ -605,7 +637,7 @@ public class Camera<T extends ChestUI<T>> {
 			return this;
 		}
 
-		public Editor setColumnSize(int columnSize) {
+		public Editor columnSize(int columnSize) {
 			if (columnSize != 9) {
 				throw new IllegalArgumentException("Column size must be 9");
 			}
@@ -615,26 +647,26 @@ public class Camera<T extends ChestUI<T>> {
 			return this;
 		}
 
-		public Editor setHorizontalAlign(HorizontalAlign horizontalAlign) {
+		public Editor horizontalAlign(HorizontalAlign horizontalAlign) {
 			Camera.this.horizontalAlign = horizontalAlign;
 			dirty = true;
 			return this;
 		}
 
-		public Editor setVerticalAlign(VerticalAlign verticalAlign) {
+		public Editor verticalAlign(VerticalAlign verticalAlign) {
 			Camera.this.verticalAlign = verticalAlign;
 			dirty = true;
 			return this;
 		}
 
-		public Editor setTitle(Component title) {
+		public Editor title(Component title) {
 			Camera.this.title = title;
 			recreate = true;
 			dirty = true;
 			return this;
 		}
 
-		public Editor setLayer(int depth, Layer layer) {
+		public Editor layer(int depth, Layer layer) {
 			var legacy = layers.put(depth, new LayerWrapper(layer));
 			if (legacy != null) {
 				layerDepths.remove(legacy.layer);
@@ -644,8 +676,8 @@ public class Camera<T extends ChestUI<T>> {
 			return this;
 		}
 
-		public Editor removeMask(int priority) {
-			var wrapper = layers.remove(priority);
+		public Editor removeLayer(int depth) {
+			var wrapper = layers.remove(depth);
 			if (wrapper != null) {
 				layerDepths.remove(wrapper.layer);
 			}
@@ -653,8 +685,8 @@ public class Camera<T extends ChestUI<T>> {
 			return this;
 		}
 
-		public Editor setActive(int priority, boolean active) {
-			var wrapper = layers.get(priority);
+		public Editor layerActive(int depth, boolean active) {
+			var wrapper = layers.get(depth);
 			if (wrapper != null) {
 				wrapper.active = active;
 				dirty = true;
@@ -662,21 +694,21 @@ public class Camera<T extends ChestUI<T>> {
 			return this;
 		}
 
-		public Editor setActive(Layer layer, boolean active) {
-			var priority = getDepth(layer);
-			if (priority >= 0) {
-				layers.get(priority).active = active;
+		public Editor layerActive(Layer layer, boolean active) {
+			var depth = getDepth(layer);
+			if (depth >= 0) {
+				layers.get(depth).active = active;
 				dirty = true;
 			}
 			return this;
 		}
 
-		public Editor setKeepAlive(boolean keepAlive) {
+		public Editor keepAlive(boolean keepAlive) {
 			Camera.this.keepAlive = keepAlive;
 			return this;
 		}
 
-		public Editor setRecreate(boolean recreate) {
+		public Editor recreate(boolean recreate) {
 			Camera.this.recreate = recreate;
 			dirty = true;
 			return this;

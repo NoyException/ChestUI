@@ -1,5 +1,6 @@
 package fun.polyvoxel.cui.slot;
 
+import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIClickEvent;
 import fun.polyvoxel.cui.util.ItemStacks;
 
@@ -44,7 +45,23 @@ public class Button extends Slot {
 	public void click(CUIClickEvent<?> event) {
 		if (clickHandler != null) {
 			event.setCancelled(true);
-			clickHandler.accept(event);
+			try {
+				clickHandler.accept(event);
+			} catch (Exception e) {
+				e.printStackTrace();
+				CUIPlugin.logger().warn("An error occurred while handling a button click event.");
+				var plugin = event.getCUIInstance().getType().getPlugin();
+				if (plugin == null) {
+					CUIPlugin.logger().warn(
+							"This is a bug of the ChestUI loaded from json. Please check the json file, or report it to the plugin author.");
+				} else if (plugin.getClass() == CUIPlugin.class) {
+					CUIPlugin.logger().warn("This is a bug of ChestUI, please report it to the plugin author.");
+				} else {
+					CUIPlugin.logger().warn(
+							"This is not a bug of ChestUI, please report it to the plugin author of {}.",
+							plugin.getName());
+				}
+			}
 		}
 	}
 

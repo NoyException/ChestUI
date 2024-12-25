@@ -2,6 +2,10 @@ package fun.polyvoxel.cui.ui;
 
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIDisplayEvent;
+import fun.polyvoxel.cui.serialize.SerializableChestUI;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -10,6 +14,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,22 +24,30 @@ import java.util.List;
 import java.util.function.*;
 
 public final class CUIType<T extends ChestUI<T>> {
-	private final CUIPlugin plugin;
+	private final CUIPlugin cuiPlugin;
+	private final @Nullable Plugin plugin;
 	private final T chestUI;
 	private final NamespacedKey key;
 	private final boolean singleton;
 	private final Material icon;
+	private Component defaultTitle = Component.text("Chest UI", NamedTextColor.GOLD);
 	private final HashMap<Integer, CUIInstance<T>> instances = new HashMap<>();
 	private Function<Player, TriggerResult<T>> onDisplay;
 	private int nextId = 0;
 
-	public CUIType(CUIPlugin plugin, T chestUI, NamespacedKey key, boolean singleton, Material icon) {
+	public CUIType(CUIPlugin cuiPlugin, @Nullable Plugin plugin, T chestUI, NamespacedKey key, boolean singleton,
+			Material icon) {
+		this.cuiPlugin = cuiPlugin;
 		this.plugin = plugin;
 		this.chestUI = chestUI;
 		this.key = key;
 		this.singleton = singleton;
 		this.icon = icon;
 		chestUI.onInitialize(this);
+	}
+
+	public @Nullable Plugin getPlugin() {
+		return plugin;
 	}
 
 	public void tick() {
@@ -63,6 +76,14 @@ public final class CUIType<T extends ChestUI<T>> {
 
 	public Material getIcon() {
 		return icon;
+	}
+
+	public Component getDefaultTitle() {
+		return defaultTitle;
+	}
+
+	public boolean isSerializable() {
+		return chestUI.getClass() == SerializableChestUI.class;
 	}
 
 	/**
@@ -97,8 +118,7 @@ public final class CUIType<T extends ChestUI<T>> {
 			throw new IllegalStateException("Singleton CUI `" + key + "` already exists");
 		}
 		var id = nextId++;
-		var handler = chestUI.createHandler();
-		var cui = new CUIInstance<>(plugin, this, handler, key.toString(), id);
+		var cui = new CUIInstance<>(cuiPlugin, this, id);
 		instances.put(id, cui);
 		return cui;
 	}
@@ -118,12 +138,12 @@ public final class CUIType<T extends ChestUI<T>> {
 	 * @return 摄像头<br>
 	 *         Camera
 	 */
-	public @Nullable Camera<T> display(Player player) {
+	public @Nullable Camera<T> display(Player player, boolean asChild) {
 		if (onDisplay == null) {
 			return null;
 		}
 
-		var event = new CUIDisplayEvent<>(this, player);
+		var event = new CUIDisplayEvent<>(this, player, asChild);
 		Bukkit.getPluginManager().callEvent(event);
 		if (event.isCancelled()) {
 			return null;
@@ -133,10 +153,10 @@ public final class CUIType<T extends ChestUI<T>> {
 		if (result == null) {
 			return null;
 		}
-		return trigger(result, player);
+		return trigger(result, player, event.isAsChild());
 	}
 
-	private Camera<T> trigger(TriggerResult<T> result, Player player) {
+	private Camera<T> trigger(TriggerResult<T> result, Player player, boolean asChild) {
 		Camera<T> camera = switch (result.type) {
 			case USE_DEFAULT_CAMERA -> getInstance().getCamera();
 			case CREATE_NEW_CAMERA -> getInstance().createCamera();
@@ -147,7 +167,7 @@ public final class CUIType<T extends ChestUI<T>> {
 			return null;
 		}
 		result.onTrigger.accept(camera);
-		camera.open(player);
+		camera.open(player, asChild);
 		return camera;
 	}
 
@@ -163,6 +183,18 @@ public final class CUIType<T extends ChestUI<T>> {
 	}
 
 	public class Editor {
+		private Editor() {
+		}
+
+		public Editor defaultTitle(String title) {
+			defaultTitle = LegacyComponentSerializer.legacyAmpersand().deserialize(title);
+			return this;
+		}
+
+		public Editor defaultTitle(Component title) {
+			defaultTitle = title;
+			return this;
+		}
 
 		public Editor triggerByBlock(Function<PlayerInteractEvent, TriggerResult<T>> trigger) {
 			Bukkit.getPluginManager().registerEvents(new Listener() {
@@ -172,9 +204,9 @@ public final class CUIType<T extends ChestUI<T>> {
 						return;
 					}
 					var result = trigger.apply(event);
-					trigger(result, event.getPlayer());
+					trigger(result, event.getPlayer(), false);
 				}
-			}, plugin);
+			}, cuiPlugin);
 			return this;
 		}
 

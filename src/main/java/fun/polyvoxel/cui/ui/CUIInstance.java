@@ -11,48 +11,55 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class CUIInstance<T extends ChestUI<T>> {
-	private final CUIPlugin plugin;
+	private final CUIPlugin cuiPlugin;
 	private final HashMap<Integer, Camera<T>> cameras = new HashMap<>();
 	private State state = State.UNINITIALIZED;
 
 	private final TreeMap<Integer, LayerWrapper> layers = new TreeMap<>();
 	private final HashMap<Layer, Integer> layerDepths = new HashMap<>();
 	private int nextCameraId = 0;
-	private Component defaultTitle = Component.text("ChestUI");
+	private Component defaultTitle;
 
-	private boolean closable = true;
+	private boolean dirty;
 	private boolean keepAlive;
-	private long ticks;
+	private long ticksLived;
 
 	private final CUIType<T> type;
-	private final ChestUI.Handler<T> handler;
-	private final String name;
+	private final ChestUI.InstanceHandler<T> handler;
 	private final int id;
 
-	CUIInstance(CUIPlugin plugin, CUIType<T> type, ChestUI.Handler<T> handler, String name, int id) {
-		this.plugin = plugin;
+	CUIInstance(CUIPlugin cuiPlugin, CUIType<T> type, int id) {
+		this.cuiPlugin = cuiPlugin;
 		this.type = type;
-		this.name = name;
 		this.id = id;
-		this.handler = handler;
+		this.defaultTitle = type.getDefaultTitle();
+		this.handler = type.getChestUI().createInstanceHandler();
 		handler.onInitialize(this);
 		state = State.READY;
 	}
 
-	public CUIPlugin getPlugin() {
-		return plugin;
+	public CUIPlugin getCUIPlugin() {
+		return cuiPlugin;
 	}
 
 	public CUIType<T> getType() {
 		return type;
 	}
 
-	public ChestUI.Handler<T> getHandler() {
+	public ChestUI.InstanceHandler<T> getHandler() {
 		return handler;
 	}
 
+	public int getId() {
+		return id;
+	}
+
 	public String getName() {
-		return name + '#' + id;
+		return type.getKey().toString() + '#' + id;
+	}
+
+	boolean isDirty() {
+		return dirty;
 	}
 
 	int getNextCameraId() {
@@ -62,7 +69,6 @@ public class CUIInstance<T extends ChestUI<T>> {
 	public Camera<T> createCamera() {
 		var camera = new Camera<>(this, getNextCameraId());
 		cameras.put(camera.getId(), camera);
-		handler.onCreateCamera(camera);
 		return camera;
 	}
 
@@ -129,11 +135,7 @@ public class CUIInstance<T extends ChestUI<T>> {
 	}
 
 	public long getTicksLived() {
-		return ticks;
-	}
-
-	public boolean isClosable() {
-		return closable;
+		return ticksLived;
 	}
 
 	/**
@@ -141,6 +143,9 @@ public class CUIInstance<T extends ChestUI<T>> {
 	 * Destroy CUI, which will force all players to close CUI.
 	 */
 	public void destroy() {
+		if (state == State.DESTROYING || state == State.DESTROYED) {
+			return;
+		}
 		state = State.DESTROYING;
 		handler.onDestroy();
 		new ArrayList<>(cameras.values()).forEach(Camera::destroy);
@@ -153,19 +158,19 @@ public class CUIInstance<T extends ChestUI<T>> {
 			return;
 		}
 
-		ticks++;
+		dirty = false;
+		ticksLived++;
+		handler.onTick();
 		for (LayerWrapper wrapper : layers.values()) {
 			if (wrapper.active) {
 				wrapper.layer.tick();
 			}
 		}
 		cameras.values().forEach(Camera::tick);
-		handler.onTick();
 	}
 
 	void notifyReleaseCamera(Camera<T> camera) {
 		cameras.remove(camera.getId());
-		handler.onDestroyCamera(camera);
 	}
 
 	public enum State {
@@ -184,27 +189,21 @@ public class CUIInstance<T extends ChestUI<T>> {
 			return CUIInstance.this;
 		}
 
-		public Editor setDefaultTitle(String title) {
-			return setDefaultTitle(LegacyComponentSerializer.legacyAmpersand().deserialize(title));
+		public Editor defaultTitle(String title) {
+			return defaultTitle(LegacyComponentSerializer.legacyAmpersand().deserialize(title));
 		}
 
-		public Editor setDefaultTitle(Component title) {
+		public Editor defaultTitle(Component title) {
 			CUIInstance.this.defaultTitle = title;
 			return this;
 		}
 
-		// TODO: test
-		public Editor setClosable(boolean closable) {
-			CUIInstance.this.closable = closable;
-			return this;
-		}
-
-		public Editor setKeepAlive(boolean keepAlive) {
+		public Editor keepAlive(boolean keepAlive) {
 			CUIInstance.this.keepAlive = keepAlive;
 			return this;
 		}
 
-		public Editor setLayer(int depth, Layer layer) {
+		public Editor layer(int depth, Layer layer) {
 			if (depth < 0) {
 				throw new IllegalArgumentException("depth must be greater than or equal to 0");
 			}
@@ -218,6 +217,7 @@ public class CUIInstance<T extends ChestUI<T>> {
 				layerDepths.remove(legacy.layer);
 			}
 			layerDepths.put(layer, depth);
+			dirty = true;
 			return this;
 		}
 
@@ -226,10 +226,11 @@ public class CUIInstance<T extends ChestUI<T>> {
 			if (legacy != null) {
 				layerDepths.remove(legacy.layer);
 			}
+			dirty = true;
 			return this;
 		}
 
-		public Editor setActive(int depth, boolean active) {
+		public Editor layerActive(int depth, boolean active) {
 			LayerWrapper wrapper = layers.get(depth);
 			if (wrapper == null) {
 				return this;
@@ -237,14 +238,15 @@ public class CUIInstance<T extends ChestUI<T>> {
 			if (wrapper.active == active)
 				return this;
 			wrapper.active = active;
+			dirty = true;
 			return this;
 		}
 
-		public Editor setActive(Layer layer, boolean active) {
+		public Editor layerActive(Layer layer, boolean active) {
 			var depth = getLayerDepth(layer);
 			if (depth < 0)
 				return this;
-			return setActive(depth, active);
+			return layerActive(depth, active);
 		}
 	}
 
@@ -260,7 +262,7 @@ public class CUIInstance<T extends ChestUI<T>> {
 	@Override
 	public String toString() {
 		return "ChestUI{" + "name=" + getName() + ", defaultTitle=" + defaultTitle + ", state=" + state + ", ticks="
-				+ ticks + '}';
+				+ ticksLived + '}';
 	}
 
 	@Override
