@@ -1,5 +1,7 @@
 package fun.polyvoxel.cui.ui;
 
+import org.bukkit.Material;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -26,6 +28,12 @@ public @interface CUI {
 	 * and it will be created automatically.
 	 */
 	boolean singleton() default false;
+
+	/**
+	 * CUI的图标。用于在CUI控制台中显示。<br>
+	 * The icon of the CUI. Used to display in the CUI Monitor.
+	 */
+	Material icon() default Material.CHEST;
 
 	boolean autoRegister() default true;
 }

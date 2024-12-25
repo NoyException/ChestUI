@@ -4,6 +4,7 @@ import fun.polyvoxel.cui.CUIPlugin;
 
 import fun.polyvoxel.cui.prebuilt.cui.CUIMonitor;
 import fun.polyvoxel.cui.ui.CUIManager;
+import fun.polyvoxel.cui.ui.CUIType;
 import fun.polyvoxel.cui.ui.Camera;
 import fun.polyvoxel.cui.ui.CUIInstance;
 import org.bukkit.Bukkit;
@@ -41,13 +42,13 @@ public class CmdCUI implements TabExecutor {
 		sender.sendMessage("/cui destroy <cui>#<id>: 摧毁指定的<cui>类型的实例.");
 		sender.sendMessage("/cui destroy <cui>#<id>#<camera>: 摧毁指定的<cui>类型的实例的摄像头.");
 
+		sender.sendMessage("/cui display <cui> (<player>): 为指定玩家一键显示<cui>.");
+
 		sender.sendMessage("/cui list <cui>: 列出指定<cui>类型的所有实例.");
 		sender.sendMessage("/cui list <cui>#<id>: 列出指定<cui>类型实例的所有摄像头.");
 
 		sender.sendMessage("/cui monitor: 打开CUI监视器.");
 
-		// sender.sendMessage("/cui open <cui>#<id> (<player>) (asChild):
-		// 打开指定<cui>类型实例的默认摄像头.");
 		sender.sendMessage("/cui open <cui>#<id>#<camera> (<player>) (asChild): 打开指定<cui>类型实例的指定摄像头.");
 	}
 
@@ -111,12 +112,12 @@ public class CmdCUI implements TabExecutor {
 					return false;
 				}
 
-				if (parsed.typeHandler() == null) {
+				if (parsed.cuiType() == null) {
 					sender.sendMessage("CUI type not found: " + args[1]);
 					return true;
 				} else if (parsed.instanceId() == null) {
 					try {
-						var cui = parsed.typeHandler().createInstance();
+						var cui = parsed.cuiType().createInstance();
 						if (args.length == 3 && args[2].equals("keepAlive")) {
 							cui.edit().setKeepAlive(true).finish();
 						}
@@ -125,7 +126,7 @@ public class CmdCUI implements TabExecutor {
 						return true;
 					}
 				} else if (parsed.cameraId() == null) {
-					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
+					var cui = parsed.cuiType().getInstance(parsed.instanceId());
 					if (cui == null) {
 						sender.sendMessage("CUI instance not found: " + args[1]);
 						return true;
@@ -155,23 +156,23 @@ public class CmdCUI implements TabExecutor {
 					sender.sendMessage("Invalid CUI name: " + args[1]);
 					return false;
 				}
-				if (parsed.typeHandler() == null) {
+				if (parsed.cuiType() == null) {
 					sender.sendMessage("CUI type not found: " + args[1]);
 					return true;
 				} else if (parsed.instanceId() == null) {
-					var cuis = parsed.typeHandler().getInstances();
+					var cuis = parsed.cuiType().getInstances();
 					for (var cui : cuis) {
 						cui.destroy();
 					}
 				} else if (parsed.cameraId() == null) {
-					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
+					var cui = parsed.cuiType().getInstance(parsed.instanceId());
 					if (cui == null) {
 						sender.sendMessage("CUI instance not found: " + args[1]);
 						return true;
 					}
 					cui.destroy();
 				} else {
-					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
+					var cui = parsed.cuiType().getInstance(parsed.instanceId());
 					if (cui == null) {
 						sender.sendMessage("CUI instance not found: " + args[1]);
 						return true;
@@ -182,6 +183,43 @@ public class CmdCUI implements TabExecutor {
 						return true;
 					}
 					camera.destroy();
+				}
+				return true;
+			}
+			case "display" -> {
+				if (args.length == 1) {
+					return false;
+				}
+				CUIManager.ParseResult parsed;
+				try {
+					parsed = plugin.getCUIManager().parse(args[1]);
+				} catch (IllegalArgumentException e) {
+					sender.sendMessage("Invalid CUI name: " + args[1]);
+					return false;
+				}
+				if (parsed.cuiType() == null) {
+					sender.sendMessage("CUI type not found: " + args[1]);
+					return true;
+				}
+				if (parsed.instanceId() != null) {
+					sender.sendMessage("Do not specify instance id when displaying CUI");
+					return false;
+				}
+				if (!parsed.cuiType().canDisplay()) {
+					sender.sendMessage("CUI type " + args[1] + " cannot be displayed directly.");
+					sender.sendMessage("If you are the developer of this CUI, please add a display trigger.");
+					return true;
+				}
+				var entities = args.length == 3 ? Bukkit.getServer().selectEntities(sender, args[2]) : List.of(sender);
+				for (var entity : entities) {
+					if (!(entity instanceof Player player)) {
+						sender.sendMessage("Only player can display CUI");
+						continue;
+					}
+					var camera = parsed.cuiType().display(player);
+					if (camera == null) {
+						sender.sendMessage("Failed to display CUI for " + player.getName());
+					}
 				}
 				return true;
 			}
@@ -196,15 +234,15 @@ public class CmdCUI implements TabExecutor {
 					sender.sendMessage("Invalid CUI name: " + args[1]);
 					return false;
 				}
-				if (parsed.typeHandler() == null) {
+				if (parsed.cuiType() == null) {
 					sender.sendMessage("CUI type not found: " + args[1]);
 					return true;
 				} else if (parsed.instanceId() == null) {
-					var cuis = parsed.typeHandler().getInstances();
+					var cuis = parsed.cuiType().getInstances();
 					sender.sendMessage("CUI instances of " + args[1] + ":");
 					sender.sendMessage(" - " + String.join(", ", cuis.stream().map(CUIInstance::getName).toList()));
 				} else if (parsed.cameraId() == null) {
-					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
+					var cui = parsed.cuiType().getInstance(parsed.instanceId());
 					if (cui == null) {
 						sender.sendMessage("CUI instance not found: " + args[1]);
 						return true;
@@ -222,10 +260,10 @@ public class CmdCUI implements TabExecutor {
 					sender.sendMessage("Player required");
 					return false;
 				}
-				var cui = plugin.getCUIManager().getCUIType(CUIMonitor.class).getInstance();
-				var success = cui.createCamera().open(player, false);
-				if (!success) {
-					sender.sendMessage("Failed to open CUI monitor");
+				var cuiType = plugin.getCUIManager().getCUIType(CUIMonitor.class);
+				var camera = cuiType.display(player);
+				if (camera == null) {
+					sender.sendMessage("Failed to display CUI monitor for " + player.getName());
 				}
 				return true;
 			}
@@ -240,7 +278,7 @@ public class CmdCUI implements TabExecutor {
 					sender.sendMessage("Invalid CUI name: " + args[1]);
 					return false;
 				}
-				if (parsed.typeHandler() == null) {
+				if (parsed.cuiType() == null) {
 					sender.sendMessage("CUI type not found: " + args[1]);
 					return true;
 				}
@@ -250,7 +288,7 @@ public class CmdCUI implements TabExecutor {
 					sender.sendMessage("Instance id and camera id required");
 					return false;
 				} else {
-					var cui = parsed.typeHandler().getInstance(parsed.instanceId());
+					var cui = parsed.cuiType().getInstance(parsed.instanceId());
 					if (cui == null) {
 						sender.sendMessage("CUI instance not found: " + args[1]);
 						return true;
@@ -287,7 +325,7 @@ public class CmdCUI implements TabExecutor {
 			return List.of();
 		}
 		return switch (args.length) {
-			case 1 -> List.of("close", "create", "destroy", "help", "list", "monitor", "open");
+			case 1 -> List.of("display", "monitor", "close", "create", "destroy", "help", "list", "open");
 			case 2 -> {
 				switch (args[0]) {
 					case "close" -> {
@@ -298,6 +336,10 @@ public class CmdCUI implements TabExecutor {
 					case "create", "list" -> {
 						yield plugin.getCUIManager().getRegisteredCUINames().stream().map(NamespacedKey::toString)
 								.toList();
+					}
+					case "display" -> {
+						yield plugin.getCUIManager().getRegisteredCUITypes().stream().filter(CUIType::canDisplay)
+								.map(cuiType -> cuiType.getKey().toString()).toList();
 					}
 					default -> {
 						yield List.of();
@@ -312,7 +354,7 @@ public class CmdCUI implements TabExecutor {
 					case "create" -> {
 						yield List.of("keepAlive");
 					}
-					case "open" -> {
+					case "display", "open" -> {
 						var options = new ArrayList<>(List.of("@a", "@p", "@s"));
 						options.addAll(Bukkit.getServer().getOnlinePlayers().stream().map(Player::getName).toList());
 						yield options;

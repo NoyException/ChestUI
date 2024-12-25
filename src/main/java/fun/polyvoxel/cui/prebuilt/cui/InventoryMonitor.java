@@ -8,11 +8,13 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-@CUI(name = "im")
+@CUI(name = "im", singleton = true, icon = Material.PLAYER_HEAD)
 public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 	@Override
 	public void onInitialize(CUIType<InventoryMonitor> type) {
-
+		type.edit().triggerByDisplayCommand(
+				player -> new CUIType.TriggerResult<>(CUIType.TriggerResultType.CREATE_NEW_CAMERA, camera -> {
+				}));
 	}
 
 	@Override

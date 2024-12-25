@@ -6,16 +6,17 @@ import fun.polyvoxel.cui.slot.SlotHandler;
 import fun.polyvoxel.cui.ui.*;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
-@CUI(name = "monitor", singleton = true)
+@CUI(name = "monitor", singleton = true, icon = Material.BARRIER)
 public class CUIMonitor implements ChestUI<CUIMonitor> {
 
 	@Override
 	public void onInitialize(CUIType<CUIMonitor> type) {
-
+		type.edit().triggerByDisplayCommand(
+				player -> new CUIType.TriggerResult<>(CUIType.TriggerResultType.CREATE_NEW_CAMERA, camera -> {
+				}));
 	}
 
 	@Override
@@ -86,8 +87,8 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 										.lore("&7A CUI Monitor like" + " this", "&cCannot be monitored").build()));
 					} else {
 						displayCUIs.edit().editSlot(row, column,
-								slotHandler -> slotHandler.button(builder -> builder.material(Material.CHEST)
-										.displayName(target.getDefaultTitle())
+								slotHandler -> slotHandler.button(builder -> builder
+										.material(target.getType().getIcon()).displayName(target.getDefaultTitle())
 										.lore("name: &b" + target.getName(),
 												String.format("&b%d&r" + " camera(s)", target.getCameraCount()))
 										.clickHandler(event -> {

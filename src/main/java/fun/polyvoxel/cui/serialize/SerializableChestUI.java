@@ -1,6 +1,5 @@
 package fun.polyvoxel.cui.serialize;
 
-import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.ui.CUIInstance;
 import fun.polyvoxel.cui.ui.CUIType;
 import fun.polyvoxel.cui.ui.Camera;
@@ -16,7 +15,9 @@ public class SerializableChestUI implements ChestUI<SerializableChestUI> {
 
 	@Override
 	public void onInitialize(CUIType<SerializableChestUI> type) {
-
+		type.edit().triggerByDisplayCommand(
+				player -> new CUIType.TriggerResult<>(CUIType.TriggerResultType.USE_DEFAULT_CAMERA, camera -> {
+				}));
 	}
 
 	@Override

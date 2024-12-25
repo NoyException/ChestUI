@@ -58,6 +58,7 @@ idea {
 
 spotless {
     java {
+        removeUnusedImports()
         eclipse()
     }
 }

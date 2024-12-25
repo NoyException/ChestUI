@@ -1,9 +1,10 @@
 package fun.polyvoxel.cui.prebuilt.cui;
 
 import fun.polyvoxel.cui.ui.*;
+import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
-@CUI(name = "creator")
+@CUI(name = "creator", autoRegister = false, icon = Material.COMMAND_BLOCK)
 public class CUICreator implements ChestUI<CUICreator> {
 
 	@Override

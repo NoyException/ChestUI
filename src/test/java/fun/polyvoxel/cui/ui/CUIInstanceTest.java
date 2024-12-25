@@ -21,7 +21,7 @@ public class CUIInstanceTest {
 	public static void setup() {
 		server = MockBukkit.mock();
 		plugin = MockBukkit.load(CUIPlugin.class);
-		plugin.getCUIManager().registerCUI(TestCUI.class, plugin, "test", false);
+		plugin.getCUIManager().registerCUI(TestCUI.class, plugin, "test", false, Material.CHEST);
 		a = server.addPlayer("a");
 		b = server.addPlayer("b");
 		// 因为mock的player的getTopInventory会返回null，故手动先打开一个inventory

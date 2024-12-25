@@ -5,6 +5,7 @@ import fun.polyvoxel.cui.layer.Layer;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -67,6 +68,21 @@ public class CUIInstance<T extends ChestUI<T>> {
 
 	public List<Camera<T>> getCameras() {
 		return new ArrayList<>(cameras.values());
+	}
+
+	/**
+	 * 获取一个摄像头。不保证每次调用返回的是同一个摄像头。<br>
+	 * Get a camera. It is not guaranteed that the same camera will be returned each
+	 * time.
+	 * 
+	 * @return 摄像头。<br>
+	 *         Camera.
+	 */
+	public @NotNull Camera<T> getCamera() {
+		if (cameras.isEmpty()) {
+			return createCamera();
+		}
+		return cameras.values().iterator().next();
 	}
 
 	public Camera<T> getCamera(int cameraId) {

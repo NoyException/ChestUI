@@ -3,6 +3,7 @@ package fun.polyvoxel.cui.serialize;
 import fun.polyvoxel.cui.ui.CUIInstance;
 import com.google.gson.*;
 import fun.polyvoxel.cui.ui.Camera;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 
 import java.io.Reader;
@@ -17,6 +18,7 @@ public class CUIData {
 			.registerTypeAdapter(SlotData.OnClick.class, new SlotData.OnClick.JsonAdapter()).create();
 	public String key;
 	public boolean singleton;
+	public Material icon = Material.CHEST;
 	public String title;
 	public int maxRow = 3;
 	public int maxColumn = 9;
@@ -53,6 +55,7 @@ public class CUIData {
 			var obj = new JsonObject();
 			obj.addProperty("key", src.key);
 			obj.addProperty("singleton", src.singleton);
+			obj.addProperty("icon", src.icon.name());
 			obj.addProperty("title", src.title);
 			obj.addProperty("maxRow", src.maxRow);
 			obj.addProperty("maxColumn", src.maxColumn);
@@ -69,6 +72,12 @@ public class CUIData {
 			var cuiData = new CUIData();
 			cuiData.key = obj.get("key").getAsString();
 			cuiData.singleton = obj.get("singleton").getAsBoolean();
+			var rawIcon = obj.get("icon");
+			if (rawIcon == null) {
+				cuiData.icon = Material.CHEST;
+			} else {
+				cuiData.icon = Material.getMaterial(rawIcon.getAsString());
+			}
 			cuiData.title = obj.get("title").getAsString();
 			cuiData.maxRow = obj.get("maxRow").getAsInt();
 			cuiData.maxColumn = obj.get("maxColumn").getAsInt();

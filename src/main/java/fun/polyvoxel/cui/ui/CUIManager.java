@@ -7,6 +7,7 @@ import fun.polyvoxel.cui.util.ItemStacks;
 
 import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -49,6 +50,10 @@ public class CUIManager implements Listener {
 		return new ArrayList<>(cuiTypes.keySet());
 	}
 
+	public List<CUIType<?>> getRegisteredCUITypes() {
+		return new ArrayList<>(cuiTypes.values());
+	}
+
 	public List<NamespacedKey> getRegisteredCUINames(Plugin plugin) {
 		return cuiTypes.keySet().stream()
 				.filter(namespacedKey -> namespacedKey.getNamespace().equalsIgnoreCase(plugin.getName())).toList();
@@ -89,7 +94,7 @@ public class CUIManager implements Listener {
 		getCUIs().forEach(CUIInstance::destroy);
 	}
 
-	public record ParseResult(CUIType<?> typeHandler, Integer instanceId, Integer cameraId) {
+	public record ParseResult(CUIType<?> cuiType, Integer instanceId, Integer cameraId) {
 	}
 
 	public ParseResult parse(String name) throws IllegalArgumentException {
@@ -98,19 +103,19 @@ public class CUIManager implements Listener {
 			throw new IllegalArgumentException("Invalid CUI name: " + name);
 		}
 		var key = NamespacedKey.fromString(split[0]);
-		var typeHandler = getCUIType(key);
-		if (typeHandler == null) {
+		var type = getCUIType(key);
+		if (type == null) {
 			return new ParseResult(null, null, null);
 		}
 		if (split.length < 2) {
-			return new ParseResult(typeHandler, null, null);
+			return new ParseResult(type, null, null);
 		}
 		var instanceId = Integer.parseInt(split[1]);
 		if (split.length < 3) {
-			return new ParseResult(typeHandler, instanceId, null);
+			return new ParseResult(type, instanceId, null);
 		}
 		var cameraId = Integer.parseInt(split[2]);
-		return new ParseResult(typeHandler, instanceId, cameraId);
+		return new ParseResult(type, instanceId, cameraId);
 	}
 
 	/**
@@ -129,8 +134,8 @@ public class CUIManager implements Listener {
 	 * @param <T>
 	 *            CUIHandler的实现类
 	 */
-	public <T extends ChestUI<T>> void registerCUI(Class<T> handlerClass, Plugin plugin, String name,
-			boolean singleton) {
+	public <T extends ChestUI<T>> void registerCUI(Class<T> handlerClass, Plugin plugin, String name, boolean singleton,
+			Material icon) {
 		var key = NamespacedKey.fromString(name, plugin);
 		if (cuiTypes.containsKey(key)) {
 			throw new IllegalArgumentException("CUI `" + key + "` has already been registered");
@@ -144,7 +149,7 @@ public class CUIManager implements Listener {
 			throw new RuntimeException(
 					"CUI Handler `" + handlerClass.getCanonicalName() + "` must have a public no-args constructor");
 		}
-		cuiTypes.put(key, new CUIType<>(this.plugin, chestUI, key, singleton));
+		cuiTypes.put(key, new CUIType<>(this.plugin, chestUI, key, singleton, icon));
 		cuiTypesByClass.put(handlerClass, cuiTypes.get(key));
 	}
 
@@ -153,7 +158,8 @@ public class CUIManager implements Listener {
 		if (cuiTypes.containsKey(data.getKey())) {
 			throw new IllegalArgumentException("CUI `" + data.getKey() + "` has already been registered");
 		}
-		var typeHandler = new CUIType<>(plugin, new SerializableChestUI(data), data.getKey(), data.singleton);
+		var typeHandler = new CUIType<>(plugin, new SerializableChestUI(data), data.getKey(), data.singleton,
+				data.icon);
 		cuiTypes.put(data.getKey(), typeHandler);
 	}
 
@@ -189,7 +195,13 @@ public class CUIManager implements Listener {
 			if (!file.getName().endsWith(".json")) {
 				continue;
 			}
-			registerCUI(file);
+			try {
+				registerCUI(file);
+			} catch (Exception e) {
+				plugin.getLogger().warning("Failed to register CUI from file: " + file.getName());
+				e.printStackTrace();
+				continue;
+			}
 			count++;
 		}
 		plugin.getLogger().info("Registered " + count + " CUIs from files");
@@ -215,7 +227,7 @@ public class CUIManager implements Listener {
 			// 处理带有@CUI注解的类
 			var annotation = clazz.getAnnotation(CUI.class);
 			if (annotation.autoRegister()) {
-				registerCUI((Class) clazz, plg, annotation.name(), annotation.singleton());
+				registerCUI((Class) clazz, plg, annotation.name(), annotation.singleton(), annotation.icon());
 			}
 		}
 	}
