@@ -10,6 +10,7 @@ import fun.polyvoxel.cui.crafting.consumer.ingredient.MaterialMatchedIngredient;
 import fun.polyvoxel.cui.crafting.producer.ShapelessProducer;
 import fun.polyvoxel.cui.crafting.producer.product.ExactProduct;
 import fun.polyvoxel.cui.layer.Layer;
+import fun.polyvoxel.cui.slot.Button;
 import fun.polyvoxel.cui.ui.*;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
@@ -72,16 +73,16 @@ public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
 	private class InstanceHandler implements CUIInstanceHandler<EnhancedWorkbench> {
 		@Override
 		public void onInitialize(CUIInstance<EnhancedWorkbench> cui) {
-			cui.edit().layer(0, new Layer(5, 9).edit().column(5, (slotHandler, integer) -> {
-				slotHandler.button(
-						builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build());
-			}).slot(2, 5, slotHandler -> slotHandler.button(builder -> builder.material(Material.CRAFTING_TABLE)
-					.displayName("Put a workbench under your feet").clickHandler(cuiClickEvent -> {
-						var player = cuiClickEvent.getPlayer();
-						var block = player.getLocation().getBlock().getRelative(BlockFace.DOWN);
-						block.setType(Material.CRAFTING_TABLE);
-						block.setMetadata("chestui:ew", new FixedMetadataValue(cui.getCUIPlugin(), true));
-					}).build())).done()).done();
+			cui.edit().layer(0, new Layer(5, 9).edit().column(5,
+					row -> Button.builder().material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build())
+					.slot(2, 5, () -> Button.builder().material(Material.CRAFTING_TABLE)
+							.displayName("Put a workbench under your feet").clickHandler(cuiClickEvent -> {
+								var player = cuiClickEvent.getPlayer();
+								var block = player.getLocation().getBlock().getRelative(BlockFace.DOWN);
+								block.setType(Material.CRAFTING_TABLE);
+								block.setMetadata("chestui:ew", new FixedMetadataValue(cui.getCUIPlugin(), true));
+							}).build())
+					.done()).done();
 		}
 
 		@Override

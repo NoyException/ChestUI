@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 public abstract class Slot {
 	private Runnable dirtyMarker;
 
-	void bind(Runnable dirtyMarker) {
+	public void bind(Runnable dirtyMarker) {
 		this.dirtyMarker = dirtyMarker;
 		markDirty();
 	}

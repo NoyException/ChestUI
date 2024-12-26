@@ -2,6 +2,7 @@ package fun.polyvoxel.cui.ui;
 
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.layer.Layer;
+import fun.polyvoxel.cui.slot.Button;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
@@ -112,18 +113,14 @@ public class CUIInstanceTest {
 				cui.edit().keepAlive(true)
 						.layer(0,
 								new Layer(1, 9).edit()
-										.all((slotHandler, row, column) -> slotHandler.button(builder -> builder
-												.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
-										.slot(0, 0,
-												slotHandler -> slotHandler.button(
-														builder -> builder.material(Material.RED_STAINED_GLASS_PANE)
-																.displayName("Previous").clickHandler(event -> {
-																}).build()))
-										.slot(0, 8,
-												slotHandler -> slotHandler.button(
-														builder -> builder.material(Material.GREEN_STAINED_GLASS_PANE)
-																.displayName("Next").clickHandler(event -> {
-																}).build()))
+										.all((row, column) -> Button.builder()
+												.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build())
+										.slot(0, 0, () -> Button.builder().material(Material.RED_STAINED_GLASS_PANE)
+												.displayName("Previous").clickHandler(event -> {
+												}).build())
+										.slot(0, 8, () -> Button.builder().material(Material.GREEN_STAINED_GLASS_PANE)
+												.displayName("Next").clickHandler(event -> {
+												}).build())
 										.done())
 						.done();
 			}

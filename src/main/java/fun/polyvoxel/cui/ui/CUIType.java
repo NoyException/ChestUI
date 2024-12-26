@@ -133,7 +133,7 @@ public final class CUIType<T extends ChestUI<T>> {
 		return new ArrayList<>(instances.values());
 	}
 
-	public int getInstancesCount() {
+	public int getInstanceCount() {
 		return instances.size();
 	}
 
@@ -208,6 +208,10 @@ public final class CUIType<T extends ChestUI<T>> {
 
 	public class Editor {
 		private Editor() {
+		}
+
+		public CUIType<T> done() {
+			return CUIType.this;
 		}
 
 		public Editor defaultTitle(String title) {

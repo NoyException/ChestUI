@@ -18,7 +18,7 @@ public class LayerData {
 	public Layer toLayer() {
 		var layer = new Layer(maxRow, maxColumn).edit().marginTop(marginTop).marginLeft(marginLeft).relative(relative)
 				.done();
-		slots.forEach((position, slotData) -> layer.edit().slot(position.row(), position.column(), slotData::editSlot));
+		slots.forEach((position, slotData) -> layer.edit().slot(position.row(), position.column(), slotData::toSlot));
 		return layer;
 	}
 

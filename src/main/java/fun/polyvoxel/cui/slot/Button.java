@@ -83,10 +83,14 @@ public class Button extends Slot {
 		return button;
 	}
 
+	public static Builder builder() {
+		return new Builder();
+	}
+
 	public static class Builder {
 		private final Button button = new Button();
 
-		Builder() {
+		private Builder() {
 		}
 
 		public Builder itemStack(ItemStack itemStack) {

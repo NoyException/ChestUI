@@ -46,17 +46,17 @@ public class CraftingTable {
 	public Layer generateInputLayer(int index, @Nullable Camera<?> camera) {
 		var input = ios.getCurrent(camera).inputs.getInput(index);
 
-		return new Layer(input.length, input[0].length).edit().all((slotHandler, row, column) -> {
-			slotHandler.storage(builder -> builder.source(new InputSource(index, camera, row, column)).build());
-		}).done();
+		return new Layer(input.length, input[0].length).edit()
+				.all((row, column) -> Storage.builder().source(new InputSource(index, camera, row, column)).build())
+				.done();
 	}
 
 	public Layer generateOutputLayer(int index, @Nullable Camera<?> camera) {
 		var output = ios.getCurrent(camera).outputs.getOutput(index);
 
-		return new Layer(output.length, output[0].length).edit().all((slotHandler, row, column) -> {
-			slotHandler.storage(builder -> builder.source(new OutputSource(index, camera, row, column)).build());
-		}).done();
+		return new Layer(output.length, output[0].length).edit()
+				.all((row, column) -> Storage.builder().source(new OutputSource(index, camera, row, column)).build())
+				.done();
 	}
 
 	private abstract static class Source implements Storage.Source {

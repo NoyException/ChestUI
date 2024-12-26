@@ -1,7 +1,7 @@
 package fun.polyvoxel.cui.serialize;
 
 import fun.polyvoxel.cui.event.CUIClickEvent;
-import fun.polyvoxel.cui.slot.SlotHandler;
+import fun.polyvoxel.cui.slot.*;
 import fun.polyvoxel.cui.util.ItemStacks;
 import com.google.gson.*;
 import net.kyori.adventure.text.TextComponent;
@@ -23,11 +23,11 @@ public class SlotData {
 	public int amount = 1;
 	public final HashMap<ClickType, ArrayList<OnClick>> onClicks = new HashMap<>();
 
-	public void editSlot(SlotHandler slotHandler) {
+	public Slot toSlot() {
 		var itemStack = getItemStack();
-		switch (type) {
-			case "empty" -> slotHandler.empty();
-			case "button" -> slotHandler.button(builder -> builder.itemStack(itemStack).clickHandler(event -> {
+		return switch (type) {
+			case "empty" -> Empty.getInstance();
+			case "button" -> Button.builder().itemStack(itemStack).clickHandler(event -> {
 				var actions = onClicks.get(event.getClickType());
 				if (actions == null) {
 					return;
@@ -35,15 +35,10 @@ public class SlotData {
 				for (OnClick onClick : actions) {
 					onClick.onClick(event);
 				}
-			}).build());
-			case "storage" -> {
-				if (material == null) {
-					slotHandler.storage(builder -> builder.source().build());
-				} else {
-					slotHandler.storage(builder -> builder.source(itemStack).build());
-				}
-			}
-		}
+			}).build();
+			case "storage" -> Storage.builder().source(itemStack).build();
+			default -> throw new IllegalStateException("Unexpected value: " + type);
+		};
 	}
 
 	private @Nullable ItemStack getItemStack() {

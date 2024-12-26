@@ -2,6 +2,8 @@ package fun.polyvoxel.cui.prebuilt.cui;
 
 import fun.polyvoxel.cui.layer.Layer;
 
+import fun.polyvoxel.cui.slot.Button;
+import fun.polyvoxel.cui.slot.Storage;
 import fun.polyvoxel.cui.ui.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -30,23 +32,26 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 		@Override
 		public void onInitialize(CUIInstance<InventoryMonitor> cui) {
 			this.displayPlayers = new Layer(5, 9).edit().marginTop(1).done();
-			this.cui = cui.edit().layer(0, new Layer(1, 9).edit()
-					.all((slotHandler, row, column) -> slotHandler.button(
-							builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
-					.slot(0, 0, slotHandler -> slotHandler.button(builder -> builder
-							.material(Material.RED_STAINED_GLASS_PANE).displayName("Previous").clickHandler(event -> {
-								if (page > 0) {
-									page--;
-								}
-							}).build()))
-					.slot(0, 8, slotHandler -> slotHandler.button(builder -> builder
-							.material(Material.GREEN_STAINED_GLASS_PANE).displayName("Next").clickHandler(event -> {
-								var players = Bukkit.getOnlinePlayers();
-								if (players.size() > (page + 1) * 45) {
-									page++;
-								}
-							}).build()))
-					.done()).layer(1, displayPlayers).done();
+			this.cui = cui.edit()
+					.layer(0,
+							new Layer(1, 9).edit()
+									.all((row, column) -> Button.builder().material(Material.BLACK_STAINED_GLASS_PANE)
+											.displayName(" ").build())
+									.slot(0, 0, () -> Button.builder().material(Material.RED_STAINED_GLASS_PANE)
+											.displayName("Previous").clickHandler(event -> {
+												if (page > 0) {
+													page--;
+												}
+											}).build())
+									.slot(0, 8, () -> Button.builder().material(Material.GREEN_STAINED_GLASS_PANE)
+											.displayName("Next").clickHandler(event -> {
+												var players = Bukkit.getOnlinePlayers();
+												if (players.size() > (page + 1) * 45) {
+													page++;
+												}
+											}).build())
+									.done())
+					.layer(1, displayPlayers).done();
 		}
 
 		@Override
@@ -76,39 +81,33 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 						return;
 					}
 					var player = players.get(index);
-					displayPlayers.edit()
-							.slot(row, col,
-									slotHandler -> slotHandler.button(builder -> builder.skull(player)
-											.displayName(player.displayName())
-											.clickHandler(event -> monitor(event.getCamera(), player)).build()));
+					displayPlayers.edit().slot(row, col,
+							() -> Button.builder().skull(player).displayName(player.displayName())
+									.clickHandler(event -> monitor(event.getCamera(), player)).build());
 				}
 			}
 		}
 
 		private void monitor(Camera<?> camera, Player player) {
 			var inventory = player.getInventory();
-			camera.edit().layer(-2,
-					new Layer(1, 9).edit().all((slotHandler, row, column) -> slotHandler.button(
-							builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
-							.done())
-					.layer(-1, new Layer(5, 9)
-							.edit().marginTop(1).row(3,
-									(slotHandler, column) -> slotHandler.button(builder -> builder
-											.material(Material.WHITE_STAINED_GLASS_PANE).displayName(" ").build()))
-							.done());
-			var layer = camera.getLayer(-1);
-			for (int i = 0; i < 9; i++) {
-				// hotbar, 0~8
-				int finalI = i;
-				layer.edit().slot(4, i,
-						slotHandler -> slotHandler.storage(builder -> builder.source(inventory, finalI).build()));
-			}
-			for (int i = 0; i < 27; i++) {
-				// main inventory, 9~35
-				int finalI = i;
-				layer.edit().slot(i / 9, i % 9,
-						slotHandler -> slotHandler.storage(builder -> builder.source(inventory, finalI + 9).build()));
-			}
+			camera.edit()
+					.layer(-2,
+							new Layer(1, 9).edit()
+									.all((row, column) -> Button.builder().material(Material.BLACK_STAINED_GLASS_PANE)
+											.displayName(" ").build())
+									.done())
+					.layer(-1,
+							new Layer(5, 9).edit().marginTop(1)
+									.row(3, column -> Button.builder().material(Material.WHITE_STAINED_GLASS_PANE)
+											.displayName(" ").build())
+									.row(4, column -> Storage.builder().source(inventory, column).build())
+									.all((row, column) -> {
+										int index = row * 9 + column;
+										if (index < 27) {
+											return Storage.builder().source(inventory, index + 9).build();
+										}
+										return null;
+									}).done());
 		}
 
 		@Override

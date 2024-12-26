@@ -122,7 +122,7 @@ public class Storage extends Slot {
 				}
 				case MIDDLE -> {
 					// 克隆【一组】
-					if (player.getGameMode() == GameMode.CREATIVE && cursor == null) {
+					if (player.getGameMode() == GameMode.CREATIVE && ItemStacks.isEmpty(cursor)) {
 						cursor = itemStack.clone();
 						cursor.setAmount(cursor.getMaxStackSize());
 					}
@@ -195,10 +195,14 @@ public class Storage extends Slot {
 		return new Storage(source.deepClone());
 	}
 
+	public static Builder builder() {
+		return new Builder();
+	}
+
 	public static class Builder {
 		private Source source;
 
-		Builder() {
+		private Builder() {
 		}
 
 		public Storage build() {

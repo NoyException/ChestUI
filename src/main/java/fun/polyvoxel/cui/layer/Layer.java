@@ -1,16 +1,14 @@
 package fun.polyvoxel.cui.layer;
 
 import fun.polyvoxel.cui.event.CUIClickEvent;
+import fun.polyvoxel.cui.slot.Empty;
 import fun.polyvoxel.cui.slot.Slot;
-import fun.polyvoxel.cui.slot.SlotHandler;
 import fun.polyvoxel.cui.ui.CUIContents;
 
 import fun.polyvoxel.cui.ui.Camera;
-import org.apache.logging.log4j.util.TriConsumer;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
+import java.util.function.*;
 
 public class Layer {
 	private int rowSize;
@@ -19,13 +17,13 @@ public class Layer {
 	private int marginTop;
 	// margin的位置是相对摄像头还是绝对值
 	private boolean relative;
-	private SlotHandler[][] slots;
+	private Slot[][] slots;
 	private boolean dirty;
 
 	public Layer(int rowSize, int columnSize) {
 		this.rowSize = rowSize;
 		this.columnSize = columnSize;
-		slots = new SlotHandler[rowSize][columnSize];
+		slots = new Slot[rowSize][columnSize];
 	}
 
 	public int getRowSize() {
@@ -64,7 +62,7 @@ public class Layer {
 			for (int column = 0; column < columnSize; column++) {
 				var slot = slots[row][column];
 				if (slot != null) {
-					slot.getSlot().tick();
+					slot.tick();
 				}
 			}
 		}
@@ -79,24 +77,16 @@ public class Layer {
 		return row >= 0 && row < rowSize && column >= 0 && column < columnSize;
 	}
 
-	private @Nullable SlotHandler getSlotHandler(int row, int column) {
+	public @Nullable Slot getSlot(int row, int column) {
 		if (!isValidPosition(row, column)) {
 			return null;
 		}
 		var handler = slots[row][column];
 		if (handler == null) {
-			handler = new SlotHandler(this);
+			handler = Empty.getInstance();
 			slots[row][column] = handler;
 		}
 		return handler;
-	}
-
-	public @Nullable Slot getSlot(int row, int column) {
-		SlotHandler slotHandler = getSlotHandler(row, column);
-		if (slotHandler == null) {
-			return null;
-		}
-		return slotHandler.getSlot();
 	}
 
 	public @Nullable Slot getRelativeSlot(Camera<?> camera, int row, int column) {
@@ -137,7 +127,7 @@ public class Layer {
 		}
 		var slot = slots[row][column];
 		if (slot != null) {
-			slot.getSlot().click(event);
+			slot.click(event);
 		}
 	}
 
@@ -150,8 +140,7 @@ public class Layer {
 			for (int column = 0; column < columnSize; column++) {
 				var slot = slots[row][column];
 				if (slot != null) {
-					layer.slots[row][column] = new SlotHandler(layer);
-					layer.slots[row][column].deepClone(slot);
+					layer.slots[row][column] = slot.deepClone();
 				}
 			}
 		}
@@ -169,7 +158,7 @@ public class Layer {
 		}
 
 		public Editor resize(int rowSize, int columnSize) {
-			var slots = new SlotHandler[rowSize][columnSize];
+			var slots = new Slot[rowSize][columnSize];
 			for (int row = 0, maxRow = Math.min(rowSize, Layer.this.rowSize); row < maxRow; row++) {
 				for (int column = 0,
 						maxColumn = Math.min(columnSize, Layer.this.columnSize); column < maxColumn; column++) {
@@ -205,43 +194,50 @@ public class Layer {
 			return this;
 		}
 
-		public Editor slot(int row, int column, Consumer<SlotHandler> onEdit) {
-			var handler = getSlotHandler(row, column);
-			if (handler == null) {
+		public Editor slot(int row, int column, Supplier<Slot> supplier) {
+			if (!isValidPosition(row, column)) {
+				throw new IndexOutOfBoundsException(
+						"(row, column) must be between (0, 0) and (" + rowSize + ", " + columnSize + ")");
+			}
+
+			Slot slot = supplier.get();
+			if (slot == null) {
 				return this;
 			}
-			onEdit.accept(handler);
+
+			slot.bind(Layer.this::markDirty);
+			slots[row][column] = slot;
 			return this;
 		}
 
-		public Editor row(int row, BiConsumer<SlotHandler, Integer> onEdit) {
+		public Editor row(int row, Function<Integer, Slot> supplier) {
 			for (int column = 0; column < columnSize; column++) {
 				int finalColumn = column;
-				slot(row, column, slotHandler -> onEdit.accept(slotHandler, finalColumn));
+				slot(row, column, () -> supplier.apply(finalColumn));
 			}
 			return this;
 		}
 
-		public Editor column(int column, BiConsumer<SlotHandler, Integer> onEdit) {
+		public Editor column(int column, Function<Integer, Slot> supplier) {
 			for (int row = 0; row < rowSize; row++) {
 				int finalRow = row;
-				slot(row, column, slotHandler -> onEdit.accept(slotHandler, finalRow));
+				slot(row, column, () -> supplier.apply(finalRow));
 			}
 			return this;
 		}
 
-		public Editor all(TriConsumer<SlotHandler, Integer, Integer> onEdit) {
+		public Editor all(BiFunction<Integer, Integer, Slot> supplier) {
 			for (int row = 0; row < rowSize; row++) {
 				for (int column = 0; column < columnSize; column++) {
 					int finalRow = row;
 					int finalColumn = column;
-					slot(row, column, slotHandler -> onEdit.accept(slotHandler, finalRow, finalColumn));
+					slot(row, column, () -> supplier.apply(finalRow, finalColumn));
 				}
 			}
 			return this;
 		}
 
-		public Editor tile(int maxIndex, boolean resizeIfOutOfBound, BiConsumer<SlotHandler, Integer> onEdit) {
+		public Editor tile(int maxIndex, boolean resizeIfOutOfBound, Function<Integer, Slot> supplier) {
 			if (resizeIfOutOfBound) {
 				int rowSize = (maxIndex - 1) / columnSize + 1;
 				if (rowSize > Layer.this.rowSize) {
@@ -254,14 +250,14 @@ public class Layer {
 					if (index >= maxIndex) {
 						return this;
 					}
-					slot(row, column, slotHandler -> onEdit.accept(slotHandler, index));
+					slot(row, column, () -> supplier.apply(index));
 				}
 			}
 			return this;
 		}
 
 		public Editor clear() {
-			return all((slotHandler, row, column) -> slotHandler.empty());
+			return all((row, column) -> Empty.getInstance());
 		}
 	}
 }
