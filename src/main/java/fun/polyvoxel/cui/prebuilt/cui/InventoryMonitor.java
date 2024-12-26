@@ -18,39 +18,39 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 	}
 
 	@Override
-	public @NotNull ChestUI.InstanceHandler<InventoryMonitor> createInstanceHandler() {
+	public @NotNull CUIInstanceHandler<InventoryMonitor> createCUIInstanceHandler() {
 		return new InstanceHandler();
 	}
 
-	private static class InstanceHandler implements ChestUI.InstanceHandler<InventoryMonitor> {
+	private static class InstanceHandler implements CUIInstanceHandler<InventoryMonitor> {
 		private CUIInstance<InventoryMonitor> cui;
 		private Layer displayPlayers;
 		private int page = 0;
 
 		@Override
 		public void onInitialize(CUIInstance<InventoryMonitor> cui) {
-			this.displayPlayers = new Layer(5, 9).edit().marginTop(1).finish();
+			this.displayPlayers = new Layer(5, 9).edit().marginTop(1).done();
 			this.cui = cui.edit().layer(0, new Layer(1, 9).edit()
-					.editAll((slotHandler, row, column) -> slotHandler.button(
+					.all((slotHandler, row, column) -> slotHandler.button(
 							builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
-					.editSlot(0, 0, slotHandler -> slotHandler.button(builder -> builder
+					.slot(0, 0, slotHandler -> slotHandler.button(builder -> builder
 							.material(Material.RED_STAINED_GLASS_PANE).displayName("Previous").clickHandler(event -> {
 								if (page > 0) {
 									page--;
 								}
 							}).build()))
-					.editSlot(0, 8, slotHandler -> slotHandler.button(builder -> builder
+					.slot(0, 8, slotHandler -> slotHandler.button(builder -> builder
 							.material(Material.GREEN_STAINED_GLASS_PANE).displayName("Next").clickHandler(event -> {
 								var players = Bukkit.getOnlinePlayers();
 								if (players.size() > (page + 1) * 45) {
 									page++;
 								}
 							}).build()))
-					.finish()).layer(1, displayPlayers).finish();
+					.done()).layer(1, displayPlayers).done();
 		}
 
 		@Override
-		public @NotNull ChestUI.CameraHandler<InventoryMonitor> createCameraHandler() {
+		public @NotNull fun.polyvoxel.cui.ui.CameraHandler<InventoryMonitor> createCameraHandler() {
 			return new CameraHandler();
 		}
 
@@ -77,7 +77,7 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 					}
 					var player = players.get(index);
 					displayPlayers.edit()
-							.editSlot(row, col,
+							.slot(row, col,
 									slotHandler -> slotHandler.button(builder -> builder.skull(player)
 											.displayName(player.displayName())
 											.clickHandler(event -> monitor(event.getCamera(), player)).build()));
@@ -88,25 +88,25 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 		private void monitor(Camera<?> camera, Player player) {
 			var inventory = player.getInventory();
 			camera.edit().layer(-2,
-					new Layer(1, 9).edit().editAll((slotHandler, row, column) -> slotHandler.button(
+					new Layer(1, 9).edit().all((slotHandler, row, column) -> slotHandler.button(
 							builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
-							.finish())
-					.layer(-1,
-							new Layer(5, 9).edit().marginTop(1)
-									.editRow(3, (slotHandler, column) -> slotHandler.button(builder -> builder
+							.done())
+					.layer(-1, new Layer(5, 9)
+							.edit().marginTop(1).row(3,
+									(slotHandler, column) -> slotHandler.button(builder -> builder
 											.material(Material.WHITE_STAINED_GLASS_PANE).displayName(" ").build()))
-									.finish());
+							.done());
 			var layer = camera.getLayer(-1);
 			for (int i = 0; i < 9; i++) {
 				// hotbar, 0~8
 				int finalI = i;
-				layer.edit().editSlot(4, i,
+				layer.edit().slot(4, i,
 						slotHandler -> slotHandler.storage(builder -> builder.source(inventory, finalI).build()));
 			}
 			for (int i = 0; i < 27; i++) {
 				// main inventory, 9~35
 				int finalI = i;
-				layer.edit().editSlot(i / 9, i % 9,
+				layer.edit().slot(i / 9, i % 9,
 						slotHandler -> slotHandler.storage(builder -> builder.source(inventory, finalI + 9).build()));
 			}
 		}
@@ -116,7 +116,7 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 			updatePlayers();
 		}
 
-		private static class CameraHandler implements ChestUI.CameraHandler<InventoryMonitor> {
+		private static class CameraHandler implements fun.polyvoxel.cui.ui.CameraHandler<InventoryMonitor> {
 			@Override
 			public void onInitialize(Camera<InventoryMonitor> camera) {
 				camera.edit().rowSize(6);

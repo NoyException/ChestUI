@@ -119,7 +119,7 @@ public class CmdCUI implements TabExecutor {
 					try {
 						var cui = parsed.cuiType().createInstance();
 						if (args.length == 3 && args[2].equals("keepAlive")) {
-							cui.edit().keepAlive(true).finish();
+							cui.edit().keepAlive(true).done();
 						}
 					} catch (Exception e) {
 						sender.sendMessage("Failed to create CUI instance: " + e.getMessage());
@@ -138,7 +138,7 @@ public class CmdCUI implements TabExecutor {
 					}
 					var keepAlive = args.length == 3 && args[2].equals("keepAlive");
 					if (keepAlive) {
-						camera.edit().keepAlive(true).finish();
+						camera.edit().keepAlive(true).done();
 					}
 				} else {
 					sender.sendMessage("Do not specify camera id when creating CUI instance or Camera");

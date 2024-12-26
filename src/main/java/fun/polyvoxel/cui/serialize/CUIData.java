@@ -29,7 +29,7 @@ public class CUIData {
 	}
 
 	public void toCamera(Camera<?> camera) {
-		camera.edit().rowSize(maxRow).columnSize(maxColumn).finish();
+		camera.edit().rowSize(maxRow).columnSize(maxColumn).done();
 	}
 
 	public NamespacedKey getKey() {

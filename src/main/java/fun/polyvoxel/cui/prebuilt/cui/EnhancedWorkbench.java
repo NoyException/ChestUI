@@ -65,37 +65,37 @@ public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
 	}
 
 	@Override
-	public @NotNull ChestUI.InstanceHandler<EnhancedWorkbench> createInstanceHandler() {
+	public @NotNull CUIInstanceHandler<EnhancedWorkbench> createCUIInstanceHandler() {
 		return new InstanceHandler();
 	}
 
-	private class InstanceHandler implements ChestUI.InstanceHandler<EnhancedWorkbench> {
+	private class InstanceHandler implements CUIInstanceHandler<EnhancedWorkbench> {
 		@Override
 		public void onInitialize(CUIInstance<EnhancedWorkbench> cui) {
-			cui.edit().layer(0, new Layer(5, 9).edit().editColumn(5, (slotHandler, integer) -> {
+			cui.edit().layer(0, new Layer(5, 9).edit().column(5, (slotHandler, integer) -> {
 				slotHandler.button(
 						builder -> builder.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build());
-			}).editSlot(2, 5, slotHandler -> slotHandler.button(builder -> builder.material(Material.CRAFTING_TABLE)
+			}).slot(2, 5, slotHandler -> slotHandler.button(builder -> builder.material(Material.CRAFTING_TABLE)
 					.displayName("Put a workbench under your feet").clickHandler(cuiClickEvent -> {
 						var player = cuiClickEvent.getPlayer();
 						var block = player.getLocation().getBlock().getRelative(BlockFace.DOWN);
 						block.setType(Material.CRAFTING_TABLE);
 						block.setMetadata("chestui:ew", new FixedMetadataValue(cui.getCUIPlugin(), true));
-					}).build())).finish()).finish();
+					}).build())).done()).done();
 		}
 
 		@Override
-		public @NotNull ChestUI.CameraHandler<EnhancedWorkbench> createCameraHandler() {
+		public @NotNull fun.polyvoxel.cui.ui.CameraHandler<EnhancedWorkbench> createCameraHandler() {
 			return new CameraHandler();
 		}
 
-		private class CameraHandler implements ChestUI.CameraHandler<EnhancedWorkbench> {
+		private class CameraHandler implements fun.polyvoxel.cui.ui.CameraHandler<EnhancedWorkbench> {
 			@Override
 			public void onInitialize(Camera<EnhancedWorkbench> camera) {
 				camera.edit().rowSize(5);
 				var inputLayer = craftingTable.generateInputLayer(0, camera);
-				var outputLayer = craftingTable.generateOutputLayer(0, camera).edit().marginLeft(6).finish();
-				camera.edit().layer(-1, inputLayer).layer(-2, outputLayer).finish();
+				var outputLayer = craftingTable.generateOutputLayer(0, camera).edit().marginLeft(6).done();
+				camera.edit().layer(-1, inputLayer).layer(-2, outputLayer).done();
 			}
 		}
 	}

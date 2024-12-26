@@ -23,7 +23,7 @@ import java.util.*;
 public class Camera<T extends ChestUI<T>> {
 	private final CameraManager manager;
 	private final CUIInstance<T> cuiInstance;
-	private final ChestUI.CameraHandler<T> handler;
+	private final CameraHandler<T> handler;
 	private final int id;
 	private final HashSet<Player> viewers = new HashSet<>();
 	/**
@@ -58,10 +58,6 @@ public class Camera<T extends ChestUI<T>> {
 		state = State.READY;
 	}
 
-	public Editor edit() {
-		return new Editor();
-	}
-
 	public CUIInstance<T> getCUIInstance() {
 		return cuiInstance;
 	}
@@ -74,7 +70,7 @@ public class Camera<T extends ChestUI<T>> {
 		return cuiInstance.getName() + "#" + id;
 	}
 
-	public ChestUI.CameraHandler<T> getHandler() {
+	public CameraHandler<T> getHandler() {
 		return handler;
 	}
 
@@ -308,7 +304,6 @@ public class Camera<T extends ChestUI<T>> {
 		state = State.DESTROYING;
 		handler.onDestroy();
 		new ArrayList<>(viewers).forEach(player -> closeCascade(player, true));
-		cuiInstance.notifyReleaseCamera(this);
 		manager.unregisterCamera(this);
 		state = State.DESTROYED;
 	}
@@ -336,37 +331,52 @@ public class Camera<T extends ChestUI<T>> {
 		}
 	}
 
-	public void update() {
+	public void tickStart() {
+		ticksLived++;
+		handler.onTickStart();
+
+		for (LayerWrapper wrapper : layers.values()) {
+			if (wrapper.active) {
+				wrapper.layer.tickStart();
+			}
+		}
+	}
+
+	public void tick() {
 		if (!keepAlive && keepAliveCount.isEmpty()) {
 			destroy();
 			return;
 		}
 
-		if (viewers.isEmpty()) {
-			// Layer的dirty只在某一tick生效，所以在没有玩家的情况下，需要手动置脏
-			dirty = true;
-			return;
-		}
-
-		sync(false);
-
-		// openInventory可能会触发事件，从而导致ConcurrentModificationException
-		new ArrayList<>(viewers).forEach(player -> {
-			if (player.getOpenInventory().getTopInventory() != inventory) {
-				player.openInventory(inventory);
-			}
-		});
-	}
-
-	public void tickStart() {
-		ticksLived++;
-	}
-
-	public void tick() {
 		handler.onTick();
+
 		for (LayerWrapper wrapper : layers.values()) {
 			if (wrapper.active) {
 				wrapper.layer.tick();
+			}
+		}
+	}
+
+	public void tickEnd() {
+		handler.onTickEnd();
+
+		if (viewers.isEmpty()) {
+			// Layer的dirty只在某一tick生效，所以在没有玩家的情况下，需要手动置脏
+			dirty = true;
+		} else {
+			sync(false);
+
+			// openInventory可能会触发事件，从而导致ConcurrentModificationException
+			new ArrayList<>(viewers).forEach(player -> {
+				if (player.getOpenInventory().getTopInventory() != inventory) {
+					player.openInventory(inventory);
+				}
+			});
+		}
+
+		for (LayerWrapper wrapper : layers.values()) {
+			if (wrapper.active) {
+				wrapper.layer.tickEnd();
 			}
 		}
 	}
@@ -585,16 +595,16 @@ public class Camera<T extends ChestUI<T>> {
 		return clone;
 	}
 
-	public enum State {
-		UNINITIALIZED, READY, DESTROYING, DESTROYED
-	}
-
 	public enum HorizontalAlign {
 		LEFT, MIDDLE, RIGHT
 	}
 
 	public enum VerticalAlign {
 		TOP, MIDDLE, BOTTOM
+	}
+
+	public enum State {
+		UNINITIALIZED, READY, DESTROYING, DESTROYED
 	}
 
 	private static class LayerWrapper {
@@ -613,8 +623,22 @@ public class Camera<T extends ChestUI<T>> {
 		}
 	}
 
+	private class DummyHolder implements InventoryHolder {
+		@Override
+		public @NotNull Inventory getInventory() {
+			return inventory;
+		}
+	}
+
+	public Editor edit() {
+		return new Editor();
+	}
+
 	public class Editor {
-		public Camera<T> finish() {
+		private Editor() {
+		}
+
+		public Camera<T> done() {
 			return Camera.this;
 		}
 
@@ -715,13 +739,6 @@ public class Camera<T extends ChestUI<T>> {
 			Camera.this.recreate = recreate;
 			dirty = true;
 			return this;
-		}
-	}
-
-	private class DummyHolder implements InventoryHolder {
-		@Override
-		public @NotNull Inventory getInventory() {
-			return inventory;
 		}
 	}
 }

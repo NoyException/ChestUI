@@ -8,9 +8,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 在{@link ChestUI.InstanceHandler}的实现类上标记，指定该UI的名称和所属插件。你必须在实现类上标记这个注解。<br>
- * Mark on the implementation class of {@link ChestUI.InstanceHandler}, specify
- * the name and plugin of this UI. You MUST mark this annotation on the
+ * 在{@link CUIInstanceHandler}的实现类上标记，指定该UI的名称和所属插件。你必须在实现类上标记这个注解。<br>
+ * Mark on the implementation class of {@link CUIInstanceHandler}, specify the
+ * name and plugin of this UI. You MUST mark this annotation on the
  * implementation class.
  */
 @Target(ElementType.TYPE)

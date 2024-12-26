@@ -50,7 +50,7 @@ public class CUIInstanceTest {
 	@Test
 	@Order(2)
 	public void testOpen() {
-		camera1 = cui.createCamera().edit().keepAlive(true).finish();
+		camera1 = cui.createCamera().edit().keepAlive(true).done();
 		Assertions.assertEquals(1, cui.getCameraCount(), "应当只有一个默认相机");
 		Assertions.assertTrue(camera1.open(a, false), "应当能成功使用新建摄像头1");
 		camera2 = cui.createCamera();
@@ -102,30 +102,30 @@ public class CUIInstanceTest {
 		}
 
 		@Override
-		public @NotNull ChestUI.InstanceHandler<TestCUI> createInstanceHandler() {
+		public @NotNull CUIInstanceHandler<TestCUI> createCUIInstanceHandler() {
 			return new InstanceHandler();
 		}
 
-		private static class InstanceHandler implements ChestUI.InstanceHandler<TestCUI> {
+		private static class InstanceHandler implements CUIInstanceHandler<TestCUI> {
 			@Override
 			public void onInitialize(CUIInstance<TestCUI> cui) {
 				cui.edit().keepAlive(true)
 						.layer(0,
 								new Layer(1, 9).edit()
-										.editAll((slotHandler, row, column) -> slotHandler.button(builder -> builder
+										.all((slotHandler, row, column) -> slotHandler.button(builder -> builder
 												.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
-										.editSlot(0, 0,
+										.slot(0, 0,
 												slotHandler -> slotHandler.button(
 														builder -> builder.material(Material.RED_STAINED_GLASS_PANE)
 																.displayName("Previous").clickHandler(event -> {
 																}).build()))
-										.editSlot(0, 8,
+										.slot(0, 8,
 												slotHandler -> slotHandler.button(
 														builder -> builder.material(Material.GREEN_STAINED_GLASS_PANE)
 																.displayName("Next").clickHandler(event -> {
 																}).build()))
-										.finish())
-						.finish();
+										.done())
+						.done();
 			}
 
 			@Override

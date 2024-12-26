@@ -57,7 +57,6 @@ public class Layer {
 	}
 
 	public void tickStart() {
-		dirty = false;
 	}
 
 	public void tick() {
@@ -69,6 +68,10 @@ public class Layer {
 				}
 			}
 		}
+	}
+
+	public void tickEnd() {
+		dirty = false;
 	}
 
 	// 检查坐标是否超出范围
@@ -138,10 +141,6 @@ public class Layer {
 		}
 	}
 
-	public Editor edit() {
-		return new Editor();
-	}
-
 	@Deprecated
 	public Layer deepClone() {
 		var layer = new Layer(rowSize, columnSize);
@@ -159,9 +158,13 @@ public class Layer {
 		return layer;
 	}
 
+	public Editor edit() {
+		return new Editor();
+	}
+
 	public class Editor {
 
-		public Layer finish() {
+		public Layer done() {
 			return Layer.this;
 		}
 
@@ -202,7 +205,7 @@ public class Layer {
 			return this;
 		}
 
-		public Editor editSlot(int row, int column, Consumer<SlotHandler> onEdit) {
+		public Editor slot(int row, int column, Consumer<SlotHandler> onEdit) {
 			var handler = getSlotHandler(row, column);
 			if (handler == null) {
 				return this;
@@ -211,28 +214,28 @@ public class Layer {
 			return this;
 		}
 
-		public Editor editRow(int row, BiConsumer<SlotHandler, Integer> onEdit) {
+		public Editor row(int row, BiConsumer<SlotHandler, Integer> onEdit) {
 			for (int column = 0; column < columnSize; column++) {
 				int finalColumn = column;
-				editSlot(row, column, slotHandler -> onEdit.accept(slotHandler, finalColumn));
+				slot(row, column, slotHandler -> onEdit.accept(slotHandler, finalColumn));
 			}
 			return this;
 		}
 
-		public Editor editColumn(int column, BiConsumer<SlotHandler, Integer> onEdit) {
+		public Editor column(int column, BiConsumer<SlotHandler, Integer> onEdit) {
 			for (int row = 0; row < rowSize; row++) {
 				int finalRow = row;
-				editSlot(row, column, slotHandler -> onEdit.accept(slotHandler, finalRow));
+				slot(row, column, slotHandler -> onEdit.accept(slotHandler, finalRow));
 			}
 			return this;
 		}
 
-		public Editor editAll(TriConsumer<SlotHandler, Integer, Integer> onEdit) {
+		public Editor all(TriConsumer<SlotHandler, Integer, Integer> onEdit) {
 			for (int row = 0; row < rowSize; row++) {
 				for (int column = 0; column < columnSize; column++) {
 					int finalRow = row;
 					int finalColumn = column;
-					editSlot(row, column, slotHandler -> onEdit.accept(slotHandler, finalRow, finalColumn));
+					slot(row, column, slotHandler -> onEdit.accept(slotHandler, finalRow, finalColumn));
 				}
 			}
 			return this;
@@ -251,14 +254,14 @@ public class Layer {
 					if (index >= maxIndex) {
 						return this;
 					}
-					editSlot(row, column, slotHandler -> onEdit.accept(slotHandler, index));
+					slot(row, column, slotHandler -> onEdit.accept(slotHandler, index));
 				}
 			}
 			return this;
 		}
 
 		public Editor clear() {
-			return editAll((slotHandler, row, column) -> slotHandler.empty());
+			return all((slotHandler, row, column) -> slotHandler.empty());
 		}
 	}
 }

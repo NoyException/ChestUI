@@ -80,7 +80,10 @@ public class CUIManager implements Listener {
 
 	private void tick() {
 		cuiTypes.values().forEach(CUIType::tick);
-		plugin.getCameraManager().forEachCamera(Camera::update);
+	}
+
+	private void tickEnd() {
+		cuiTypes.values().forEach(CUIType::tickEnd);
 	}
 
 	public void setup() {
@@ -270,6 +273,7 @@ public class CUIManager implements Listener {
 	@EventHandler(priority = EventPriority.MONITOR)
 	public void onTickEnd(ServerTickEndEvent event) {
 		tick();
+		tickEnd();
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)

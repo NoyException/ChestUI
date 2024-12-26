@@ -27,17 +27,17 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 	}
 
 	@Override
-	public @NotNull ChestUI.InstanceHandler<CUIMonitor> createInstanceHandler() {
+	public @NotNull CUIInstanceHandler<CUIMonitor> createCUIInstanceHandler() {
 		return new InstanceHandler();
 	}
 
-	private static class InstanceHandler implements ChestUI.InstanceHandler<CUIMonitor> {
+	private static class InstanceHandler implements CUIInstanceHandler<CUIMonitor> {
 		private CUIInstance<CUIMonitor> cui;
 		private int size;
 
 		@Override
 		public void onInitialize(CUIInstance<CUIMonitor> cui) {
-			this.cui = cui.edit().keepAlive(true).finish();
+			this.cui = cui.edit().keepAlive(true).done();
 			refreshCUIList();
 			Bukkit.getPluginManager().registerEvents(new Listener() {
 				@EventHandler
@@ -82,7 +82,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 									var camera = cui.createCamera().edit()
 											.title(Component.text("Managing ").append(
 													Component.text(cuiType.getKey().toString(), NamedTextColor.AQUA)))
-											.finish();
+											.done();
 									var handler = (CameraHandler) camera.getHandler();
 									handler.cuiType = cuiType;
 									handler.refresh();
@@ -92,7 +92,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 								}
 							}).build());
 				}
-			}).finish()).finish();
+			}).done()).done();
 		}
 
 		@Override
@@ -104,11 +104,11 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 		}
 
 		@Override
-		public @NotNull ChestUI.CameraHandler<CUIMonitor> createCameraHandler() {
+		public @NotNull fun.polyvoxel.cui.ui.CameraHandler<CUIMonitor> createCameraHandler() {
 			return new CameraHandler();
 		}
 
-		private class CameraHandler implements ChestUI.CameraHandler<CUIMonitor> {
+		private class CameraHandler implements fun.polyvoxel.cui.ui.CameraHandler<CUIMonitor> {
 			private Camera<CUIMonitor> camera;
 			private CUIType<?> cuiType;
 			private CUIInstance<?> cuiInstance;
@@ -119,9 +119,9 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 				this.camera = camera.edit().rowSize(6)
 						.layer(0,
 								new Layer(1, 9).edit().relative(true)
-										.editAll((slotHandler, row, column) -> slotHandler.button(builder -> builder
+										.all((slotHandler, row, column) -> slotHandler.button(builder -> builder
 												.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build()))
-										.editSlot(0, 0,
+										.slot(0, 0,
 												slotHandler -> slotHandler.button(
 														builder -> builder.material(Material.RED_STAINED_GLASS_PANE)
 																.displayName("Previous").clickHandler(event -> {
@@ -130,7 +130,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 																		return;
 																	camera.edit().move(-5, 0);
 																}).build()))
-										.editSlot(0, 8,
+										.slot(0, 8,
 												slotHandler -> slotHandler.button(
 														builder -> builder.material(Material.GREEN_STAINED_GLASS_PANE)
 																.displayName("Next").clickHandler(event -> {
@@ -139,8 +139,8 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 																		return;
 																	camera.edit().move(5, 0);
 																}).build()))
-										.finish())
-						.finish();
+										.done())
+						.done();
 			}
 
 			private void manageCUI(CUIType<?> cuiType) {
@@ -186,7 +186,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 									var camera = cui.createCamera().edit()
 											.title(Component.text("Managing ")
 													.append(Component.text(instance.getName(), NamedTextColor.AQUA)))
-											.finish();
+											.done();
 									var handler = (CameraHandler) camera.getHandler();
 									handler.cuiInstance = instance;
 									handler.refresh();
@@ -195,7 +195,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 									instance.destroy();
 								}
 							}).build());
-				}).finish());
+				}).done());
 			}
 
 			private void manageCUIInstance(CUIInstance<?> instance) {
@@ -240,7 +240,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 									camera.destroy();
 								}
 							}).build());
-				}).finish());
+				}).done());
 			}
 
 			private void refresh() {

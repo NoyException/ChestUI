@@ -25,7 +25,7 @@ public class CUIInstance<T extends ChestUI<T>> {
 	private long ticksLived;
 
 	private final CUIType<T> type;
-	private final ChestUI.InstanceHandler<T> handler;
+	private final CUIInstanceHandler<T> handler;
 	private final int id;
 
 	CUIInstance(CUIPlugin cuiPlugin, CUIType<T> type, int id) {
@@ -33,7 +33,7 @@ public class CUIInstance<T extends ChestUI<T>> {
 		this.type = type;
 		this.id = id;
 		this.defaultTitle = type.getDefaultTitle();
-		this.handler = type.getChestUI().createInstanceHandler();
+		this.handler = type.getChestUI().createCUIInstanceHandler();
 		handler.onInitialize(this);
 		state = State.READY;
 	}
@@ -46,7 +46,7 @@ public class CUIInstance<T extends ChestUI<T>> {
 		return type;
 	}
 
-	public ChestUI.InstanceHandler<T> getHandler() {
+	public CUIInstanceHandler<T> getHandler() {
 		return handler;
 	}
 
@@ -148,19 +148,28 @@ public class CUIInstance<T extends ChestUI<T>> {
 		}
 		state = State.DESTROYING;
 		handler.onDestroy();
-		new ArrayList<>(cameras.values()).forEach(Camera::destroy);
+		cameras.values().forEach(Camera::destroy);
 		state = State.DESTROYED;
 	}
 
 	public void tickStart() {
 		dirty = false;
 		ticksLived++;
+
+		handler.onTickStart();
+		for (var iterator = cameras.values().iterator(); iterator.hasNext();) {
+			var camera = iterator.next();
+			switch (camera.getState()) {
+				case READY -> camera.tickStart();
+				case DESTROYED -> iterator.remove();
+			}
+		}
+
 		for (LayerWrapper wrapper : layers.values()) {
 			if (wrapper.active) {
 				wrapper.layer.tickStart();
 			}
 		}
-		cameras.values().forEach(Camera::tickStart);
 	}
 
 	public void tick() {
@@ -170,20 +179,49 @@ public class CUIInstance<T extends ChestUI<T>> {
 		}
 
 		handler.onTick();
+		for (var iterator = cameras.values().iterator(); iterator.hasNext();) {
+			var camera = iterator.next();
+			switch (camera.getState()) {
+				case READY -> camera.tick();
+				case DESTROYED -> iterator.remove();
+			}
+		}
+
 		for (LayerWrapper wrapper : layers.values()) {
 			if (wrapper.active) {
 				wrapper.layer.tick();
 			}
 		}
-		cameras.values().forEach(Camera::tick);
 	}
 
-	void notifyReleaseCamera(Camera<T> camera) {
-		cameras.remove(camera.getId());
+	public void tickEnd() {
+		handler.onTickEnd();
+		for (var iterator = cameras.values().iterator(); iterator.hasNext();) {
+			var camera = iterator.next();
+			switch (camera.getState()) {
+				case READY -> camera.tickEnd();
+				case DESTROYED -> iterator.remove();
+			}
+		}
+
+		for (LayerWrapper wrapper : layers.values()) {
+			if (wrapper.active) {
+				wrapper.layer.tickEnd();
+			}
+		}
 	}
 
 	public enum State {
 		UNINITIALIZED, READY, DESTROYING, DESTROYED
+	}
+
+	private static class LayerWrapper {
+		private final Layer layer;
+		private boolean active = true;
+
+		LayerWrapper(Layer layer) {
+			this.layer = layer;
+		}
 	}
 
 	public Editor edit() {
@@ -194,7 +232,7 @@ public class CUIInstance<T extends ChestUI<T>> {
 		private Editor() {
 		}
 
-		public CUIInstance<T> finish() {
+		public CUIInstance<T> done() {
 			return CUIInstance.this;
 		}
 
@@ -256,15 +294,6 @@ public class CUIInstance<T extends ChestUI<T>> {
 			if (depth < 0)
 				return this;
 			return layerActive(depth, active);
-		}
-	}
-
-	private static class LayerWrapper {
-		private final Layer layer;
-		private boolean active = true;
-
-		LayerWrapper(Layer layer) {
-			this.layer = layer;
 		}
 	}
 
