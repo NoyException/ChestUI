@@ -1,25 +1,25 @@
 package fun.polyvoxel.cui.util;
 
-import java.util.HashMap;
+import org.jetbrains.annotations.NotNull;
 
-public class Context {
-	private HashMap<String, Object> data;
-
-	public Context() {
-	}
-
-	public <T> void set(String key, T value) {
-		if (data == null) {
-			data = new HashMap<>();
+public interface Context {
+	Context BACKGROUND = new Context() {
+		@Override
+		public <T> Context withValue(@NotNull String key, T value) {
+			return new ValueContext(this, key, value);
 		}
-		data.put(key, value);
-	}
 
-	@SuppressWarnings("unchecked")
-	public <T> T get(String key) {
-		if (data == null) {
+		@Override
+		public <T> T get(@NotNull String key) {
 			return null;
 		}
-		return (T) data.get(key);
-	}
+
+		@Override
+		public boolean has(@NotNull String key) {
+			return false;
+		}
+	};
+	<T> Context withValue(@NotNull String key, T value);
+	<T> T get(@NotNull String key);
+	boolean has(@NotNull String key);
 }

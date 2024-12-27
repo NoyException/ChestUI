@@ -1,4 +1,4 @@
-package fun.polyvoxel.cui.prebuilt.cui;
+package fun.polyvoxel.cui.prebuilt;
 
 import fun.polyvoxel.cui.layer.Layer;
 

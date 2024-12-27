@@ -1,8 +1,8 @@
-package fun.polyvoxel.cui.prebuilt.cmd;
+package fun.polyvoxel.cui.cmd;
 
 import fun.polyvoxel.cui.CUIPlugin;
 
-import fun.polyvoxel.cui.prebuilt.cui.CUIMonitor;
+import fun.polyvoxel.cui.prebuilt.CUIMonitor;
 import fun.polyvoxel.cui.ui.CUIManager;
 import fun.polyvoxel.cui.ui.CUIType;
 import fun.polyvoxel.cui.ui.Camera;

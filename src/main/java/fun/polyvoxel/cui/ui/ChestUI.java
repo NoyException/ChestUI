@@ -37,4 +37,12 @@ public interface ChestUI<T extends ChestUI<T>> {
 	@NotNull
 	CUIInstanceHandler<T> createCUIInstanceHandler(Context context);
 
+	default void onTickStart() {
+	}
+
+	default void onTick() {
+	}
+
+	default void onTickEnd() {
+	}
 }

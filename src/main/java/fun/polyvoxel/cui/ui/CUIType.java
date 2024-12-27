@@ -52,6 +52,7 @@ public final class CUIType<T extends ChestUI<T>> {
 	}
 
 	public void tickStart() {
+		chestUI.onTickStart();
 		// 用for iter来在过程中移除
 		for (var iterator = instances.entrySet().iterator(); iterator.hasNext();) {
 			var entry = iterator.next();
@@ -64,6 +65,7 @@ public final class CUIType<T extends ChestUI<T>> {
 	}
 
 	public void tick() {
+		chestUI.onTick();
 		// 用for iter来在过程中移除
 		for (var iterator = instances.entrySet().iterator(); iterator.hasNext();) {
 			var entry = iterator.next();
@@ -76,6 +78,7 @@ public final class CUIType<T extends ChestUI<T>> {
 	}
 
 	public void tickEnd() {
+		chestUI.onTickEnd();
 		// 用for iter来在过程中移除
 		for (var iterator = instances.entrySet().iterator(); iterator.hasNext();) {
 			var entry = iterator.next();
@@ -139,7 +142,7 @@ public final class CUIType<T extends ChestUI<T>> {
 	}
 
 	public @NotNull CUIInstance<T> createInstance() {
-		return createInstance(new Context());
+		return createInstance(Context.BACKGROUND);
 	}
 
 	public @NotNull CUIInstance<T> createInstance(Context context) {
@@ -205,7 +208,7 @@ public final class CUIType<T extends ChestUI<T>> {
 	}
 
 	public enum TriggerResultType {
-		REJECTED, USE_DEFAULT_CAMERA, CREATE_NEW_CAMERA, CREATE_NEW_CUI_INSTANCE
+		REJECTED, CUSTOM, USE_DEFAULT_CAMERA, CREATE_NEW_CAMERA, CREATE_NEW_CUI_INSTANCE
 	}
 
 	public Editor edit() {

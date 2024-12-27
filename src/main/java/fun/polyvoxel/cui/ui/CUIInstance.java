@@ -68,7 +68,7 @@ public final class CUIInstance<T extends ChestUI<T>> {
 	}
 
 	public Camera<T> createCamera() {
-		return createCamera(new Context());
+		return createCamera(Context.BACKGROUND);
 	}
 
 	public Camera<T> createCamera(Context context) {

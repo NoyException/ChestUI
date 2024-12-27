@@ -8,7 +8,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedList;
 
-public class CraftingContext extends Context {
+public class CraftingContext implements Context {
+	private Context context = Context.BACKGROUND;
 	private final @NotNull Recipe recipe;
 	private final @Nullable Camera<?> camera;
 	private final @Nullable Player player;
@@ -63,5 +64,21 @@ public class CraftingContext extends Context {
 		for (var runnable : onRecipeFailed) {
 			runnable.run();
 		}
+	}
+
+	@Override
+	public <T> CraftingContext withValue(@NotNull String key, T value) {
+		context = context.withValue(key, value);
+		return this;
+	}
+
+	@Override
+	public <T> T get(@NotNull String key) {
+		return context.get(key);
+	}
+
+	@Override
+	public boolean has(@NotNull String key) {
+		return context.has(key);
 	}
 }

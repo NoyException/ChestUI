@@ -1,6 +1,6 @@
 package fun.polyvoxel.cui;
 
-import fun.polyvoxel.cui.prebuilt.cmd.CmdCUI;
+import fun.polyvoxel.cui.cmd.CmdCUI;
 import fun.polyvoxel.cui.ui.CUIManager;
 
 import fun.polyvoxel.cui.ui.CameraManager;
