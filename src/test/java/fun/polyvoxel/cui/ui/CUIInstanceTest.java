@@ -3,6 +3,7 @@ package fun.polyvoxel.cui.ui;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.layer.Layer;
 import fun.polyvoxel.cui.slot.Button;
+import fun.polyvoxel.cui.util.Context;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
@@ -103,7 +104,7 @@ public class CUIInstanceTest {
 		}
 
 		@Override
-		public @NotNull CUIInstanceHandler<TestCUI> createCUIInstanceHandler() {
+		public @NotNull CUIInstanceHandler<TestCUI> createCUIInstanceHandler(Context context) {
 			return new InstanceHandler();
 		}
 
@@ -126,7 +127,7 @@ public class CUIInstanceTest {
 			}
 
 			@Override
-			public @NotNull CameraHandler<TestCUI> createCameraHandler() {
+			public @NotNull CameraHandler<TestCUI> createCameraHandler(Context context) {
 				return camera -> {
 				};
 			}

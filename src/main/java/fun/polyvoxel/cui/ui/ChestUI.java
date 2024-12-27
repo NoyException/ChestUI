@@ -1,5 +1,6 @@
 package fun.polyvoxel.cui.ui;
 
+import fun.polyvoxel.cui.util.Context;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -34,6 +35,6 @@ public interface ChestUI<T extends ChestUI<T>> {
 	 *         CUI instance handler instance.
 	 */
 	@NotNull
-	CUIInstanceHandler<T> createCUIInstanceHandler();
+	CUIInstanceHandler<T> createCUIInstanceHandler(Context context);
 
 }

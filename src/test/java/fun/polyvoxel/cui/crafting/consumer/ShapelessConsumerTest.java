@@ -43,8 +43,8 @@ public class ShapelessConsumerTest {
 				.add(new ExactIngredient(Material.GOLD_NUGGET)).add(new ExactIngredient(Material.GOLD_INGOT, 2))
 				.build();
 		// 位置刚好也在左上角
-		var input1 = new ItemStack[][]{{new ItemStack(Material.GOLD_NUGGET, 2), new ItemStack(Material.GOLD_NUGGET),
-				new ItemStack(Material.GOLD_INGOT, 2)}};
+		var input1 = new ItemStack[][]{{ItemStack.of(Material.GOLD_NUGGET, 2), ItemStack.of(Material.GOLD_NUGGET),
+				ItemStack.of(Material.GOLD_INGOT, 2)}};
 		var remaining = consumer.consume(createCtx(), input1);
 		Assertions.assertNotNull(remaining, "原料匹配，应当能消耗成功");
 		for (ItemStack[] itemStacks : remaining) {
@@ -53,8 +53,8 @@ public class ShapelessConsumerTest {
 			}
 		}
 		// 位置任意
-		var input2 = new ItemStack[][]{{null, new ItemStack(Material.GOLD_NUGGET), null},
-				{null, new ItemStack(Material.GOLD_INGOT, 2), new ItemStack(Material.GOLD_NUGGET, 2)},
+		var input2 = new ItemStack[][]{{null, ItemStack.of(Material.GOLD_NUGGET), null},
+				{null, ItemStack.of(Material.GOLD_INGOT, 2), ItemStack.of(Material.GOLD_NUGGET, 2)},
 				{null, null, null}};
 		remaining = consumer.consume(createCtx(), input2);
 		Assertions.assertNotNull(remaining, "原料匹配，应当能消耗成功");
@@ -73,12 +73,12 @@ public class ShapelessConsumerTest {
 		var consumer = ShapelessConsumer.builder().strict(true).add(new ExactIngredient(Material.GOLD_NUGGET, 2))
 				.add(new ExactIngredient(Material.GOLD_NUGGET)).add(new ExactIngredient(Material.GOLD_INGOT, 2))
 				.build();
-		var input = new ItemStack[][]{{new ItemStack(Material.GOLD_NUGGET), new ItemStack(Material.GOLD_NUGGET, 3),
-				new ItemStack(Material.GOLD_INGOT, 2)}};
+		var input = new ItemStack[][]{{ItemStack.of(Material.GOLD_NUGGET), ItemStack.of(Material.GOLD_NUGGET, 3),
+				ItemStack.of(Material.GOLD_INGOT, 2)}};
 		var remaining = consumer.consume(createCtx(), input);
 		Assertions.assertNotNull(remaining, "原料匹配，应当消耗成功");
 		ItemStackAssertions.assertEmpty(remaining[0][0], "消耗后应当没有剩余");
-		ItemStackAssertions.assertSame(new ItemStack(Material.GOLD_NUGGET, 1), remaining[0][1], "消耗后应当剩余1个金粒");
+		ItemStackAssertions.assertSame(ItemStack.of(Material.GOLD_NUGGET, 1), remaining[0][1], "消耗后应当剩余1个金粒");
 		ItemStackAssertions.assertEmpty(remaining[0][2], "消耗后应当没有剩余");
 	}
 
@@ -91,8 +91,8 @@ public class ShapelessConsumerTest {
 		var consumer1 = ShapelessConsumer.builder().strict(true).add(new ExactIngredient(Material.GOLD_NUGGET, 2))
 				.add(new ExactIngredient(Material.GOLD_NUGGET)).add(new ExactIngredient(Material.GOLD_INGOT, 2))
 				.build();
-		var input = new ItemStack[][]{{new ItemStack(Material.GOLD_NUGGET), new ItemStack(Material.GOLD_NUGGET, 2)},
-				{new ItemStack(Material.GOLD_INGOT, 2), new ItemStack(Material.GOLD_NUGGET)}};
+		var input = new ItemStack[][]{{ItemStack.of(Material.GOLD_NUGGET), ItemStack.of(Material.GOLD_NUGGET, 2)},
+				{ItemStack.of(Material.GOLD_INGOT, 2), ItemStack.of(Material.GOLD_NUGGET)}};
 		var remaining = consumer1.consume(createCtx(), input);
 		Assertions.assertNull(remaining, "原料多余，应当消耗失败");
 		// 不严格时，允许有额外的原料
@@ -102,7 +102,7 @@ public class ShapelessConsumerTest {
 		remaining = consumer2.consume(createCtx(), input);
 		Assertions.assertNotNull(remaining, "原料多余，但不严格，应当消耗成功");
 		ItemStackAssertions.assertEmpty(remaining[0][0], "消耗后应当没有剩余");
-		ItemStackAssertions.assertSame(new ItemStack(Material.GOLD_NUGGET, 1), remaining[1][1], "多余的原料不会被消耗");
+		ItemStackAssertions.assertSame(ItemStack.of(Material.GOLD_NUGGET, 1), remaining[1][1], "多余的原料不会被消耗");
 	}
 
 	/**
@@ -113,18 +113,18 @@ public class ShapelessConsumerTest {
 		var consumer = ShapelessConsumer.builder().strict(true).add(new MetaMatchedIngredient(ItemMeta::hasDisplayName))
 				.add(new MetaMatchedIngredient(itemMeta -> itemMeta.hasEnchant(Enchantment.UNBREAKING), 2))
 				.add(new MetaMatchedIngredient(ItemMeta::isUnbreakable, 3)).build();
-		var itemStack1 = new ItemStack(Material.WOODEN_PICKAXE, 4);
+		var itemStack1 = ItemStack.of(Material.WOODEN_PICKAXE, 4);
 		itemStack1.editMeta(itemMeta -> {
 			itemMeta.displayName(Component.text("1"));
 			itemMeta.setUnbreakable(true);
 		});
-		var itemStack2 = new ItemStack(Material.STONE_PICKAXE, 4);
+		var itemStack2 = ItemStack.of(Material.STONE_PICKAXE, 4);
 		itemStack2.editMeta(itemMeta -> {
 			itemMeta.displayName(Component.text("2"));
 			itemMeta.addEnchant(Enchantment.UNBREAKING, 1, true);
 			itemMeta.setUnbreakable(true);
 		});
-		var itemStack3 = new ItemStack(Material.IRON_PICKAXE, 4);
+		var itemStack3 = ItemStack.of(Material.IRON_PICKAXE, 4);
 		itemStack3.editMeta(itemMeta -> {
 			itemMeta.displayName(Component.text("3"));
 		});
@@ -144,7 +144,7 @@ public class ShapelessConsumerTest {
 		var consumer = ShapelessConsumer.builder().strict(false).add(new ExactIngredient(Material.GOLD_NUGGET, 2))
 				.add(new ExactIngredient(Material.GOLD_NUGGET)).add(new ExactIngredient(Material.GOLD_INGOT, 2))
 				.build();
-		var input = new ItemStack[][]{{new ItemStack(Material.GOLD_NUGGET, 3), new ItemStack(Material.GOLD_INGOT)}};
+		var input = new ItemStack[][]{{ItemStack.of(Material.GOLD_NUGGET, 3), ItemStack.of(Material.GOLD_INGOT)}};
 		var remaining = consumer.consume(createCtx(), input);
 		Assertions.assertNull(remaining, "原料缺少，应当消耗失败");
 	}
@@ -157,8 +157,8 @@ public class ShapelessConsumerTest {
 		var consumer = ShapelessConsumer.builder().strict(true).add(new ExactIngredient(Material.GOLD_NUGGET, 2))
 				.add(new ExactIngredient(Material.GOLD_NUGGET)).add(new ExactIngredient(Material.GOLD_INGOT, 2))
 				.build();
-		var input = new ItemStack[][]{{new ItemStack(Material.GOLD_NUGGET), new ItemStack(Material.GOLD_NUGGET),
-				new ItemStack(Material.GOLD_INGOT, 2)}};
+		var input = new ItemStack[][]{{ItemStack.of(Material.GOLD_NUGGET), ItemStack.of(Material.GOLD_NUGGET),
+				ItemStack.of(Material.GOLD_INGOT, 2)}};
 		var remaining = consumer.consume(createCtx(), input);
 		Assertions.assertNull(remaining, "原料不符，应当消耗失败");
 	}

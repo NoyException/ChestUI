@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class CameraManager {
+public final class CameraManager {
 	private final CUIPlugin plugin;
 	private final HashBiMap<String, Camera<?>> cameras = HashBiMap.create();
 	private final Map<Player, Stack<Camera<?>>> byPlayer = new HashMap<>();

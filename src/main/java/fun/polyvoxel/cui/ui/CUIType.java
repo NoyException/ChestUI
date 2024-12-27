@@ -3,6 +3,7 @@ package fun.polyvoxel.cui.ui;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIDisplayEvent;
 import fun.polyvoxel.cui.serialize.SerializableChestUI;
+import fun.polyvoxel.cui.util.Context;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -138,11 +139,16 @@ public final class CUIType<T extends ChestUI<T>> {
 	}
 
 	public @NotNull CUIInstance<T> createInstance() {
+		return createInstance(new Context());
+	}
+
+	public @NotNull CUIInstance<T> createInstance(Context context) {
 		if (singleton && !instances.isEmpty()) {
 			throw new IllegalStateException("Singleton CUI `" + key + "` already exists");
 		}
 		var id = nextId++;
-		var cui = new CUIInstance<>(cuiPlugin, this, id);
+		var handler = chestUI.createCUIInstanceHandler(context);
+		var cui = new CUIInstance<>(cuiPlugin, this, handler, id);
 		instances.put(id, cui);
 		return cui;
 	}

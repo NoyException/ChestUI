@@ -32,7 +32,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CUIManager implements Listener {
+public final class CUIManager implements Listener {
 	private final CUIPlugin plugin;
 
 	public CUIManager(CUIPlugin plugin) {

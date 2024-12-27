@@ -17,29 +17,29 @@ public class ExactIngredient implements Ingredient {
 
 	public ExactIngredient(ItemStack exact) {
 		if (exact == null)
-			exact = new ItemStack(Material.AIR);
+			exact = ItemStack.of(Material.AIR);
 		this.exact = exact.clone();
 	}
 
 	public ExactIngredient(ItemStack exact, int amount) {
 		if (exact == null)
-			exact = new ItemStack(Material.AIR);
+			exact = ItemStack.of(Material.AIR);
 		this.exact = exact.clone();
 		this.exact.setAmount(amount);
 	}
 
 	public ExactIngredient(Material material) {
-		this(new ItemStack(material));
+		this(ItemStack.of(material));
 	}
 
 	public ExactIngredient(Material material, int amount) {
-		this(new ItemStack(material), amount);
+		this(ItemStack.of(material), amount);
 	}
 
 	@Override
 	public @Nullable ItemStack consume(@NotNull CraftingContext ctx, @Nullable ItemStack itemStack) {
 		if (itemStack == null) {
-			itemStack = new ItemStack(Material.AIR);
+			itemStack = ItemStack.of(Material.AIR);
 		}
 		if (!ItemStacks.isSimilar(itemStack, exact)) {
 			return null;

@@ -1,6 +1,7 @@
 package fun.polyvoxel.cui.prebuilt.cui;
 
 import fun.polyvoxel.cui.ui.*;
+import fun.polyvoxel.cui.util.Context;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
@@ -13,7 +14,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 	}
 
 	@Override
-	public @NotNull CUIInstanceHandler<CUICreator> createCUIInstanceHandler() {
+	public @NotNull CUIInstanceHandler<CUICreator> createCUIInstanceHandler(Context context) {
 		return new InstanceHandler();
 	}
 
@@ -25,7 +26,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 		}
 
 		@Override
-		public @NotNull CameraHandler<CUICreator> createCameraHandler() {
+		public @NotNull CameraHandler<CUICreator> createCameraHandler(Context context) {
 			return camera -> {
 			};
 		}

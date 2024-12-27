@@ -29,7 +29,7 @@ public class MetaMatchedIngredient implements Ingredient {
 	@Override
 	public @Nullable ItemStack consume(@NotNull CraftingContext ctx, @Nullable ItemStack itemStack) {
 		if (itemStack == null) {
-			itemStack = new ItemStack(Material.AIR);
+			itemStack = ItemStack.of(Material.AIR);
 		}
 		if (!predicate.test(itemStack.getItemMeta())) {
 			return null;

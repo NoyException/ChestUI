@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-public class Camera<T extends ChestUI<T>> {
+public final class Camera<T extends ChestUI<T>> {
 	private final CameraManager manager;
 	private final CUIInstance<T> cuiInstance;
 	private final CameraHandler<T> handler;
@@ -47,13 +47,13 @@ public class Camera<T extends ChestUI<T>> {
 	private boolean dirty = true;
 	private State state = State.UNINITIALIZED;
 
-	Camera(CUIInstance<T> cuiInstance, int id) {
+	Camera(CUIInstance<T> cuiInstance, CameraHandler<T> handler, int id) {
 		this.cuiInstance = cuiInstance;
-		this.handler = cuiInstance.getHandler().createCameraHandler();
 		this.id = id;
 		this.title = cuiInstance.getDefaultTitle();
 		this.manager = cuiInstance.getCUIPlugin().getCameraManager();
 		this.manager.registerCamera(this);
+		this.handler = handler;
 		this.handler.onInitialize(this);
 		state = State.READY;
 	}
@@ -582,17 +582,6 @@ public class Camera<T extends ChestUI<T>> {
 			}
 		}
 		return itemStack;
-	}
-
-	@Deprecated
-	public Camera<T> deepClone() {
-		var clone = new Camera<>(cuiInstance, cuiInstance.getNextCameraId());
-		clone.edit().setPosition(position).rowSize(rowSize).columnSize(columnSize).horizontalAlign(horizontalAlign)
-				.verticalAlign(verticalAlign).title(title);
-		layers.forEach((depth, layerWrapper) -> {
-			clone.layers.put(depth, layerWrapper.deepClone());
-		});
-		return clone;
 	}
 
 	public enum HorizontalAlign {

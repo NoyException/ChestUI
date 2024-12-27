@@ -5,6 +5,7 @@ import fun.polyvoxel.cui.layer.Layer;
 
 import fun.polyvoxel.cui.slot.Button;
 import fun.polyvoxel.cui.ui.*;
+import fun.polyvoxel.cui.util.Context;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -12,6 +13,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -29,7 +31,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 	}
 
 	@Override
-	public @NotNull CUIInstanceHandler<CUIMonitor> createCUIInstanceHandler() {
+	public @NotNull CUIInstanceHandler<CUIMonitor> createCUIInstanceHandler(Context context) {
 		return new InstanceHandler();
 	}
 
@@ -110,7 +112,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 		}
 
 		@Override
-		public @NotNull fun.polyvoxel.cui.ui.CameraHandler<CUIMonitor> createCameraHandler() {
+		public @NotNull fun.polyvoxel.cui.ui.CameraHandler<CUIMonitor> createCameraHandler(Context context) {
 			return new CameraHandler();
 		}
 
@@ -165,7 +167,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 					}
 					var instance = instances.get(index - 1);
 					var lore = new ArrayList<Component>(List.of(Component.text("Left click to manage"),
-							Component.text("Right click to destroy", NamedTextColor.RED)));
+							Component.text("Drop(Q) to destroy", NamedTextColor.RED)));
 					if (instance.isKeepAlive()) {
 						lore.add(Component.text("- ", NamedTextColor.GRAY)
 								.append(Component.text("Keep Alive", NamedTextColor.RED)));
@@ -191,7 +193,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 									handler.cuiInstance = instance;
 									handler.refresh();
 									camera.open(event.getPlayer(), true);
-								} else if (event.getClickType().isRightClick()) {
+								} else if (event.getClickType() == ClickType.DROP) {
 									instance.destroy();
 								}
 							}).build();
@@ -212,7 +214,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 					}
 					var camera = cameras.get(index - 1);
 					var lore = new ArrayList<Component>(List.of(Component.text("Left click to open"),
-							Component.text("Right click to destroy", NamedTextColor.RED)));
+							Component.text("Drop(Q) to destroy", NamedTextColor.RED)));
 					if (camera.isKeepAlive()) {
 						lore.add(Component.text("- ", NamedTextColor.GRAY)
 								.append(Component.text("Keep Alive", NamedTextColor.RED)));
@@ -235,7 +237,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 							.clickHandler(event -> {
 								if (event.getClickType().isLeftClick()) {
 									camera.open(event.getPlayer(), true);
-								} else if (event.getClickType().isRightClick()) {
+								} else if (event.getClickType() == ClickType.DROP) {
 									camera.destroy();
 								}
 							}).build();

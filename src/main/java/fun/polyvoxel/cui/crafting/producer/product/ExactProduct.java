@@ -13,7 +13,7 @@ public class ExactProduct implements Product {
 
 	public ExactProduct(@Nullable ItemStack exact, boolean ignoreAmountLimit) {
 		if (exact == null)
-			exact = new ItemStack(Material.AIR);
+			exact = ItemStack.of(Material.AIR);
 		this.exact = exact.clone();
 		this.ignoreAmountLimit = ignoreAmountLimit;
 	}
@@ -24,7 +24,7 @@ public class ExactProduct implements Product {
 
 	public ExactProduct(@Nullable ItemStack exact, int amount, boolean ignoreAmountLimit) {
 		if (exact == null)
-			exact = new ItemStack(Material.AIR);
+			exact = ItemStack.of(Material.AIR);
 		this.exact = exact.clone();
 		this.exact.setAmount(amount);
 		this.ignoreAmountLimit = ignoreAmountLimit;
@@ -35,19 +35,19 @@ public class ExactProduct implements Product {
 	}
 
 	public ExactProduct(Material material) {
-		this(new ItemStack(material));
+		this(ItemStack.of(material));
 	}
 
 	public ExactProduct(Material material, int amount) {
-		this(new ItemStack(material), amount);
+		this(ItemStack.of(material), amount);
 	}
 
 	public ExactProduct(Material material, boolean ignoreAmountLimit) {
-		this(new ItemStack(material), ignoreAmountLimit);
+		this(ItemStack.of(material), ignoreAmountLimit);
 	}
 
 	public ExactProduct(Material material, int amount, boolean ignoreAmountLimit) {
-		this(new ItemStack(material), amount, ignoreAmountLimit);
+		this(ItemStack.of(material), amount, ignoreAmountLimit);
 	}
 
 	@Override

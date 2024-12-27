@@ -63,14 +63,14 @@ public class CraftingTableTest {
 
 		Layer inputLayer = workbench.generateInputLayer(0, null);
 		Layer outputLayer = workbench.generateOutputLayer(0, null);
-		inputLayer.getSlot(0, 0).place(new ItemStack(Material.IRON_INGOT, 1), null);
-		inputLayer.getSlot(0, 2).place(new ItemStack(Material.IRON_INGOT, 1), null);
-		inputLayer.getSlot(1, 0).place(new ItemStack(Material.IRON_INGOT, 4), null);
-		inputLayer.getSlot(1, 1).place(new ItemStack(Material.IRON_INGOT, 2), null);
-		inputLayer.getSlot(1, 2).place(new ItemStack(Material.IRON_INGOT, 4), null);
-		inputLayer.getSlot(2, 0).place(new ItemStack(Material.IRON_INGOT, 4), null);
-		inputLayer.getSlot(2, 1).place(new ItemStack(Material.IRON_INGOT, 1), null);
-		inputLayer.getSlot(2, 2).place(new ItemStack(Material.IRON_INGOT, 4), null);
+		inputLayer.getSlot(0, 0).place(ItemStack.of(Material.IRON_INGOT, 1), null);
+		inputLayer.getSlot(0, 2).place(ItemStack.of(Material.IRON_INGOT, 1), null);
+		inputLayer.getSlot(1, 0).place(ItemStack.of(Material.IRON_INGOT, 4), null);
+		inputLayer.getSlot(1, 1).place(ItemStack.of(Material.IRON_INGOT, 2), null);
+		inputLayer.getSlot(1, 2).place(ItemStack.of(Material.IRON_INGOT, 4), null);
+		inputLayer.getSlot(2, 0).place(ItemStack.of(Material.IRON_INGOT, 4), null);
+		inputLayer.getSlot(2, 1).place(ItemStack.of(Material.IRON_INGOT, 1), null);
+		inputLayer.getSlot(2, 2).place(ItemStack.of(Material.IRON_INGOT, 4), null);
 		workbench.match(null, null);
 		workbench.apply(null);
 		workbench.match(null, null);
@@ -79,17 +79,15 @@ public class CraftingTableTest {
 		workbench.apply(null);
 		workbench.match(null, null);
 		workbench.apply(null);
-		ItemStackAssertions.assertSame(new ItemStack(Material.IRON_CHESTPLATE), outputLayer.getSlot(0, 0).get(),
+		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_CHESTPLATE), outputLayer.getSlot(0, 0).get(),
 				"应当成功合成铁胸甲");
-		ItemStackAssertions.assertSame(new ItemStack(Material.IRON_HELMET), outputLayer.getSlot(0, 1).get(),
+		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_HELMET), outputLayer.getSlot(0, 1).get(),
 				"应当成功合成铁头盔");
-		ItemStackAssertions.assertSame(new ItemStack(Material.IRON_BOOTS), outputLayer.getSlot(0, 2).get(),
-				"应当成功合成铁靴子");
+		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_BOOTS), outputLayer.getSlot(0, 2).get(), "应当成功合成铁靴子");
 		outputLayer.getSlot(0, 0).set(null, null);
 		workbench.match(null, null);
 		workbench.apply(null);
-		ItemStackAssertions.assertSame(new ItemStack(Material.IRON_BOOTS), outputLayer.getSlot(0, 0).get(),
-				"应当成功合成铁靴子");
+		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_BOOTS), outputLayer.getSlot(0, 0).get(), "应当成功合成铁靴子");
 	}
 
 	// TODO: 模拟玩家使用工作台合成物品

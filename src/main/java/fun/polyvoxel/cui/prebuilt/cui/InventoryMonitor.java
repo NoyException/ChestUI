@@ -5,6 +5,7 @@ import fun.polyvoxel.cui.layer.Layer;
 import fun.polyvoxel.cui.slot.Button;
 import fun.polyvoxel.cui.slot.Storage;
 import fun.polyvoxel.cui.ui.*;
+import fun.polyvoxel.cui.util.Context;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -20,7 +21,7 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 	}
 
 	@Override
-	public @NotNull CUIInstanceHandler<InventoryMonitor> createCUIInstanceHandler() {
+	public @NotNull CUIInstanceHandler<InventoryMonitor> createCUIInstanceHandler(Context context) {
 		return new InstanceHandler();
 	}
 
@@ -55,7 +56,7 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 		}
 
 		@Override
-		public @NotNull fun.polyvoxel.cui.ui.CameraHandler<InventoryMonitor> createCameraHandler() {
+		public @NotNull fun.polyvoxel.cui.ui.CameraHandler<InventoryMonitor> createCameraHandler(Context context) {
 			return new CameraHandler();
 		}
 
@@ -100,11 +101,11 @@ public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 							new Layer(5, 9).edit().marginTop(1)
 									.row(3, column -> Button.builder().material(Material.WHITE_STAINED_GLASS_PANE)
 											.displayName(" ").build())
-									.row(4, column -> Storage.builder().source(inventory, column).build())
+									.row(4, column -> Storage.builder().fromInventory(inventory, column).build())
 									.all((row, column) -> {
 										int index = row * 9 + column;
 										if (index < 27) {
-											return Storage.builder().source(inventory, index + 9).build();
+											return Storage.builder().fromInventory(inventory, index + 9).build();
 										}
 										return null;
 									}).done());

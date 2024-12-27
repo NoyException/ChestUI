@@ -1,6 +1,7 @@
 package fun.polyvoxel.cui.serialize;
 
 import fun.polyvoxel.cui.ui.*;
+import fun.polyvoxel.cui.util.Context;
 import org.jetbrains.annotations.NotNull;
 
 public class SerializableChestUI implements ChestUI<SerializableChestUI> {
@@ -18,7 +19,7 @@ public class SerializableChestUI implements ChestUI<SerializableChestUI> {
 	}
 
 	@Override
-	public @NotNull CUIInstanceHandler<SerializableChestUI> createCUIInstanceHandler() {
+	public @NotNull CUIInstanceHandler<SerializableChestUI> createCUIInstanceHandler(Context context) {
 		return new InstanceHandler();
 	}
 
@@ -29,7 +30,7 @@ public class SerializableChestUI implements ChestUI<SerializableChestUI> {
 		}
 
 		@Override
-		public @NotNull CameraHandler<SerializableChestUI> createCameraHandler() {
+		public @NotNull CameraHandler<SerializableChestUI> createCameraHandler(Context context) {
 			return cuiData::toCamera;
 		}
 	}

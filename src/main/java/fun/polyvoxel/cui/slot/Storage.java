@@ -214,20 +214,20 @@ public class Storage extends Slot {
 			return this;
 		}
 
-		public Builder source(Storage storage) {
+		public Builder replicate(Storage storage) {
 			return source(storage.source);
 		}
 
-		public Builder source() {
-			return source((ItemStack) null);
+		public Builder empty() {
+			return withInitial(null);
 		}
 
-		public Builder source(ItemStack initial) {
+		public Builder withInitial(ItemStack initial) {
 			source = new ItemStackSource(initial);
 			return this;
 		}
 
-		public Builder source(Inventory inventory, int rawSlot) {
+		public Builder fromInventory(Inventory inventory, int rawSlot) {
 			source = new InventorySource(inventory, rawSlot);
 			return this;
 		}

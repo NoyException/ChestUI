@@ -88,13 +88,33 @@ public class Button extends Slot {
 	}
 
 	public static class Builder {
-		private final Button button = new Button();
+		private Consumer<CUIClickEvent<?>> clickHandler;
+		private ItemStack itemStack = ItemStack.of(Material.STONE_BUTTON);
+		private int amount = 1;
+		private Component displayName;
+		private List<Component> lore;
 
 		private Builder() {
 		}
 
+		public Button build() {
+			var button = new Button();
+			button.clickHandler = clickHandler;
+			button.itemStack = itemStack.clone();
+			button.itemStack.setAmount(amount);
+			button.itemStack.editMeta(itemMeta -> {
+				if (displayName != null) {
+					itemMeta.displayName(displayName);
+				}
+				if (lore != null) {
+					itemMeta.lore(lore);
+				}
+			});
+			return button;
+		}
+
 		public Builder itemStack(ItemStack itemStack) {
-			button.itemStack = itemStack;
+			this.itemStack = itemStack;
 			return this;
 		}
 
@@ -102,8 +122,8 @@ public class Button extends Slot {
 			PlayerProfile profile = Bukkit.getServer().createProfile(player.getUniqueId(), player.getName());
 			PlayerTextures textures = profile.getTextures();
 			profile.setTextures(textures);
-			button.itemStack = new ItemStack(Material.PLAYER_HEAD);
-			button.itemStack.editMeta(meta -> ((SkullMeta) meta).setPlayerProfile(profile));
+			itemStack = ItemStack.of(Material.PLAYER_HEAD);
+			itemStack.editMeta(meta -> ((SkullMeta) meta).setPlayerProfile(profile));
 			return this;
 		}
 
@@ -113,26 +133,23 @@ public class Button extends Slot {
 			PlayerTextures textures = profile.getTextures();
 			textures.setSkin(skullTexture);
 			profile.setTextures(textures);
-			button.itemStack = new ItemStack(Material.PLAYER_HEAD);
-			button.itemStack.editMeta(meta -> ((SkullMeta) meta).setPlayerProfile(profile));
+			itemStack = ItemStack.of(Material.PLAYER_HEAD);;
+			itemStack.editMeta(meta -> ((SkullMeta) meta).setPlayerProfile(profile));
 			return this;
 		}
 
 		public Builder material(Material material) {
-			button.itemStack = new ItemStack(material);
+			itemStack = ItemStack.of(material);
 			return this;
 		}
 
 		public Builder amount(int amount) {
-			button.itemStack.setAmount(amount);
+			this.amount = amount;
 			return this;
 		}
 
 		public Builder displayName(Component displayName) {
-			displayName = ItemStacks.cleanComponent(displayName);
-			var meta = button.itemStack.getItemMeta();
-			meta.displayName(displayName);
-			button.itemStack.setItemMeta(meta);
+			this.displayName = ItemStacks.cleanComponent(displayName);
 			return this;
 		}
 
@@ -141,10 +158,7 @@ public class Button extends Slot {
 		}
 
 		public Builder lore(List<Component> lore) {
-			lore = lore.stream().map(ItemStacks::cleanComponent).toList();
-			var meta = button.itemStack.getItemMeta();
-			meta.lore(lore);
-			button.itemStack.setItemMeta(meta);
+			this.lore = lore.stream().map(ItemStacks::cleanComponent).toList();
 			return this;
 		}
 
@@ -173,12 +187,8 @@ public class Button extends Slot {
 		 *         Builder
 		 */
 		public Builder clickHandler(Consumer<CUIClickEvent<?>> clickHandler) {
-			button.clickHandler = clickHandler;
+			this.clickHandler = clickHandler;
 			return this;
-		}
-
-		public Button build() {
-			return button;
 		}
 	}
 }

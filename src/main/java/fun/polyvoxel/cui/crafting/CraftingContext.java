@@ -1,20 +1,19 @@
 package fun.polyvoxel.cui.crafting;
 
 import fun.polyvoxel.cui.ui.Camera;
+import fun.polyvoxel.cui.util.Context;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.LinkedList;
 
-public class CraftingContext {
+public class CraftingContext extends Context {
 	private final @NotNull Recipe recipe;
 	private final @Nullable Camera<?> camera;
 	private final @Nullable Player player;
 	private LinkedList<Runnable> onRecipeApplied;
 	private LinkedList<Runnable> onRecipeFailed;
-	private HashMap<String, Object> data;
 
 	public CraftingContext(@NotNull Recipe recipe, @Nullable Camera<?> camera, @Nullable Player player) {
 		this.recipe = recipe;
@@ -64,20 +63,5 @@ public class CraftingContext {
 		for (var runnable : onRecipeFailed) {
 			runnable.run();
 		}
-	}
-
-	public <T> void set(String key, T value) {
-		if (data == null) {
-			data = new HashMap<>();
-		}
-		data.put(key, value);
-	}
-
-	@SuppressWarnings("unchecked")
-	public <T> T get(String key) {
-		if (data == null) {
-			return null;
-		}
-		return (T) data.get(key);
 	}
 }

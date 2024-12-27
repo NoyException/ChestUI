@@ -3,6 +3,7 @@ package fun.polyvoxel.cui.ui;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.layer.Layer;
 
+import fun.polyvoxel.cui.util.Context;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.NotNull;
@@ -10,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class CUIInstance<T extends ChestUI<T>> {
+public final class CUIInstance<T extends ChestUI<T>> {
 	private final CUIPlugin cuiPlugin;
 	private final HashMap<Integer, Camera<T>> cameras = new HashMap<>();
 	private State state = State.UNINITIALIZED;
@@ -28,12 +29,12 @@ public class CUIInstance<T extends ChestUI<T>> {
 	private final CUIInstanceHandler<T> handler;
 	private final int id;
 
-	CUIInstance(CUIPlugin cuiPlugin, CUIType<T> type, int id) {
+	CUIInstance(CUIPlugin cuiPlugin, CUIType<T> type, CUIInstanceHandler<T> handler, int id) {
 		this.cuiPlugin = cuiPlugin;
 		this.type = type;
 		this.id = id;
 		this.defaultTitle = type.getDefaultTitle();
-		this.handler = type.getChestUI().createCUIInstanceHandler();
+		this.handler = handler;
 		handler.onInitialize(this);
 		state = State.READY;
 	}
@@ -67,7 +68,12 @@ public class CUIInstance<T extends ChestUI<T>> {
 	}
 
 	public Camera<T> createCamera() {
-		var camera = new Camera<>(this, getNextCameraId());
+		return createCamera(new Context());
+	}
+
+	public Camera<T> createCamera(Context context) {
+		var handler = this.handler.createCameraHandler(context);
+		var camera = new Camera<>(this, handler, getNextCameraId());
 		cameras.put(camera.getId(), camera);
 		return camera;
 	}

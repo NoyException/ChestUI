@@ -12,6 +12,7 @@ import fun.polyvoxel.cui.crafting.producer.product.ExactProduct;
 import fun.polyvoxel.cui.layer.Layer;
 import fun.polyvoxel.cui.slot.Button;
 import fun.polyvoxel.cui.ui.*;
+import fun.polyvoxel.cui.util.Context;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Boat;
@@ -66,7 +67,7 @@ public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
 	}
 
 	@Override
-	public @NotNull CUIInstanceHandler<EnhancedWorkbench> createCUIInstanceHandler() {
+	public @NotNull CUIInstanceHandler<EnhancedWorkbench> createCUIInstanceHandler(Context context) {
 		return new InstanceHandler();
 	}
 
@@ -86,7 +87,7 @@ public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
 		}
 
 		@Override
-		public @NotNull fun.polyvoxel.cui.ui.CameraHandler<EnhancedWorkbench> createCameraHandler() {
+		public @NotNull fun.polyvoxel.cui.ui.CameraHandler<EnhancedWorkbench> createCameraHandler(Context context) {
 			return new CameraHandler();
 		}
 

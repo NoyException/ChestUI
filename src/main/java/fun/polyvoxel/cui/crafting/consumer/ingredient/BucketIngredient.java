@@ -24,6 +24,6 @@ public class BucketIngredient implements Ingredient {
 		if (itemStack == null || itemStack.getType() != material || itemStack.getAmount() > 1) {
 			return null;
 		}
-		return new ItemStack(Material.BUCKET);
+		return ItemStack.of(Material.BUCKET);
 	}
 }

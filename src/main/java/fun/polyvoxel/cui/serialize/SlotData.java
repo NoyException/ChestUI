@@ -36,7 +36,7 @@ public class SlotData {
 					onClick.onClick(event);
 				}
 			}).build();
-			case "storage" -> Storage.builder().source(itemStack).build();
+			case "storage" -> Storage.builder().withInitial(itemStack).build();
 			default -> throw new IllegalStateException("Unexpected value: " + type);
 		};
 	}
@@ -46,7 +46,7 @@ public class SlotData {
 		if (material == null) {
 			itemStack = null;
 		} else {
-			itemStack = new ItemStack(material, amount);
+			itemStack = ItemStack.of(material, amount);
 			itemStack.editMeta(itemMeta -> {
 				if (displayName != null) {
 					TextComponent component = LegacyComponentSerializer.legacyAmpersand().deserialize(displayName);
