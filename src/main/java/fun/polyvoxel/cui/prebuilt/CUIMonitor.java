@@ -32,11 +32,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 	@Override
 	public void onInitialize(CUIType<CUIMonitor> type) {
 		this.type = type.edit().defaultTitle(Component.text("CUI Monitor", NamedTextColor.RED))
-				.triggerByDisplayCommand(player -> {
-					main.createCamera().open(player, true);
-					return new CUIType.TriggerResult<>(CUIType.TriggerResultType.CUSTOM, camera -> {
-					});
-				}).done();
+				.triggerByDisplay((cuiType, player, asChild) -> main.createCamera()).done();
 		main = type.createInstance();
 	}
 

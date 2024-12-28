@@ -15,9 +15,8 @@ import org.jetbrains.annotations.NotNull;
 public class InventoryMonitor implements ChestUI<InventoryMonitor> {
 	@Override
 	public void onInitialize(CUIType<InventoryMonitor> type) {
-		type.edit().defaultTitle("Inventory Monitor").triggerByDisplayCommand(
-				player -> new CUIType.TriggerResult<>(CUIType.TriggerResultType.CREATE_NEW_CAMERA, camera -> {
-				}));
+		type.edit().defaultTitle("Inventory Monitor")
+				.triggerByDisplay(CameraProvider.createCameraInDefaultCUIInstance());
 	}
 
 	@Override

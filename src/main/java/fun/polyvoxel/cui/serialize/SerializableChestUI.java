@@ -13,9 +13,7 @@ public class SerializableChestUI implements ChestUI<SerializableChestUI> {
 
 	@Override
 	public void onInitialize(CUIType<SerializableChestUI> type) {
-		type.edit().defaultTitle(cuiData.title).triggerByDisplayCommand(
-				player -> new CUIType.TriggerResult<>(CUIType.TriggerResultType.USE_DEFAULT_CAMERA, camera -> {
-				}));
+		type.edit().defaultTitle(cuiData.title).triggerByDisplay(CameraProvider.createCameraInDefaultCUIInstance());
 	}
 
 	@Override

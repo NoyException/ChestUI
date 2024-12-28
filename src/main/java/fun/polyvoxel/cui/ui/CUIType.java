@@ -33,7 +33,7 @@ public final class CUIType<T extends ChestUI<T>> {
 	private final Material icon;
 	private Component defaultTitle = Component.text("Chest UI", NamedTextColor.GOLD);
 	private final HashMap<Integer, CUIInstance<T>> instances = new HashMap<>();
-	private Function<Player, TriggerResult<T>> onDisplay;
+	private CameraProvider<T> displayCameraProvider;
 	private int nextId = 0;
 
 	public CUIType(CUIPlugin cuiPlugin, @Nullable Plugin plugin, T chestUI, NamespacedKey key, boolean singleton,
@@ -157,7 +157,7 @@ public final class CUIType<T extends ChestUI<T>> {
 	}
 
 	public boolean canDisplay() {
-		return onDisplay != null;
+		return displayCameraProvider != null;
 	}
 
 	/**
@@ -172,7 +172,7 @@ public final class CUIType<T extends ChestUI<T>> {
 	 *         Camera
 	 */
 	public @Nullable Camera<T> display(Player player, boolean asChild) {
-		if (onDisplay == null) {
+		if (displayCameraProvider == null) {
 			return null;
 		}
 
@@ -182,33 +182,16 @@ public final class CUIType<T extends ChestUI<T>> {
 			return null;
 		}
 
-		var result = onDisplay.apply(player);
-		if (result == null) {
-			return null;
-		}
-		return trigger(result, player, event.isAsChild());
+		return trigger(displayCameraProvider, player, event.isAsChild());
 	}
 
-	private Camera<T> trigger(TriggerResult<T> result, Player player, boolean asChild) {
-		Camera<T> camera = switch (result.type) {
-			case USE_DEFAULT_CAMERA -> getInstance().getCamera();
-			case CREATE_NEW_CAMERA -> getInstance().createCamera();
-			case CREATE_NEW_CUI_INSTANCE -> createInstance().createCamera();
-			default -> null;
-		};
+	private Camera<T> trigger(CameraProvider<T> cameraProvider, Player player, boolean asChild) {
+		Camera<T> camera = cameraProvider.provide(this, player, asChild);
 		if (camera == null) {
 			return null;
 		}
-		result.onTrigger.accept(camera);
 		camera.open(player, asChild);
 		return camera;
-	}
-
-	public record TriggerResult<T extends ChestUI<T>>(TriggerResultType type, Consumer<Camera<T>> onTrigger) {
-	}
-
-	public enum TriggerResultType {
-		REJECTED, CUSTOM, USE_DEFAULT_CAMERA, CREATE_NEW_CAMERA, CREATE_NEW_CUI_INSTANCE
 	}
 
 	public Editor edit() {
@@ -233,22 +216,22 @@ public final class CUIType<T extends ChestUI<T>> {
 			return this;
 		}
 
-		public Editor triggerByBlock(Function<PlayerInteractEvent, TriggerResult<T>> trigger) {
+		public Editor triggerByBlock(Function<PlayerInteractEvent, @NotNull CameraProvider<T>> trigger) {
 			Bukkit.getPluginManager().registerEvents(new Listener() {
 				@EventHandler(priority = EventPriority.MONITOR)
 				public void onBlockClick(PlayerInteractEvent event) {
 					if (!event.hasBlock()) {
 						return;
 					}
-					var result = trigger.apply(event);
-					trigger(result, event.getPlayer(), false);
+					var cameraProvider = trigger.apply(event);
+					trigger(cameraProvider, event.getPlayer(), false);
 				}
 			}, cuiPlugin);
 			return this;
 		}
 
-		public Editor triggerByDisplayCommand(Function<Player, TriggerResult<T>> trigger) {
-			onDisplay = trigger;
+		public Editor triggerByDisplay(@NotNull CameraProvider<T> cameraProvider) {
+			displayCameraProvider = cameraProvider;
 			return this;
 		}
 	}

@@ -53,17 +53,13 @@ public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
 						.addProducer(ShapelessProducer.builder().add(new ExactProduct(Material.CAKE)).build()).build())
 				.build();
 
-		type.edit().defaultTitle("Enhanced Workbench").triggerByDisplayCommand(
-				player -> new CUIType.TriggerResult<>(CUIType.TriggerResultType.CREATE_NEW_CAMERA, camera -> {
-				})).triggerByBlock(event -> {
-					if (event.getAction() != Action.RIGHT_CLICK_BLOCK
-							|| !event.getClickedBlock().getState().hasMetadata("chestui:ew")) {
-						return new CUIType.TriggerResult<>(CUIType.TriggerResultType.REJECTED, camera -> {
-						});
-					}
-					return new CUIType.TriggerResult<>(CUIType.TriggerResultType.CREATE_NEW_CAMERA, camera -> {
-					});
-				});
+		type.edit().defaultTitle("Enhanced Workbench").triggerByBlock(event -> {
+			if (event.getAction() != Action.RIGHT_CLICK_BLOCK
+					|| !event.getClickedBlock().getState().hasMetadata("chestui:ew")) {
+				return CameraProvider.reject();
+			}
+			return CameraProvider.createCameraInDefaultCUIInstance();
+		}).triggerByDisplay(CameraProvider.createCameraInDefaultCUIInstance());
 	}
 
 	@Override
