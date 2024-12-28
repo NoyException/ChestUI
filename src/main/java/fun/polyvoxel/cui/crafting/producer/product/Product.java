@@ -17,7 +17,7 @@ public interface Product {
 	 * Produce the item, if successful, return a clone of the item after production,
 	 * otherwise return null.
 	 *
-	 * @param ctx
+	 * @param context
 	 *            合成上下文<br>
 	 *            Crafting context
 	 * @param itemStack
@@ -30,5 +30,5 @@ public interface Product {
 	 *         Produced item, or null
 	 */
 	@Nullable
-	Result produce(@NotNull CraftingContext ctx, @Nullable ItemStack itemStack, boolean allowSpill);
+	Result produce(@NotNull CraftingContext context, @Nullable ItemStack itemStack, boolean allowSpill);
 }

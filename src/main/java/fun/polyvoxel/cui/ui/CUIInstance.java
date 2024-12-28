@@ -3,7 +3,7 @@ package fun.polyvoxel.cui.ui;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.layer.Layer;
 
-import fun.polyvoxel.cui.util.Context;
+import fun.polyvoxel.cui.util.context.Context;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.NotNull;
@@ -68,7 +68,7 @@ public final class CUIInstance<T extends ChestUI<T>> {
 	}
 
 	public Camera<T> createCamera() {
-		return createCamera(Context.BACKGROUND);
+		return createCamera(Context.background());
 	}
 
 	public Camera<T> createCamera(Context context) {

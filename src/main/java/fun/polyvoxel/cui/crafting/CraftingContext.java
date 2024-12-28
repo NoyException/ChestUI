@@ -1,84 +1,49 @@
 package fun.polyvoxel.cui.crafting;
 
-import fun.polyvoxel.cui.ui.Camera;
-import fun.polyvoxel.cui.util.Context;
-import org.bukkit.entity.Player;
+import fun.polyvoxel.cui.util.context.Context;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.LinkedList;
 
 public class CraftingContext implements Context {
-	private Context context = Context.BACKGROUND;
-	private final @NotNull Recipe recipe;
-	private final @Nullable Camera<?> camera;
-	private final @Nullable Player player;
-	private LinkedList<Runnable> onRecipeApplied;
-	private LinkedList<Runnable> onRecipeFailed;
+	private final @NotNull Context context;
+	private final CraftingTable craftingTable;
+	private final Recipe recipe;
 
-	public CraftingContext(@NotNull Recipe recipe, @Nullable Camera<?> camera, @Nullable Player player) {
+	public CraftingContext(@NotNull Context context, CraftingTable craftingTable, Recipe recipe) {
+		this.context = context;
+		this.craftingTable = craftingTable;
 		this.recipe = recipe;
-		this.camera = camera;
-		this.player = player;
 	}
 
-	public @NotNull Recipe getRecipe() {
+	public static CraftingContext background() {
+		return new CraftingContext(Context.background(), null, null);
+	}
+
+	public static CraftingContext fromContext(Context context) {
+		return new CraftingContext(context, null, null);
+	}
+
+	public CraftingContext withContext(Context context) {
+		return new CraftingContext(context, craftingTable, recipe);
+	}
+
+	public CraftingContext withCraftingTable(CraftingTable craftingTable) {
+		return new CraftingContext(context, craftingTable, recipe);
+	}
+
+	public CraftingContext withRecipe(Recipe recipe) {
+		return new CraftingContext(context, craftingTable, recipe);
+	}
+
+	public CraftingTable craftingTable() {
+		return craftingTable;
+	}
+
+	public Recipe recipe() {
 		return recipe;
 	}
 
-	public @Nullable Camera<?> getCamera() {
-		return camera;
-	}
-
-	public @Nullable Player getPlayer() {
-		return player;
-	}
-
-	public void onRecipeApplied(Runnable runnable) {
-		if (onRecipeApplied == null) {
-			onRecipeApplied = new LinkedList<>();
-		}
-		onRecipeApplied.add(runnable);
-	}
-
-	void applyRecipe() {
-		if (onRecipeApplied == null) {
-			return;
-		}
-		for (var runnable : onRecipeApplied) {
-			runnable.run();
-		}
-	}
-
-	public void onRecipeFailed(Runnable runnable) {
-		if (onRecipeFailed == null) {
-			onRecipeFailed = new LinkedList<>();
-		}
-		onRecipeFailed.add(runnable);
-	}
-
-	void failRecipe() {
-		if (onRecipeFailed == null) {
-			return;
-		}
-		for (var runnable : onRecipeFailed) {
-			runnable.run();
-		}
-	}
-
 	@Override
-	public <T> CraftingContext withValue(@NotNull String key, T value) {
-		context = context.withValue(key, value);
-		return this;
-	}
-
-	@Override
-	public <T> T get(@NotNull String key) {
-		return context.get(key);
-	}
-
-	@Override
-	public boolean has(@NotNull String key) {
-		return context.has(key);
+	public @NotNull Context parent() {
+		return context;
 	}
 }

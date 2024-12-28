@@ -51,7 +51,8 @@ public class ExactProduct implements Product {
 	}
 
 	@Override
-	public @Nullable Result produce(@NotNull CraftingContext ctx, @Nullable ItemStack itemStack, boolean allowSpill) {
+	public @Nullable Result produce(@NotNull CraftingContext context, @Nullable ItemStack itemStack,
+			boolean allowSpill) {
 		var result = ItemStacks.place(itemStack, exact, ignoreAmountLimit);
 		if (!result.success()) {
 			return null;

@@ -3,7 +3,7 @@ package fun.polyvoxel.cui.ui;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.layer.Layer;
 import fun.polyvoxel.cui.slot.Button;
-import fun.polyvoxel.cui.util.Context;
+import fun.polyvoxel.cui.util.context.Context;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;

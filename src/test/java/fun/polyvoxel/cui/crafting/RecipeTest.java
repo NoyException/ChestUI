@@ -10,9 +10,11 @@ import fun.polyvoxel.cui.crafting.producer.ShapelessProducer;
 import fun.polyvoxel.cui.crafting.producer.product.ExactProduct;
 import fun.polyvoxel.cui.crafting.producer.product.RandomProduct;
 import fun.polyvoxel.cui.util.ItemStackAssertions;
+import fun.polyvoxel.cui.util.context.Context;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Material;
 import org.bukkit.entity.Boat;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -26,6 +28,9 @@ import java.util.stream.Collectors;
 
 public class RecipeTest {
 	private static PlayerMock player, player2;
+	private static CraftingContext createCtx(Player player) {
+		return CraftingContext.background().withContext(Context.background().withPlayer(player));
+	}
 
 	@BeforeAll
 	public static void setup() {
@@ -53,40 +58,40 @@ public class RecipeTest {
 						ShapedProducer.builder().pattern("A").set('A', new ExactProduct(Material.STICK, 4)).build())
 				.build();
 		// 测试堆叠生产
-		var io = new CraftingTable.IO(new CraftingTable.Inputs(), new CraftingTable.Outputs());
+		var io = new CraftingTableType.IO(new CraftingTableType.Inputs(), new CraftingTableType.Outputs());
 		io.inputs().addInput(2, 2);
 		io.inputs().getInput(0)[0][1] = ItemStack.of(Material.OAK_PLANKS, 2);
 		io.outputs().addOutput(2, 2);
-		var used = recipe.use(io, null, player);
+		var used = recipe.use(createCtx(player), io);
 		Assertions.assertNotNull(used, "应当能使用成功");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.OAK_PLANKS, 1), used.inputs().getInput(0)[0][1],
 				"应当还剩下1个橡木板");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.STICK, 4), used.outputs().getOutput(0)[0][0], "应当能生产4个木棍");
-		used = recipe.use(used, null, player);
+		used = recipe.use(createCtx(player), used);
 		Assertions.assertNotNull(used, "应当能再次使用成功");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.STICK, 8), used.outputs().getOutput(0)[0][0], "应当能生产8个木棍");
-		Assertions.assertNull(recipe.use(used, null, player), "应当不能第三次使用成功");
+		Assertions.assertNull(recipe.use(createCtx(player), used), "应当不能第三次使用成功");
 		// 测试最初的io是否受到了影响
-		used = recipe.use(io, null, player);
+		used = recipe.use(createCtx(player), io);
 		Assertions.assertNotNull(used, "应当不影响最初的io");
-		used = recipe.use(used, null, player);
+		used = recipe.use(createCtx(player), used);
 		Assertions.assertNotNull(used, "应当不影响最初的io");
-		Assertions.assertNull(recipe.use(used, null, player), "应当不能第三次使用成功");
+		Assertions.assertNull(recipe.use(createCtx(player), used), "应当不能第三次使用成功");
 		// 测试原料区异常
 		io.inputs().getInput(0)[0][0] = ItemStack.of(Material.OAK_PLANKS, 1);
-		Assertions.assertNull(recipe.use(io, null, player), "应当不能使用成功");
+		Assertions.assertNull(recipe.use(createCtx(player), io), "应当不能使用成功");
 		io.inputs().getInput(0)[0][0] = ItemStack.of(Material.OAK_LOG, 1);
 		io.inputs().getInput(0)[0][1] = null;
-		Assertions.assertNull(recipe.use(io, null, player), "应当不能使用成功");
+		Assertions.assertNull(recipe.use(createCtx(player), io), "应当不能使用成功");
 		io.inputs().getInput(0)[0][0] = ItemStack.of(Material.OAK_PLANKS, 64);
-		Assertions.assertNotNull(recipe.use(io, null, player), "应当能使用成功");
+		Assertions.assertNotNull(recipe.use(createCtx(player), io), "应当能使用成功");
 		// 测试产品区异常
 		io.outputs().getOutput(0)[0][0] = ItemStack.of(Material.STICK, 63);
-		Assertions.assertNull(recipe.use(io, null, player), "应当不能使用成功");
+		Assertions.assertNull(recipe.use(createCtx(player), io), "应当不能使用成功");
 		io.outputs().getOutput(0)[0][0] = ItemStack.of(Material.OAK_LOG, 1);
-		Assertions.assertNull(recipe.use(io, null, player), "应当不能使用成功");
+		Assertions.assertNull(recipe.use(createCtx(player), io), "应当不能使用成功");
 		io.outputs().getOutput(0)[0][0] = ItemStack.of(Material.STICK, 3);
-		Assertions.assertNotNull(recipe.use(io, null, player), "应当能使用成功");
+		Assertions.assertNotNull(recipe.use(createCtx(player), io), "应当能使用成功");
 	}
 
 	/**
@@ -100,12 +105,12 @@ public class RecipeTest {
 				.addProducer(ShapelessProducer.builder().add(new ExactProduct(Material.FLINT_AND_STEEL)).build())
 				.build();
 		// 测试生产
-		var io = new CraftingTable.IO(new CraftingTable.Inputs(), new CraftingTable.Outputs());
+		var io = new CraftingTableType.IO(new CraftingTableType.Inputs(), new CraftingTableType.Outputs());
 		io.inputs().addInput(3, 3);
 		io.inputs().getInput(0)[2][2] = ItemStack.of(Material.IRON_INGOT, 2);
 		io.inputs().getInput(0)[0][1] = ItemStack.of(Material.FLINT, 3);
 		io.outputs().addOutput(1, 1);
-		var used = recipe.use(io, null, player);
+		var used = recipe.use(createCtx(player), io);
 		Assertions.assertNotNull(used, "应当能使用成功");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_INGOT, 1), used.inputs().getInput(0)[2][2],
 				"应当还剩下1个铁锭");
@@ -113,9 +118,9 @@ public class RecipeTest {
 		ItemStackAssertions.assertSame(ItemStack.of(Material.FLINT_AND_STEEL, 1), used.outputs().getOutput(0)[0][0],
 				"应当能生产1个打火石");
 		// 由于打火石不能堆叠，无法堆叠生产
-		Assertions.assertNull(recipe.use(used, null, player), "应当不能再次使用成功");
+		Assertions.assertNull(recipe.use(createCtx(player), used), "应当不能再次使用成功");
 		used.outputs().getOutput(0)[0][0] = null;
-		Assertions.assertNotNull(recipe.use(used, null, player), "应当能使用成功");
+		Assertions.assertNotNull(recipe.use(createCtx(player), used), "应当能使用成功");
 	}
 
 	/**
@@ -134,7 +139,7 @@ public class RecipeTest {
 						.set('W', new ExactIngredient(Material.WHEAT)).build())
 				.addProducer(ShapelessProducer.builder().add(new ExactProduct(Material.CAKE)).build()).build();
 		// 测试生产
-		var io = new CraftingTable.IO(new CraftingTable.Inputs(), new CraftingTable.Outputs());
+		var io = new CraftingTableType.IO(new CraftingTableType.Inputs(), new CraftingTableType.Outputs());
 		io.inputs().addInput(3, 3);
 		ItemStack[][] input = io.inputs().getInput(0);
 		input[0][0] = ItemStack.of(Material.MILK_BUCKET, 1);
@@ -147,24 +152,24 @@ public class RecipeTest {
 		input[2][1] = ItemStack.of(Material.WHEAT, 3);
 		input[2][2] = ItemStack.of(Material.WHEAT, 3);
 		io.outputs().addOutput(2, 1);
-		var used = recipe.use(io, null, player);
+		var used = recipe.use(createCtx(player), io);
 		Assertions.assertNotNull(used, "应当能使用成功");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.BUCKET, 1), used.inputs().getInput(0)[0][0], "应当剩下1个桶");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.CAKE, 1), used.outputs().getOutput(0)[0][0], "应当能生产1个蛋糕");
 		// 因为牛奶桶变成了桶，故无法继续生产
-		Assertions.assertNull(recipe.use(used, null, player), "应当不能再次使用成功");
+		Assertions.assertNull(recipe.use(createCtx(player), used), "应当不能再次使用成功");
 		used.inputs().getInput(0)[0][0] = ItemStack.of(Material.MILK_BUCKET, 1);
 		used.inputs().getInput(0)[0][1] = ItemStack.of(Material.MILK_BUCKET, 1);
 		used.inputs().getInput(0)[0][2] = ItemStack.of(Material.MILK_BUCKET, 1);
 		// 改回牛奶桶后应当能成功
-		used = recipe.use(used, null, player);
+		used = recipe.use(createCtx(player), used);
 		Assertions.assertNotNull(used, "应当能再次使用成功");
 		Assertions.assertEquals(ItemStack.of(Material.EGG, 1), used.inputs().getInput(0)[1][1]);
 		// 产品区已满，应当不能再次使用成功
 		used.inputs().getInput(0)[0][0] = ItemStack.of(Material.MILK_BUCKET, 1);
 		used.inputs().getInput(0)[0][1] = ItemStack.of(Material.MILK_BUCKET, 1);
 		used.inputs().getInput(0)[0][2] = ItemStack.of(Material.MILK_BUCKET, 1);
-		Assertions.assertNull(recipe.use(used, null, player), "产品区已满，应当不能再次使用成功");
+		Assertions.assertNull(recipe.use(createCtx(player), used), "产品区已满，应当不能再次使用成功");
 	}
 
 	/**
@@ -181,26 +186,29 @@ public class RecipeTest {
 						.build())
 				.build();
 		// 测试生产
-		var io = new CraftingTable.IO(new CraftingTable.Inputs(), new CraftingTable.Outputs());
+		var io = new CraftingTableType.IO(new CraftingTableType.Inputs(), new CraftingTableType.Outputs());
 		io.inputs().addInput(1, 1);
 		io.inputs().getInput(0)[0][0] = ItemStack.of(Material.STONE, 64);
 		io.outputs().addOutput(1, 1);
-		var used = recipe.use(io, null, player);
+		var used = recipe.use(createCtx(player), io);
 		Assertions.assertNotNull(used, "应当能使用成功");
+		recipe.onApply(player);
 		ItemStackAssertions.assertSame(ItemStack.of(Material.STONE, 63), used.inputs().getInput(0)[0][0], "应当还剩下63个石头");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.DIRT, 1), used.outputs().getOutput(0)[0][0], "应当能生产1个泥土");
 		// 在该种子下，还会再生产1个泥土
-		used = recipe.use(used, null, player);
+		used = recipe.use(createCtx(player), used);
 		Assertions.assertNotNull(used, "应当能再次使用成功");
+		recipe.onApply(player);
 		ItemStackAssertions.assertSame(ItemStack.of(Material.STONE, 62), used.inputs().getInput(0)[0][0], "应当还剩下62个石头");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.DIRT, 2), used.outputs().getOutput(0)[0][0], "应当能生产2个泥土");
 		// 在该种子下，下次将生产1个石头，没有放置空间
 		for (int i = 0; i < 10; i++) {
-			Assertions.assertNull(recipe.use(used, null, player), "应当不能再次使用成功");
+			Assertions.assertNull(recipe.use(createCtx(player), used), "应当不能再次使用成功");
 		}
 		// 但是另一个玩家则可以
-		used = recipe.use(used, null, player2);
+		used = recipe.use(createCtx(player2), used);
 		Assertions.assertNotNull(used, "应当能使用成功");
+		recipe.onApply(player2);
 		ItemStackAssertions.assertSame(ItemStack.of(Material.STONE, 61), used.inputs().getInput(0)[0][0], "应当还剩下61个石头");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.DIRT, 3), used.outputs().getOutput(0)[0][0], "应当能生产3个泥土");
 	}

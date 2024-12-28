@@ -2,7 +2,6 @@ package fun.polyvoxel.cui.crafting;
 
 import fun.polyvoxel.cui.crafting.consumer.Consumer;
 import fun.polyvoxel.cui.crafting.producer.Producer;
-import fun.polyvoxel.cui.ui.Camera;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,23 +13,13 @@ public class Recipe {
 	private boolean strict;
 	private Consumer[] consumer;
 	private Producer[] producer;
+	private final List<OnApplyListener> onApplyListeners = new LinkedList<>();
 
 	private Recipe() {
 	}
 
-	public CraftingTable.@Nullable IO use(@NotNull CraftingTable.IO io, @Nullable Camera<?> camera,
-			@Nullable Player player) {
-		var ctx = new CraftingContext(this, camera, player);
-		var result = use(ctx, io);
-		if (result == null) {
-			ctx.failRecipe();
-			return null;
-		}
-		ctx.applyRecipe();
-		return result;
-	}
-
-	private @Nullable CraftingTable.IO use(CraftingContext ctx, @NotNull CraftingTable.IO io) {
+	public CraftingTableType.@Nullable IO use(@NotNull CraftingContext context, @NotNull CraftingTableType.IO io) {
+		context = context.withRecipe(this);
 		var inputs = io.inputs();
 		var maxInputs = inputs.getMaxIndex();
 		if (maxInputs < consumer.length) {
@@ -49,23 +38,45 @@ public class Recipe {
 			return null;
 		}
 
-		var inputsAfter = new CraftingTable.Inputs();
+		var inputsAfter = new CraftingTableType.Inputs();
 		for (int i = 0; i < consumer.length; i++) {
-			var result = consumer[i].consume(ctx, inputs.getInput(i));
+			var result = consumer[i].consume(context, inputs.getInput(i));
 			if (result == null) {
 				return null;
 			}
 			inputsAfter.addInput(result);
 		}
-		var outputsAfter = new CraftingTable.Outputs();
+		var outputsAfter = new CraftingTableType.Outputs();
 		for (int i = 0; i < producer.length; i++) {
-			var result = producer[i].produce(ctx, outputs.getOutput(i));
+			var result = producer[i].produce(context, outputs.getOutput(i));
 			if (result == null) {
 				return null;
 			}
 			outputsAfter.addOutput(result);
 		}
-		return new CraftingTable.IO(inputsAfter, outputsAfter);
+		return new CraftingTableType.IO(inputsAfter, outputsAfter);
+	}
+
+	public void onApply(Player user) {
+		onApplyListeners.removeIf(listener -> listener.onApply(user));
+	}
+
+	public interface OnApplyListener {
+		/**
+		 * 当配方应用成功时调用<br>
+		 * This method is called when the recipe is successfully applied
+		 *
+		 * @param user
+		 *            使用者<br>
+		 *            the user
+		 * @return true表示移除本监听器，false表示保留<br>
+		 *         true means remove this listener, false means keep it
+		 */
+		boolean onApply(@Nullable Player user);
+	}
+
+	public void addOnApply(OnApplyListener onApplyListener) {
+		onApplyListeners.add(onApplyListener);
 	}
 
 	public static Builder builder() {

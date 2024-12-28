@@ -6,6 +6,7 @@ import fun.polyvoxel.cui.crafting.producer.ShapelessProducer;
 import fun.polyvoxel.cui.crafting.producer.product.ExactProduct;
 import fun.polyvoxel.cui.layer.Layer;
 import fun.polyvoxel.cui.util.ItemStackAssertions;
+import fun.polyvoxel.cui.util.context.Context;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterAll;
@@ -14,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
-public class CraftingTableTest {
+public class CraftingTableTypeTest {
 	private static PlayerMock player;
 
 	@BeforeAll
@@ -37,7 +38,7 @@ public class CraftingTableTest {
 	 */
 	@Test
 	public void testWorkbench() {
-		var workbench = CraftingTable.builder().addInput(3, 3).addOutput(1, 3).mode(CraftingTable.Mode.MANUAL)
+		var workbench = CraftingTableType.builder().addInput(3, 3).addOutput(1, 3).mode(CraftingTableType.Mode.MANUAL)
 				.addRecipe(Recipe.builder()
 						.addConsumer(ShapedConsumer.builder().pattern("I I", "III", "III")
 								.set('I', new ExactIngredient(Material.IRON_INGOT)).build())
@@ -59,10 +60,10 @@ public class CraftingTableTest {
 								.set('I', new ExactIngredient(Material.IRON_INGOT)).build())
 						.addProducer(ShapelessProducer.builder().add(new ExactProduct(Material.IRON_LEGGINGS)).build())
 						.build())
-				.build();
+				.build().createInstance();
 
-		Layer inputLayer = workbench.generateInputLayer(0, null);
-		Layer outputLayer = workbench.generateOutputLayer(0, null);
+		Layer inputLayer = workbench.generateInputLayer(0);
+		Layer outputLayer = workbench.generateOutputLayer(0);
 		inputLayer.getSlot(0, 0).place(ItemStack.of(Material.IRON_INGOT, 1), null);
 		inputLayer.getSlot(0, 2).place(ItemStack.of(Material.IRON_INGOT, 1), null);
 		inputLayer.getSlot(1, 0).place(ItemStack.of(Material.IRON_INGOT, 4), null);
@@ -71,22 +72,22 @@ public class CraftingTableTest {
 		inputLayer.getSlot(2, 0).place(ItemStack.of(Material.IRON_INGOT, 4), null);
 		inputLayer.getSlot(2, 1).place(ItemStack.of(Material.IRON_INGOT, 1), null);
 		inputLayer.getSlot(2, 2).place(ItemStack.of(Material.IRON_INGOT, 4), null);
-		workbench.match(null, null);
-		workbench.apply(null);
-		workbench.match(null, null);
-		workbench.apply(null);
-		workbench.match(null, null);
-		workbench.apply(null);
-		workbench.match(null, null);
-		workbench.apply(null);
+		workbench.match(Context.background().withPlayer(player));
+		workbench.apply();
+		workbench.match(Context.background().withPlayer(player));
+		workbench.apply();
+		workbench.match(Context.background().withPlayer(player));
+		workbench.apply();
+		workbench.match(Context.background().withPlayer(player));
+		workbench.apply();
 		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_CHESTPLATE), outputLayer.getSlot(0, 0).get(),
 				"应当成功合成铁胸甲");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_HELMET), outputLayer.getSlot(0, 1).get(),
 				"应当成功合成铁头盔");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_BOOTS), outputLayer.getSlot(0, 2).get(), "应当成功合成铁靴子");
 		outputLayer.getSlot(0, 0).set(null, null);
-		workbench.match(null, null);
-		workbench.apply(null);
+		workbench.match(Context.background());
+		workbench.apply();
 		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_BOOTS), outputLayer.getSlot(0, 0).get(), "应当成功合成铁靴子");
 	}
 

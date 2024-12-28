@@ -1,12 +1,11 @@
 package fun.polyvoxel.cui.prebuilt;
 
-import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIRegisterEvent;
 import fun.polyvoxel.cui.layer.Layer;
 
 import fun.polyvoxel.cui.slot.Button;
 import fun.polyvoxel.cui.ui.*;
-import fun.polyvoxel.cui.util.Context;
+import fun.polyvoxel.cui.util.context.Context;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -50,12 +49,13 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 	}
 
 	private CUIInstance<CUIMonitor> getByCUIType(CUIType<?> type) {
-		return byType.computeIfAbsent(type, t -> this.type.createInstance(Context.BACKGROUND.withValue("cuiType", t)));
+		return byType.computeIfAbsent(type,
+				t -> this.type.createInstance(Context.background().withValue("cuiType", t)));
 	}
 
 	private CUIInstance<CUIMonitor> getByCUIInstance(CUIInstance<?> instance) {
 		return byInst.computeIfAbsent(instance,
-				i -> this.type.createInstance(Context.BACKGROUND.withValue("cuiInstance", i)));
+				i -> this.type.createInstance(Context.background().withValue("cuiInstance", i)));
 	}
 
 	private abstract static class InstanceHandler implements CUIInstanceHandler<CUIMonitor> {
@@ -86,12 +86,6 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 									.done())
 					.done();
 			refresh();
-			CUIPlugin.logger().warn("{} init", getClass().getSimpleName());
-		}
-
-		@Override
-		public void onDestroy() {
-			CUIPlugin.logger().warn("{} destroy", getClass().getSimpleName());
 		}
 
 		@Override

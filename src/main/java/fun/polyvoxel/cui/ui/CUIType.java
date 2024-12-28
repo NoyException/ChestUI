@@ -3,7 +3,7 @@ package fun.polyvoxel.cui.ui;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIDisplayEvent;
 import fun.polyvoxel.cui.serialize.SerializableChestUI;
-import fun.polyvoxel.cui.util.Context;
+import fun.polyvoxel.cui.util.context.Context;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -142,7 +142,7 @@ public final class CUIType<T extends ChestUI<T>> {
 	}
 
 	public @NotNull CUIInstance<T> createInstance() {
-		return createInstance(Context.BACKGROUND);
+		return createInstance(Context.background());
 	}
 
 	public @NotNull CUIInstance<T> createInstance(Context context) {

@@ -1,6 +1,7 @@
 package fun.polyvoxel.cui.prebuilt;
 
 import fun.polyvoxel.cui.crafting.CraftingTable;
+import fun.polyvoxel.cui.crafting.CraftingTableType;
 import fun.polyvoxel.cui.crafting.Recipe;
 import fun.polyvoxel.cui.crafting.consumer.ShapedConsumer;
 import fun.polyvoxel.cui.crafting.consumer.ShapelessConsumer;
@@ -12,7 +13,7 @@ import fun.polyvoxel.cui.crafting.producer.product.ExactProduct;
 import fun.polyvoxel.cui.layer.Layer;
 import fun.polyvoxel.cui.slot.Button;
 import fun.polyvoxel.cui.ui.*;
-import fun.polyvoxel.cui.util.Context;
+import fun.polyvoxel.cui.util.context.Context;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Boat;
@@ -25,14 +26,13 @@ import java.util.stream.Collectors;
 
 @CUI(name = "ew", singleton = true, icon = Material.CRAFTING_TABLE)
 public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
-	private CraftingTable craftingTable;
+	private CraftingTableType enhancedWorkbench;
 
 	@Override
 	public void onInitialize(CUIType<EnhancedWorkbench> type) {
 		var woods = Arrays.stream(Boat.Type.values()).map(Boat.Type::getMaterial)
 				.collect(Collectors.toUnmodifiableSet());
-		craftingTable = CraftingTable.builder().mode(CraftingTable.Mode.AUTO).addInput(5, 5).addOutput(5, 3)
-				.ioType(CraftingTable.IOType.CAMERA)
+		enhancedWorkbench = CraftingTableType.builder().mode(CraftingTableType.Mode.AUTO).addInput(5, 5).addOutput(5, 3)
 				// 木棍
 				.addRecipe(Recipe.builder().strict(true)
 						.addConsumer(ShapedConsumer.builder().strict(true).pattern("W", "W")
@@ -68,6 +68,7 @@ public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
 	}
 
 	private class InstanceHandler implements CUIInstanceHandler<EnhancedWorkbench> {
+
 		@Override
 		public void onInitialize(CUIInstance<EnhancedWorkbench> cui) {
 			cui.edit().layer(0, new Layer(5, 9).edit().column(5,
@@ -83,18 +84,18 @@ public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
 		}
 
 		@Override
-		public @NotNull fun.polyvoxel.cui.ui.CameraHandler<EnhancedWorkbench> createCameraHandler(Context context) {
-			return new CameraHandler();
-		}
+		public @NotNull CameraHandler<EnhancedWorkbench> createCameraHandler(Context context) {
+			return new CameraHandler<>() {
+				private final CraftingTable craftingTable = enhancedWorkbench.createInstance();
 
-		private class CameraHandler implements fun.polyvoxel.cui.ui.CameraHandler<EnhancedWorkbench> {
-			@Override
-			public void onInitialize(Camera<EnhancedWorkbench> camera) {
-				camera.edit().rowSize(5);
-				var inputLayer = craftingTable.generateInputLayer(0, camera);
-				var outputLayer = craftingTable.generateOutputLayer(0, camera).edit().marginLeft(6).done();
-				camera.edit().layer(-1, inputLayer).layer(-2, outputLayer).done();
-			}
+				@Override
+				public void onInitialize(Camera<EnhancedWorkbench> camera) {
+					camera.edit().rowSize(5);
+					var inputLayer = craftingTable.generateInputLayer(0);
+					var outputLayer = craftingTable.generateOutputLayer(0).edit().marginLeft(6).done();
+					camera.edit().layer(-1, inputLayer).layer(-2, outputLayer).done();
+				}
+			};
 		}
 	}
 }

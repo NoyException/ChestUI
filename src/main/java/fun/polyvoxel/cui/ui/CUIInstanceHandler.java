@@ -1,6 +1,6 @@
 package fun.polyvoxel.cui.ui;
 
-import fun.polyvoxel.cui.util.Context;
+import fun.polyvoxel.cui.util.context.Context;
 import org.jetbrains.annotations.NotNull;
 
 /**

@@ -1,9 +1,9 @@
 package fun.polyvoxel.cui.crafting.consumer;
 
 import fun.polyvoxel.cui.crafting.CraftingContext;
-import fun.polyvoxel.cui.crafting.Recipe;
 import fun.polyvoxel.cui.crafting.consumer.ingredient.ExactIngredient;
 import fun.polyvoxel.cui.util.ItemStackAssertions;
+import fun.polyvoxel.cui.util.context.Context;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterAll;
@@ -16,7 +16,7 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 public class ShapedConsumerTest {
 	private static PlayerMock player;
 	private static CraftingContext createCtx() {
-		return new CraftingContext(Recipe.builder().build(), null, player);
+		return CraftingContext.background().withContext(Context.background().withPlayer(player));
 	}
 
 	@BeforeAll

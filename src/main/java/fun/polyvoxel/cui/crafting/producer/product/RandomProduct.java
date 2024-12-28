@@ -60,8 +60,9 @@ public class RandomProduct implements Product {
 	}
 
 	@Override
-	public @Nullable Result produce(@NotNull CraftingContext ctx, @Nullable ItemStack itemStack, boolean allowSpill) {
-		Player player = ctx.getPlayer();
+	public @Nullable Result produce(@NotNull CraftingContext context, @Nullable ItemStack itemStack,
+			boolean allowSpill) {
+		Player player = context.player();
 		if (player != null) {
 			var cached = cache.get(player);
 			if (cached != null) {
@@ -71,20 +72,29 @@ public class RandomProduct implements Product {
 						return null;
 					}
 				}
-				ctx.onRecipeApplied(() -> cache.remove(player));
 				return new Result(result.placed(), result.remaining());
 			}
 		}
+		// 产生随机结果
 		int r = random.nextInt(sum);
 		var entry = products.floorEntry(r);
 		if (entry == null) {
 			CUIPlugin.logger().warn("RandomProduct: No product found for random number {}", r);
 			return null;
 		}
+		cache.put(player, entry.getValue());
+		// 只有当配方使用成功时，才会清除缓存
+		context.recipe().addOnApply(user -> {
+			if (user == player) {
+				cache.remove(player);
+				return true;
+			}
+			return false;
+		});
+
 		var result = ItemStacks.place(itemStack, entry.getValue(), ignoreAmountLimit);
 		if (result.remaining() != null) {
 			if (!allowSpill) {
-				ctx.onRecipeFailed(() -> cache.put(player, entry.getValue()));
 				return null;
 			}
 		}

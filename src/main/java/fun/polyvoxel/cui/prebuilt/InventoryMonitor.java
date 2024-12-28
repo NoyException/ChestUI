@@ -5,7 +5,7 @@ import fun.polyvoxel.cui.layer.Layer;
 import fun.polyvoxel.cui.slot.Button;
 import fun.polyvoxel.cui.slot.Storage;
 import fun.polyvoxel.cui.ui.*;
-import fun.polyvoxel.cui.util.Context;
+import fun.polyvoxel.cui.util.context.Context;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;

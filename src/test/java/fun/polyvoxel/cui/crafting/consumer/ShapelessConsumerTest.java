@@ -1,10 +1,10 @@
 package fun.polyvoxel.cui.crafting.consumer;
 
 import fun.polyvoxel.cui.crafting.CraftingContext;
-import fun.polyvoxel.cui.crafting.Recipe;
 import fun.polyvoxel.cui.crafting.consumer.ingredient.ExactIngredient;
 import fun.polyvoxel.cui.crafting.consumer.ingredient.MetaMatchedIngredient;
 import fun.polyvoxel.cui.util.ItemStackAssertions;
+import fun.polyvoxel.cui.util.context.Context;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -20,7 +20,7 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 public class ShapelessConsumerTest {
 	private static PlayerMock player;
 	private static CraftingContext createCtx() {
-		return new CraftingContext(Recipe.builder().build(), null, player);
+		return CraftingContext.background().withContext(Context.background().withPlayer(player));
 	}
 
 	@BeforeAll

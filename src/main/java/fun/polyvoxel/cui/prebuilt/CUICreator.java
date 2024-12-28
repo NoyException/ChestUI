@@ -1,7 +1,7 @@
 package fun.polyvoxel.cui.prebuilt;
 
 import fun.polyvoxel.cui.ui.*;
-import fun.polyvoxel.cui.util.Context;
+import fun.polyvoxel.cui.util.context.Context;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
