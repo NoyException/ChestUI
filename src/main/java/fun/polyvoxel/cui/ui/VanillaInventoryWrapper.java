@@ -24,7 +24,7 @@ public class VanillaInventoryWrapper implements Viewable {
 		if (!stack.empty()) {
 			var parent = stack.peek();
 			if (parent != null) {
-				parent.switchOut(viewer);
+				parent.notifySwitchOut(viewer);
 			}
 		}
 		stack.push(this);
@@ -44,7 +44,7 @@ public class VanillaInventoryWrapper implements Viewable {
 			throw new RuntimeException("Inventory not match");
 		}
 		if (!stack.empty()) {
-			stack.peek().switchBack(viewer);
+			stack.peek().notifySwitchBack(viewer);
 		}
 
 		if (viewer.getOpenInventory().getTopInventory() == inventory) {
@@ -54,11 +54,17 @@ public class VanillaInventoryWrapper implements Viewable {
 	}
 
 	@Override
-	public void switchOut(Player viewer) {
+	public void notifySwitchOut(Player viewer) {
 	}
 
 	@Override
-	public void switchBack(Player viewer) {
-		viewer.openInventory(inventory);
+	public void notifySwitchBack(Player viewer) {
+	}
+
+	@Override
+	public void checkOpen(Player viewer) {
+		if (viewer.getOpenInventory().getTopInventory() != inventory) {
+			viewer.openInventory(inventory);
+		}
 	}
 }

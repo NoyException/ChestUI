@@ -187,7 +187,7 @@ public final class Camera<T extends ChestUI<T>> implements Viewable {
 	}
 
 	@Override
-	public void switchOut(Player viewer) {
+	public void notifySwitchOut(Player viewer) {
 		viewers.remove(viewer);
 	}
 
@@ -210,7 +210,7 @@ public final class Camera<T extends ChestUI<T>> implements Viewable {
 		if (!stack.empty()) {
 			var parent = stack.peek();
 			if (parent != null) {
-				parent.switchOut(viewer);
+				parent.notifySwitchOut(viewer);
 			}
 		}
 		stack.push(this);
@@ -218,7 +218,7 @@ public final class Camera<T extends ChestUI<T>> implements Viewable {
 	}
 
 	@Override
-	public void switchBack(Player viewer) {
+	public void notifySwitchBack(Player viewer) {
 		viewers.add(viewer);
 	}
 
@@ -252,7 +252,7 @@ public final class Camera<T extends ChestUI<T>> implements Viewable {
 			throw new RuntimeException("Camera not match");
 		}
 		if (!stack.empty()) {
-			stack.peek().switchBack(viewer);
+			stack.peek().notifySwitchBack(viewer);
 		}
 
 		keepAliveCount.compute(viewer, (player, count) -> {
@@ -373,19 +373,25 @@ public final class Camera<T extends ChestUI<T>> implements Viewable {
 			dirty = true;
 		} else {
 			sync(false);
-
-			// openInventory可能会触发事件，从而导致ConcurrentModificationException
-			new ArrayList<>(viewers).forEach(player -> {
-				if (player.getOpenInventory().getTopInventory() != inventory) {
-					player.openInventory(inventory);
-				}
-			});
 		}
 
 		for (LayerWrapper wrapper : layers.values()) {
 			if (wrapper.active) {
 				wrapper.layer.tickEnd();
 			}
+		}
+	}
+
+	@Override
+	public void checkOpen(Player viewer) {
+		if (state != State.READY) {
+			return;
+		}
+		if (!viewers.contains(viewer)) {
+			return;
+		}
+		if (viewer.getOpenInventory().getTopInventory() != inventory) {
+			viewer.openInventory(inventory);
 		}
 	}
 

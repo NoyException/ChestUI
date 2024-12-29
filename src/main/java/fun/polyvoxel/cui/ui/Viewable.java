@@ -13,8 +13,11 @@ public interface Viewable {
 	boolean close(Player viewer, boolean force);
 
 	@ApiStatus.Internal
-	void switchOut(Player viewer);
+	void notifySwitchOut(Player viewer);
 
 	@ApiStatus.Internal
-	void switchBack(Player viewer);
+	void notifySwitchBack(Player viewer);
+
+	@ApiStatus.Internal
+	void checkOpen(Player viewer);
 }

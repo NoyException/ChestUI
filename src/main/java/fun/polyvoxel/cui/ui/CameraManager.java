@@ -75,4 +75,12 @@ public final class CameraManager {
 		byPlayer.remove(player);
 		return true;
 	}
+
+	public void checkAll() {
+		byPlayer.forEach((player, stack) -> {
+			if (stack.empty())
+				return;
+			stack.peek().checkOpen(player);
+		});
+	}
 }

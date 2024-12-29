@@ -84,6 +84,7 @@ public final class CUIManager implements Listener {
 
 	private void tickEnd() {
 		cuiTypes.values().forEach(CUIType::tickEnd);
+		plugin.getCameraManager().checkAll();
 	}
 
 	public void setup() {
