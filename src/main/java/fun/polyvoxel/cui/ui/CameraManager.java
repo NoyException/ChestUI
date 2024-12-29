@@ -3,6 +3,7 @@ package fun.polyvoxel.cui.ui;
 import fun.polyvoxel.cui.CUIPlugin;
 import com.google.common.collect.HashBiMap;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -10,7 +11,7 @@ import java.util.function.Consumer;
 public final class CameraManager {
 	private final CUIPlugin plugin;
 	private final HashBiMap<String, Camera<?>> cameras = HashBiMap.create();
-	private final Map<Player, Stack<Camera<?>>> byPlayer = new HashMap<>();
+	private final Map<Player, Stack<Viewable>> byPlayer = new HashMap<>();
 
 	public CameraManager(CUIPlugin plugin) {
 		this.plugin = plugin;
@@ -24,8 +25,15 @@ public final class CameraManager {
 		cameras.inverse().remove(camera);
 	}
 
-	Stack<Camera<?>> getCameraStack(Player player) {
+	Stack<Viewable> getViewingStack(Player player) {
 		return byPlayer.computeIfAbsent(player, p -> new Stack<>());
+	}
+
+	public Viewable getViewing(Player player) {
+		var stack = byPlayer.computeIfAbsent(player, p -> new Stack<>());
+		if (stack.empty())
+			return null;
+		return stack.peek();
 	}
 
 	public void forEachCamera(Consumer<? super Camera<?>> action) {
@@ -37,14 +45,15 @@ public final class CameraManager {
 	}
 
 	public Camera<?> getCamera(Player player) {
-		var stack = byPlayer.computeIfAbsent(player, p -> new Stack<>());
-		if (stack.empty())
-			return null;
-		return stack.peek();
+		return getViewing(player) instanceof Camera<?> camera ? camera : null;
 	}
 
 	public Camera<?> getCamera(String name) {
 		return cameras.get(name);
+	}
+
+	public VanillaInventoryWrapper wrapInventory(Inventory inventory) {
+		return new VanillaInventoryWrapper(this, inventory);
 	}
 
 	public boolean closeTop(Player player, boolean force) {

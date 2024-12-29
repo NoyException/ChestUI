@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-public final class Camera<T extends ChestUI<T>> {
+public final class Camera<T extends ChestUI<T>> implements Viewable {
 	private final CameraManager manager;
 	private final CUIInstance<T> cuiInstance;
 	private final CameraHandler<T> handler;
@@ -186,8 +186,9 @@ public final class Camera<T extends ChestUI<T>> {
 		return new Position(row, column);
 	}
 
-	public boolean open(Player viewer) {
-		return open(viewer, false);
+	@Override
+	public void switchOut(Player viewer) {
+		viewers.remove(viewer);
 	}
 
 	public boolean open(Player viewer, boolean asChild) {
@@ -205,16 +206,20 @@ public final class Camera<T extends ChestUI<T>> {
 		}
 		viewers.add(viewer);
 		keepAliveCount.compute(viewer, (player, count) -> count == null ? 1 : count + 1);
-		var stack = manager.getCameraStack(viewer);
+		var stack = manager.getViewingStack(viewer);
 		if (!stack.empty()) {
 			var parent = stack.peek();
 			if (parent != null) {
-				// 切换出去
-				parent.viewers.remove(viewer);
+				parent.switchOut(viewer);
 			}
 		}
 		stack.push(this);
 		return true;
+	}
+
+	@Override
+	public void switchBack(Player viewer) {
+		viewers.add(viewer);
 	}
 
 	/**
@@ -238,7 +243,7 @@ public final class Camera<T extends ChestUI<T>> {
 		}
 
 		viewers.remove(viewer);
-		var stack = manager.getCameraStack(viewer);
+		var stack = manager.getViewingStack(viewer);
 		if (stack == null || stack.empty()) {
 			return false;
 		}
@@ -247,8 +252,7 @@ public final class Camera<T extends ChestUI<T>> {
 			throw new RuntimeException("Camera not match");
 		}
 		if (!stack.empty()) {
-			// 切换回来
-			stack.peek().viewers.add(viewer);
+			stack.peek().switchBack(viewer);
 		}
 
 		keepAliveCount.compute(viewer, (player, count) -> {
@@ -273,18 +277,18 @@ public final class Camera<T extends ChestUI<T>> {
 		if (count <= 0) {
 			return false;
 		}
-		var stack = manager.getCameraStack(viewer);
+		var stack = manager.getViewingStack(viewer);
 		if (stack == null || stack.empty()) {
 			return false;
 		}
 		while (count > 0) {
 			try {
-				var camera = stack.peek();
-				var success = camera.close(viewer, force);
+				var viewable = stack.peek();
+				var success = viewable.close(viewer, force);
 				if (!success) {
 					return false;
 				}
-				if (camera == this) {
+				if (viewable == this) {
 					count--;
 				}
 			} catch (EmptyStackException e) {
@@ -307,7 +311,7 @@ public final class Camera<T extends ChestUI<T>> {
 		}
 		state = State.DESTROYING;
 		handler.onDestroy();
-		new ArrayList<>(viewers).forEach(player -> closeCascade(player, true));
+		new ArrayList<>(keepAliveCount.keySet()).forEach(player -> closeCascade(player, true));
 		manager.unregisterCamera(this);
 		state = State.DESTROYED;
 	}

@@ -219,8 +219,8 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 							() -> Button.builder().material(Material.ENDER_CHEST)
 									.displayName(Component.text("Ender Chest", NamedTextColor.DARK_PURPLE))
 									.clickHandler(event -> {
-										event.getCamera().getManager().closeAll(event.getPlayer(), true);
-										event.getPlayer().openInventory(player.getEnderChest());
+										event.getCamera().getManager().wrapInventory(player.getEnderChest())
+												.open(event.getPlayer(), true);
 									}).build())
 					.slot(0, 2,
 							() -> Button.builder().material(Material.CRAFTING_TABLE)

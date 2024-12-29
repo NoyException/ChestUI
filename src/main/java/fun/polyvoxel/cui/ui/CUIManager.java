@@ -276,7 +276,7 @@ public final class CUIManager implements Listener {
 		tickEnd();
 	}
 
-	@EventHandler(priority = EventPriority.HIGHEST)
+	@EventHandler(priority = EventPriority.MONITOR)
 	public void onClose(InventoryCloseEvent event) {
 		if (!(event.getPlayer() instanceof Player player))
 			return;
