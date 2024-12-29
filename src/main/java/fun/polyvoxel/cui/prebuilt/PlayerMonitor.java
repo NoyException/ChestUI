@@ -18,6 +18,7 @@ import org.bukkit.Material;
 import org.bukkit.WeatherType;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Pose;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionType;
@@ -82,43 +83,6 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 				p -> type.createInstance(Context.background().withPlayer(p).withValue("monitor", "armor")));
 	}
 
-	private Button.Builder createButtonForPlayer(Player player) {
-		var health = String.format("%.1f", player.getHealth());
-		var maxHealth = String.format("%.1f", player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
-		var lore = new ArrayList<Component>();
-		if (player.isOp()) {
-			lore.add(Component.text("- ", NamedTextColor.GRAY)
-					.append(Component.text("[OP]", NamedTextColor.RED, TextDecoration.BOLD)));
-		}
-		if (player.getAllowFlight()) {
-			lore.add(Component.text("- ", NamedTextColor.GRAY).append(Component.text("Allow Fly", NamedTextColor.RED)));
-		}
-		lore.addAll(List.of(
-				Component.text("- GameMode: ", NamedTextColor.GRAY)
-						.append(Component.text(player.getGameMode().name(), NamedTextColor.RED)),
-				Component.text("- UUID: ", NamedTextColor.GRAY)
-						.append(Component.text(player.getUniqueId().toString(), NamedTextColor.AQUA)),
-				Component.text("- Name: ", NamedTextColor.GRAY)
-						.append(Component.text(player.getName(), NamedTextColor.AQUA)),
-				Component.text("- World: ", NamedTextColor.GRAY)
-						.append(Component.text(player.getWorld().getName(), NamedTextColor.AQUA)),
-				Component.text("- Location: ", NamedTextColor.GRAY)
-						.append(Component.text(player.getLocation().getBlockX(), NamedTextColor.AQUA))
-						.append(Component.text(","))
-						.append(Component.text(player.getLocation().getBlockY(), NamedTextColor.AQUA))
-						.append(Component.text(","))
-						.append(Component.text(player.getLocation().getBlockZ(), NamedTextColor.AQUA)),
-				Component.text("- Health: ", NamedTextColor.GRAY).append(Component.text(health, NamedTextColor.AQUA))
-						.append(Component.text("/")).append(Component.text(maxHealth, NamedTextColor.AQUA)),
-				Component.text("- Food: ", NamedTextColor.GRAY)
-						.append(Component.text(player.getFoodLevel(), NamedTextColor.AQUA)),
-				Component.text("- Level: ", NamedTextColor.GRAY)
-						.append(Component.text(player.getLevel(), NamedTextColor.AQUA)),
-				Component.text("- Exp: ", NamedTextColor.GRAY)
-						.append(Component.text(player.getExp(), NamedTextColor.AQUA))));
-		return Button.builder().skull(player).displayName(player.displayName()).lore(lore);
-	}
-
 	private class MonitorAllPlayersHandler implements CUIInstanceHandler<PlayerMonitor> {
 		protected CUIInstance<PlayerMonitor> cui;
 		protected int size;
@@ -167,12 +131,50 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 			}).toArray(Player[]::new);
 			size = players.length;
 
-			cui.edit().layer(1, new Layer(0, 9).edit().marginTop(1)
-					.tile(size, true, index -> createButtonForPlayer(players[index]).clickHandler(cuiClickEvent -> {
-						if (cuiClickEvent.getClickType().isLeftClick()) {
-							getByPlayer(players[index]).createCamera().open(cuiClickEvent.getPlayer(), true);
-						}
-					}).build()).done()).done();
+			cui.edit().layer(1, new Layer(0, 9).edit().marginTop(1).tile(size, true, index -> {
+				var player = players[index];
+				var health = String.format("%.1f", player.getHealth());
+				var maxHealth = String.format("%.1f", player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+				var lore = new ArrayList<Component>();
+				if (player.isOp()) {
+					lore.add(Component.text("- ", NamedTextColor.GRAY)
+							.append(Component.text("[OP]", NamedTextColor.RED, TextDecoration.BOLD)));
+				}
+				if (player.getAllowFlight()) {
+					lore.add(Component.text("- ", NamedTextColor.GRAY)
+							.append(Component.text("Allow Fly", NamedTextColor.RED)));
+				}
+				lore.addAll(List.of(
+						Component.text("- GameMode: ", NamedTextColor.GRAY)
+								.append(Component.text(player.getGameMode().name(), NamedTextColor.RED)),
+						Component.text("- UUID: ", NamedTextColor.GRAY)
+								.append(Component.text(player.getUniqueId().toString(), NamedTextColor.AQUA)),
+						Component.text("- Name: ", NamedTextColor.GRAY)
+								.append(Component.text(player.getName(), NamedTextColor.AQUA)),
+						Component.text("- World: ", NamedTextColor.GRAY)
+								.append(Component.text(player.getWorld().getName(), NamedTextColor.AQUA)),
+						Component.text("- Location: ", NamedTextColor.GRAY)
+								.append(Component.text(player.getLocation().getBlockX(), NamedTextColor.AQUA))
+								.append(Component.text(","))
+								.append(Component.text(player.getLocation().getBlockY(), NamedTextColor.AQUA))
+								.append(Component.text(","))
+								.append(Component.text(player.getLocation().getBlockZ(), NamedTextColor.AQUA)),
+						Component.text("- Health: ", NamedTextColor.GRAY)
+								.append(Component.text(health, NamedTextColor.AQUA)).append(Component.text("/"))
+								.append(Component.text(maxHealth, NamedTextColor.AQUA)),
+						Component.text("- Food: ", NamedTextColor.GRAY)
+								.append(Component.text(player.getFoodLevel(), NamedTextColor.AQUA)),
+						Component.text("- Level: ", NamedTextColor.GRAY)
+								.append(Component.text(player.getLevel(), NamedTextColor.AQUA)),
+						Component.text("- Exp: ", NamedTextColor.GRAY)
+								.append(Component.text(player.getExp(), NamedTextColor.AQUA))));
+				return Button.builder().skull(player).displayName(player.displayName()).lore(lore)
+						.clickHandler(cuiClickEvent -> {
+							if (cuiClickEvent.getClickType().isLeftClick()) {
+								getByPlayer(player).createCamera().open(cuiClickEvent.getPlayer(), true);
+							}
+						}).build();
+			}).done()).done();
 		}
 
 		@Override
@@ -196,13 +198,13 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 
 		@Override
 		public void onInitialize(CUIInstance<PlayerMonitor> cui) {
-			this.operatorsLayer = new Layer(4, 42).edit().marginTop(2).marginLeft(2).done();
+			this.operatorsLayer = new Layer(4, 49).edit().marginTop(2).marginLeft(2).done();
 			this.cui = cui.edit().layer(0, new Layer(6, 9).edit().relative(true).row(1,
 					column -> Button.builder().material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build())
 					.column(1,
-							row -> Button
-									.builder().material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build())
-					.slot(0, 0, () -> createButtonForPlayer(player).build())
+							row -> Button.builder().material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ")
+									.build())
+					.slot(0, 0, () -> Button.builder().skull(player).displayName(player.displayName()).build())
 					.slot(2, 0,
 							() -> Button.builder().material(Material.BUNDLE)
 									.displayName(Component.text("Backpack", TextColor.color(140, 81, 25)))
@@ -215,7 +217,7 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 							}).build())
 					.slot(4, 0,
 							() -> Button.builder().material(Material.ENDER_CHEST)
-									.displayName(Component.text("EnderChest", NamedTextColor.DARK_PURPLE))
+									.displayName(Component.text("Ender Chest", NamedTextColor.DARK_PURPLE))
 									.clickHandler(event -> {
 										event.getCamera().getManager().closeAll(event.getPlayer(), true);
 										event.getPlayer().openInventory(player.getEnderChest());
@@ -264,6 +266,14 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 									cuiClickEvent.getCamera().edit().position(new Position(0, 35));
 								}
 							}).build())
+					.slot(0, 8,
+							() -> Button.builder().material(Material.EXPERIENCE_BOTTLE)
+									.displayName(Component.text("Level and Exp", NamedTextColor.GRAY))
+									.clickHandler(cuiClickEvent -> {
+										if (cuiClickEvent.getClickType().isLeftClick()) {
+											cuiClickEvent.getCamera().edit().position(new Position(0, 42));
+										}
+									}).build())
 					.done()).layer(1, operatorsLayer).done();
 
 			addButton(0, 0,
@@ -309,6 +319,29 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 						}
 						player.addPassenger(event.getPlayer());
 					}), () -> !player.getPassengers().isEmpty());
+			addButton(0, 8, Button.builder().material(Material.TURTLE_HELMET)
+					.displayName(Component.text("Eject", NamedTextColor.GREEN)).clickHandler(event -> player.eject()),
+					() -> player.getPassengers().isEmpty());
+			addButton(0, 9,
+					Button.builder().material(Material.MINECART)
+							.displayName(Component.text("Leave Vehicle", NamedTextColor.WHITE))
+							.clickHandler(event -> player.leaveVehicle()),
+					() -> !player.isInsideVehicle());
+			addButton(0, 10,
+					Button.builder().material(Material.LIGHTNING_ROD)
+							.displayName(Component.text("Summon Lightning", NamedTextColor.YELLOW)).clickHandler(
+									event -> player.getWorld().strikeLightning(player.getLocation())),
+					() -> null);
+			addButton(0, 11,
+					Button.builder().material(Material.TNT).displayName(Component.text("Explode", NamedTextColor.RED))
+							.clickHandler(
+									event -> player.getWorld().createExplosion(player.getLocation(), 4, false, false)),
+					() -> null);
+			addButton(0, 12,
+					Button.builder().material(Material.ARROW)
+							.displayName(Component.text("Arrows in Body", NamedTextColor.WHITE)).clickHandler(
+									event -> player.setArrowsInBody(player.getArrowsInBody() == 0 ? 64 : 0, false)),
+					() -> player.getArrowsInBody() > 0);
 
 			addButton(1, 0,
 					Button.builder().material(Material.GRASS_BLOCK)
@@ -333,7 +366,7 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 
 			addButton(2, 0,
 					Button.builder().material(Material.NETHER_STAR)
-							.displayName(Component.text("OP", NamedTextColor.GOLD))
+							.displayName(Component.text("OP", NamedTextColor.GOLD, TextDecoration.BOLD))
 							.clickHandler(event -> player.setOp(!player.isOp())),
 					player::isOp);
 			addButton(2, 1,
@@ -346,6 +379,16 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 			addButton(2, 3, Button.builder().material(Material.NETHERITE_SWORD)
 					.displayName(Component.text("Kill", NamedTextColor.RED)).clickHandler(event -> player.setHealth(0)),
 					player::isDead);
+			addButton(2, 4,
+					Button.builder().material(Material.CHEST)
+							.displayName(Component.text("Clear Inventory", NamedTextColor.RED)).clickHandler(
+									event -> player.getInventory().clear()),
+					() -> player.getInventory().isEmpty());
+			addButton(2, 5,
+					Button.builder().material(Material.ENDER_CHEST)
+							.displayName(Component.text("Clear Ender Chest", NamedTextColor.RED)).clickHandler(
+									event -> player.getEnderChest().clear()),
+					() -> player.getEnderChest().isEmpty());
 
 			addButton(3, 0,
 					Button.builder().material(Material.COMMAND_BLOCK)
@@ -389,6 +432,82 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 							.displayName(Component.text("Downfall", NamedTextColor.AQUA))
 							.clickHandler(event -> player.setPlayerWeather(WeatherType.DOWNFALL)),
 					() -> player.getPlayerWeather() == WeatherType.DOWNFALL);
+
+			addButton(5, 0,
+					Button.builder().material(Material.COMMAND_BLOCK)
+							.displayName(Component.text("Reset", NamedTextColor.WHITE))
+							.clickHandler(event -> player.setPose(Pose.STANDING, false)),
+					() -> player.getPose() == Pose.STANDING && !player.hasFixedPose());
+			addButton(5, 1,
+					Button.builder().material(Material.ELYTRA)
+							.displayName(Component.text("Fall Flying", NamedTextColor.AQUA))
+							.clickHandler(event -> player.setPose(Pose.FALL_FLYING, true)),
+					() -> player.getPose() == Pose.FALL_FLYING && player.hasFixedPose());
+			addButton(5, 2,
+					Button.builder().material(Material.WHITE_BED)
+							.displayName(Component.text("Sleeping", NamedTextColor.GRAY))
+							.clickHandler(event -> player.setPose(Pose.SLEEPING, true)),
+					() -> player.getPose() == Pose.SLEEPING && player.hasFixedPose());
+			addButton(5, 3,
+					Button.builder().material(Material.WATER_BUCKET)
+							.displayName(Component.text("Swimming", NamedTextColor.BLUE))
+							.clickHandler(event -> player.setPose(Pose.SWIMMING, true)),
+					() -> player.getPose() == Pose.SWIMMING && player.hasFixedPose());
+			addButton(5, 4,
+					Button.builder().material(Material.TRIDENT)
+							.displayName(Component.text("Spin Attack", NamedTextColor.AQUA))
+							.clickHandler(event -> player.setPose(Pose.SPIN_ATTACK, true)),
+					() -> player.getPose() == Pose.SPIN_ATTACK && player.hasFixedPose());
+			addButton(5, 5,
+					Button.builder().material(Material.SCULK_SENSOR)
+							.displayName(Component.text("Sneaking", NamedTextColor.DARK_GRAY))
+							.clickHandler(event -> player.setPose(Pose.SNEAKING, true)),
+					() -> player.getPose() == Pose.SNEAKING && player.hasFixedPose());
+			addButton(5, 6,
+					Button.builder().material(Material.SLIME_BLOCK)
+							.displayName(Component.text("Long Jumping", NamedTextColor.GREEN))
+							.clickHandler(event -> player.setPose(Pose.LONG_JUMPING, true)),
+					() -> player.getPose() == Pose.LONG_JUMPING && player.hasFixedPose());
+			addButton(5, 7,
+					Button.builder().material(Material.SKELETON_SKULL)
+							.displayName(Component.text("Dying", NamedTextColor.RED))
+							.clickHandler(event -> player.setPose(Pose.DYING, true)),
+					() -> player.getPose() == Pose.DYING && player.hasFixedPose());
+			addButton(5, 8,
+					Button.builder().material(Material.MINECART)
+							.displayName(Component.text("Sitting", NamedTextColor.GRAY))
+							.clickHandler(event -> player.setPose(Pose.SITTING, true)),
+					() -> player.getPose() == Pose.SITTING && player.hasFixedPose());
+			addButton(5, 9,
+					Button.builder().material(Material.BOW).displayName(Component.text("Shooting", NamedTextColor.GRAY))
+							.clickHandler(event -> player.setPose(Pose.SHOOTING, true)),
+					() -> player.getPose() == Pose.SHOOTING && player.hasFixedPose());
+
+			addButton(6, 0, Button.builder().material(Material.GLASS_BOTTLE)
+					.displayName(Component.text("Clear Level and Exp", NamedTextColor.GRAY)).clickHandler(event -> {
+						player.setLevel(0);
+						player.setExp(0);
+					}), () -> player.getLevel() == 0 && player.getExp() == 0);
+			addButton(6, 1,
+					Button.builder().material(Material.DRAGON_BREATH)
+							.displayName(Component.text("Reduce 10 Levels", NamedTextColor.DARK_RED))
+							.clickHandler(event -> player.setLevel(player.getLevel() - 10)),
+					() -> null);
+			addButton(6, 2,
+					Button.builder().material(Material.DRAGON_BREATH)
+							.displayName(Component.text("Reduce Level", NamedTextColor.RED))
+							.clickHandler(event -> player.setLevel(player.getLevel() - 1)),
+					() -> null);
+			addButton(6, 3,
+					Button.builder().material(Material.EXPERIENCE_BOTTLE)
+							.displayName(Component.text("Increase Level", NamedTextColor.GREEN))
+							.clickHandler(event -> player.setLevel(player.getLevel() + 1)),
+					() -> null);
+			addButton(6, 4,
+					Button.builder().material(Material.EXPERIENCE_BOTTLE)
+							.displayName(Component.text("Increase 10 Levels", NamedTextColor.DARK_GREEN))
+							.clickHandler(event -> player.setLevel(player.getLevel() + 10)),
+					() -> null);
 		}
 
 		@Override
