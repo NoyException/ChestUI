@@ -24,15 +24,14 @@ import java.util.Map;
 @CUI(name = "monitor", icon = Material.BARRIER)
 public class CUIMonitor implements ChestUI<CUIMonitor> {
 	private CUIType<CUIMonitor> type;
-	private CUIInstance<CUIMonitor> main;
+	private CUIInstance<CUIMonitor> mainInstance;
 	private final Map<CUIType<?>, CUIInstance<CUIMonitor>> byType = new HashMap<>();
 	private final Map<CUIInstance<?>, CUIInstance<CUIMonitor>> byInst = new HashMap<>();
 
 	@Override
 	public void onInitialize(CUIType<CUIMonitor> type) {
 		this.type = type.edit().defaultTitle(Component.text("CUI Monitor", NamedTextColor.RED))
-				.triggerByDisplay((cuiType, player, asChild) -> main.createCamera()).done();
-		main = type.createInstance();
+				.triggerByDisplay((cuiType, player, asChild) -> getMainInstance().createCamera()).done();
 	}
 
 	@Override
@@ -46,6 +45,13 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 			return new MonitorCUIInstanceHandler(cuiInstance);
 		}
 		return new MainHandler();
+	}
+
+	private CUIInstance<CUIMonitor> getMainInstance() {
+		if (mainInstance == null) {
+			mainInstance = type.createInstance();
+		}
+		return mainInstance;
 	}
 
 	private CUIInstance<CUIMonitor> getByCUIType(CUIType<?> type) {
@@ -108,13 +114,17 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 		@Override
 		public void onInitialize(CUIInstance<CUIMonitor> cui) {
 			super.onInitialize(cui);
-			cui.edit().keepAlive(true).done();
 			Bukkit.getPluginManager().registerEvents(new Listener() {
 				@EventHandler
 				public void onRegister(CUIRegisterEvent<?> event) {
 					refresh();
 				}
 			}, cui.getCUIPlugin());
+		}
+
+		@Override
+		public void onDestroy() {
+			mainInstance = null;
 		}
 
 		@Override
@@ -125,8 +135,16 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 
 			cui.edit().layer(1, new Layer(0, 9).edit().marginTop(1).tile(size, true, index -> {
 				if (index == 0) {
-					return Button.builder().material(Material.BARRIER).displayName("Change mode")
-							.lore("To be implemented...").build();
+					return Button.builder().material(Material.WRITTEN_BOOK)
+							.displayName(Component.text("About", NamedTextColor.GOLD))
+							.lore(Component.text("This is a monitor for ChestUI"),
+									Component.text("You can manage all registered CUI types,"),
+									Component.text("instances and cameras here"),
+									Component.text("---", NamedTextColor.GRAY),
+									Component.text("Developed by PolyVoxel", NamedTextColor.GREEN),
+									Component.text("Maintained by NoyException", NamedTextColor.GREEN),
+									Component.text("GitHub: https://github.com/PolyVoxel/ChestUI", NamedTextColor.BLUE))
+							.build();
 				}
 				var cuiType = cuiTypes.get(index - 1);
 				var lore = new ArrayList<Component>(List.of(Component.text("Left click to manage")));
@@ -141,7 +159,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 					lore.add(Component.text("- ", NamedTextColor.GRAY)
 							.append(Component.text("Loaded from json", NamedTextColor.BLUE)));
 				} else if (cuiType.getPlugin() != null) {
-					lore.add(Component.text("- ", NamedTextColor.GRAY).append(Component.text("Registered by plugin: "))
+					lore.add(Component.text("- Registered by plugin: ", NamedTextColor.GRAY)
 							.append(Component.text(cuiType.getPlugin().getName(), NamedTextColor.AQUA)));
 				}
 				lore.addAll(List.of(

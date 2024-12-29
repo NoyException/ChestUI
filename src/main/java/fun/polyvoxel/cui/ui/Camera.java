@@ -58,6 +58,10 @@ public final class Camera<T extends ChestUI<T>> {
 		state = State.READY;
 	}
 
+	public CameraManager getManager() {
+		return manager;
+	}
+
 	public CUIInstance<T> getCUIInstance() {
 		return cuiInstance;
 	}
@@ -631,7 +635,7 @@ public final class Camera<T extends ChestUI<T>> {
 			return Camera.this;
 		}
 
-		public Editor setPosition(Position position) {
+		public Editor position(Position position) {
 			Camera.this.position = position;
 			dirty = true;
 			return this;

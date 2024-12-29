@@ -18,15 +18,15 @@ public class InventoryMonitorTest {
 	private static CUIPlugin plugin;
 	private static PlayerMock a, b;
 	private static PlayerSimulation as, bs;
-	private static CUIInstance<InventoryMonitor> cui;
-	private static Camera<InventoryMonitor> camera;
+	private static CUIInstance<PlayerMonitor> cui;
+	private static Camera<PlayerMonitor> camera;
 
 	@BeforeAll
 	public static void setup() {
 		server = MockBukkit.mock();
 		plugin = MockBukkit.load(CUIPlugin.class);
 		a = server.addPlayer("a");
-		cui = plugin.getCUIManager().getCUIType(InventoryMonitor.class).createInstance();
+		cui = plugin.getCUIManager().getCUIType(PlayerMonitor.class).createInstance();
 		Assertions.assertNotNull(cui);
 		camera = cui.createCamera();
 		Assertions.assertTrue(camera.open(a, false), "应当能打开默认摄像头");

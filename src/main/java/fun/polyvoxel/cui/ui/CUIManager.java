@@ -327,7 +327,7 @@ public final class CUIManager implements Listener {
 			return;
 
 		var view = event.getView();
-		var cursor = event.getOldCursor().clone();
+		var cursor = ItemStacks.clone(event.getOldCursor());
 		var amount = new AtomicInteger();
 		if (!ItemStacks.isEmpty(event.getCursor())) {
 			amount.set(event.getCursor().getAmount());

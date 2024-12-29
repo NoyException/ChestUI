@@ -6,6 +6,8 @@ import fun.polyvoxel.cui.slot.Slot;
 import fun.polyvoxel.cui.ui.CUIContents;
 
 import fun.polyvoxel.cui.ui.Camera;
+import fun.polyvoxel.cui.util.ItemStacks;
+import fun.polyvoxel.cui.util.Position;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.*;
@@ -105,9 +107,7 @@ public class Layer {
 				if (slot == null) {
 					continue;
 				}
-				var itemStack = contents.getItem(row, column);
-				if (itemStack != null)
-					itemStack = itemStack.clone();
+				var itemStack = ItemStacks.clone(contents.getItem(row, column));
 				contents.setItem(row, column, slot.display(itemStack));
 			}
 		}
@@ -194,6 +194,10 @@ public class Layer {
 			return this;
 		}
 
+		public Editor slot(Position position, Supplier<Slot> supplier) {
+			return slot(position.row(), position.column(), supplier);
+		}
+
 		public Editor slot(int row, int column, Supplier<Slot> supplier) {
 			if (!isValidPosition(row, column)) {
 				throw new IndexOutOfBoundsException(
@@ -229,6 +233,18 @@ public class Layer {
 		public Editor all(BiFunction<Integer, Integer, Slot> supplier) {
 			for (int row = 0; row < rowSize; row++) {
 				for (int column = 0; column < columnSize; column++) {
+					int finalRow = row;
+					int finalColumn = column;
+					slot(row, column, () -> supplier.apply(finalRow, finalColumn));
+				}
+			}
+			return this;
+		}
+
+		public Editor rect(int rowStart, int columnStart, int rowEnd, int columnEnd,
+				BiFunction<Integer, Integer, Slot> supplier) {
+			for (int row = rowStart; row < rowEnd; row++) {
+				for (int column = columnStart; column < columnEnd; column++) {
 					int finalRow = row;
 					int finalColumn = column;
 					slot(row, column, () -> supplier.apply(finalRow, finalColumn));

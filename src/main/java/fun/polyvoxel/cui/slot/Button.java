@@ -1,5 +1,6 @@
 package fun.polyvoxel.cui.slot;
 
+import com.google.common.collect.HashMultimap;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIClickEvent;
 import fun.polyvoxel.cui.util.ItemStacks;
@@ -12,7 +13,9 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerTextures;
 import org.jetbrains.annotations.Nullable;
@@ -43,8 +46,8 @@ public class Button extends Slot {
 
 	@Override
 	public void click(CUIClickEvent<?> event) {
+		event.setCancelled(true);
 		if (clickHandler != null) {
-			event.setCancelled(true);
 			try {
 				clickHandler.accept(event);
 			} catch (Exception e) {
@@ -79,7 +82,7 @@ public class Button extends Slot {
 	public Slot deepClone() {
 		var button = new Button();
 		button.clickHandler = clickHandler;
-		button.itemStack = itemStack.clone();
+		button.itemStack = ItemStacks.clone(itemStack);
 		return button;
 	}
 
@@ -93,6 +96,8 @@ public class Button extends Slot {
 		private int amount = 1;
 		private Component displayName;
 		private List<Component> lore;
+		private ItemFlag[] itemFlags = ItemFlag.values();
+		private Consumer<ItemMeta> metaModifier;
 
 		private Builder() {
 		}
@@ -100,7 +105,7 @@ public class Button extends Slot {
 		public Button build() {
 			var button = new Button();
 			button.clickHandler = clickHandler;
-			button.itemStack = itemStack.clone();
+			button.itemStack = ItemStacks.clone(itemStack);
 			button.itemStack.setAmount(amount);
 			button.itemStack.editMeta(itemMeta -> {
 				if (displayName != null) {
@@ -108,6 +113,16 @@ public class Button extends Slot {
 				}
 				if (lore != null) {
 					itemMeta.lore(lore);
+				}
+				// if(itemMeta instanceof ArmorMeta)
+				var modifiers = itemMeta.getAttributeModifiers();
+				if (modifiers == null) {
+					modifiers = HashMultimap.create();
+					itemMeta.setAttributeModifiers(modifiers);
+				}
+				itemMeta.addItemFlags(itemFlags);
+				if (metaModifier != null) {
+					metaModifier.accept(itemMeta);
 				}
 			});
 			return button;
@@ -148,6 +163,11 @@ public class Button extends Slot {
 			return this;
 		}
 
+		public Builder meta(Consumer<ItemMeta> metaModifier) {
+			this.metaModifier = metaModifier;
+			return this;
+		}
+
 		public Builder displayName(Component displayName) {
 			this.displayName = ItemStacks.cleanComponent(displayName);
 			return this;
@@ -170,6 +190,11 @@ public class Button extends Slot {
 			var list = Arrays.stream(lore)
 					.map(s -> (Component) LegacyComponentSerializer.legacyAmpersand().deserialize(s)).toList();
 			return lore(list);
+		}
+
+		public Builder itemFlags(ItemFlag... itemFlags) {
+			this.itemFlags = itemFlags;
+			return this;
 		}
 
 		/**

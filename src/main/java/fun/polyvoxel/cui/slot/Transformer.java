@@ -2,8 +2,11 @@ package fun.polyvoxel.cui.slot;
 
 import fun.polyvoxel.cui.event.CUIClickEvent;
 
+import fun.polyvoxel.cui.util.ItemStacks;
 import net.kyori.adventure.text.Component;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,7 +22,7 @@ public class Transformer extends Slot {
 
 	@Override
 	public ItemStack display(ItemStack legacy) {
-		var itemStack = legacy.clone();
+		var itemStack = ItemStacks.clone(legacy);
 		for (Function<ItemStack, ItemStack> transformation : transformations) {
 			itemStack = transformation.apply(itemStack);
 		}
@@ -113,12 +116,16 @@ public class Transformer extends Slot {
 			});
 		}
 
-		// public Builder enchant() {
-		// return filter(itemStack -> {
-		// itemStack.editMeta(meta -> meta.addEnchant());
-		// return itemStack;
-		// });
-		// }
+		// TODO: 自制一个GlowEnchant
+		public Builder enchant() {
+			return filter(itemStack -> {
+				itemStack.editMeta(meta -> {
+					meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+					meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+				});
+				return itemStack;
+			});
+		}
 
 		public Builder click(Consumer<CUIClickEvent<?>> clickHandler) {
 			this.clickHandler = clickHandler;
