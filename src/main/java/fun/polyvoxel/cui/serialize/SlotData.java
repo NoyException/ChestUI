@@ -27,7 +27,7 @@ public class SlotData {
 		var itemStack = getItemStack();
 		return switch (type) {
 			case "empty" -> Empty.getInstance();
-			case "button" -> Button.builder().itemStack(itemStack).clickHandler(event -> {
+			case "button" -> Button.builder().itemStack(itemStack).click(event -> {
 				var actions = onClicks.get(event.getClickType());
 				if (actions == null) {
 					return;

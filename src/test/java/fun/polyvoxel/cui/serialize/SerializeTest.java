@@ -138,7 +138,7 @@ public class SerializeTest {
 		Assertions.assertDoesNotThrow(() -> {
 			var cuiData = CUIData.fromJson(json);
 			Assertions.assertNotNull(cuiData);
-			plugin.getCUIManager().registerCUI(cuiData);
+			plugin.getCUIManager().registerCUI(cuiData, null);
 		});
 	}
 }

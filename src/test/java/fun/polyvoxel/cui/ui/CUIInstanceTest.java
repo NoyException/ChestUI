@@ -66,11 +66,14 @@ public class CUIInstanceTest {
 		Assertions.assertFalse(camera1.open(b, false), "不以子摄像头方式打开时，无法关闭原有摄像头");
 		camera2.setClosable(true);
 		Assertions.assertTrue(camera1.open(b, true), "以子摄像头方式打开时，应当打开成功");
+		Assertions.assertTrue(camera2.open(b, true), "以子摄像头方式打开时，应当打开成功");
+		Assertions.assertTrue(camera1.open(b, true), "以子摄像头方式打开时，应当打开成功");
 	}
 
 	@Test
 	@Order(3)
 	public void testClose() {
+		// a看1，b看2->1->2->1
 		Assertions.assertFalse(camera2.close(a, false), "玩家A看的不是摄像头2，不应该能成功关闭");
 		Assertions.assertFalse(camera2.close(a, true), "玩家A看的不是摄像头2，不应该能成功关闭（即使强制）");
 		Assertions.assertFalse(camera2.close(a, false), "玩家B从摄像头2切换到了摄像头1，不应该能成功关闭");
@@ -79,7 +82,10 @@ public class CUIInstanceTest {
 		Assertions.assertFalse(camera1.close(a, false), "在不强制的情况下，不应该能关闭不可关闭的摄像头");
 		Assertions.assertTrue(camera1.close(a, true), "在强制的情况下，应该能关闭不可关闭的摄像头");
 		camera1.setClosable(true);
-		Assertions.assertTrue(camera2.closeCascade(b, true), "应该能级联关闭摄像头");
+		Assertions.assertTrue(camera1.closeCompletely(b, true), "应该能彻底关闭摄像头");
+		Assertions.assertEquals(camera2, plugin.getCameraManager().getCamera(b), "玩家B应当看着摄像头2");
+		Assertions.assertTrue(camera2.close(b), "应当能成功关闭摄像头2");
+		Assertions.assertNull(plugin.getCameraManager().getViewing(b), "玩家B应当没有看着任何摄像头");
 		Assertions.assertEquals(2, cui.getCameraCount(), "还未tick，摄像头还未销毁");
 		camera2.setKeepAlive(true);
 		tick();
@@ -117,10 +123,10 @@ public class CUIInstanceTest {
 										.all((row, column) -> Button.builder()
 												.material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build())
 										.slot(0, 0, () -> Button.builder().material(Material.RED_STAINED_GLASS_PANE)
-												.displayName("Previous").clickHandler(event -> {
+												.displayName("Previous").click(event -> {
 												}).build())
 										.slot(0, 8, () -> Button.builder().material(Material.GREEN_STAINED_GLASS_PANE)
-												.displayName("Next").clickHandler(event -> {
+												.displayName("Next").click(event -> {
 												}).build())
 										.done())
 						.done();

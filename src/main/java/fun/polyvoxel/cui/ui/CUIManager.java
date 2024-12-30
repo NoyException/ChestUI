@@ -21,6 +21,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.Nullable;
 import org.reflections.Reflections;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
@@ -29,6 +30,7 @@ import org.reflections.util.FilterBuilder;
 import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -84,7 +86,7 @@ public final class CUIManager implements Listener {
 
 	private void tickEnd() {
 		cuiTypes.values().forEach(CUIType::tickEnd);
-		plugin.getCameraManager().checkAll();
+		plugin.getCameraManager().tickEnd();
 	}
 
 	public void setup() {
@@ -178,12 +180,12 @@ public final class CUIManager implements Listener {
 	}
 
 	@ApiStatus.Experimental
-	public void registerCUI(CUIData data) {
+	public void registerCUI(CUIData data, @Nullable Path path) {
 		if (cuiTypes.containsKey(data.getKey())) {
 			throw new IllegalArgumentException("CUI `" + data.getKey() + "` has already been registered");
 		}
-		register(data.getKey(),
-				new CUIType<>(plugin, null, new SerializableChestUI(data), data.getKey(), data.singleton, data.icon));
+		register(data.getKey(), new CUIType<>(plugin, null, new SerializableChestUI(data, path), data.getKey(),
+				data.singleton, data.icon));
 	}
 
 	@ApiStatus.Experimental
@@ -191,7 +193,7 @@ public final class CUIManager implements Listener {
 		if (file.getName().endsWith(".json")) {
 			try (FileReader reader = new FileReader(file)) {
 				var data = CUIData.fromJson(reader);
-				registerCUI(data);
+				registerCUI(data, file.toPath());
 			} catch (IOException e) {
 				plugin.getLogger().warning("Failed to read CUI file: " + file.getName());
 				e.printStackTrace();
@@ -282,6 +284,7 @@ public final class CUIManager implements Listener {
 		if (!(event.getPlayer() instanceof Player player))
 			return;
 
+		// TODO: fix double close
 		switch (event.getReason()) {
 			case PLAYER -> plugin.getCameraManager().closeTop(player, false);
 			case DISCONNECT -> plugin.getCameraManager().closeAll(player, true);
@@ -298,10 +301,12 @@ public final class CUIManager implements Listener {
 			return;
 
 		if (event.getClickedInventory() != player.getInventory()) {
+			// 点击的是上方界面
 			var rawSlot = event.getRawSlot();
 			camera.click(player, event.getClick(), event.getAction(), rawSlot / 9, rawSlot % 9, event.getCursor());
 			event.setCancelled(true);
 		} else {
+			// 点击的是玩家背包
 			switch (event.getAction()) {
 				case MOVE_TO_OTHER_INVENTORY -> {
 					var itemStack = event.getCurrentItem();

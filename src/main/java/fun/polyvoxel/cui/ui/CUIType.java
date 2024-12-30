@@ -47,6 +47,10 @@ public final class CUIType<T extends ChestUI<T>> {
 		chestUI.onInitialize(this);
 	}
 
+	public CUIPlugin getCUIPlugin() {
+		return cuiPlugin;
+	}
+
 	public @Nullable Plugin getPlugin() {
 		return plugin;
 	}

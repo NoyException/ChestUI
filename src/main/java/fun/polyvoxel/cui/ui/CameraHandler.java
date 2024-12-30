@@ -27,11 +27,17 @@ public interface CameraHandler<T extends ChestUI<T>> {
 	default void onTickEnd() {
 	}
 
-	default boolean onOpen(Player viewer) {
+	default boolean canOpen(Player viewer) {
 		return true;
 	}
 
-	default boolean onClose(Player viewer) {
+	default void onOpen(Player viewer) {
+	}
+
+	default boolean canClose(Player viewer) {
 		return true;
+	}
+
+	default void onClose(Player viewer) {
 	}
 }

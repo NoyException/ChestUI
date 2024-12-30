@@ -74,7 +74,7 @@ public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
 			cui.edit().layer(0, new Layer(5, 9).edit().column(5,
 					row -> Button.builder().material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build())
 					.slot(2, 5, () -> Button.builder().material(Material.CRAFTING_TABLE)
-							.displayName("Put a workbench under your feet").clickHandler(cuiClickEvent -> {
+							.displayName("Put a workbench under your feet").click(cuiClickEvent -> {
 								var player = cuiClickEvent.getPlayer();
 								var block = player.getLocation().getBlock().getRelative(BlockFace.DOWN);
 								block.setType(Material.CRAFTING_TABLE);

@@ -211,7 +211,7 @@ public class Button extends Slot {
 		 * @return 构建器<br>
 		 *         Builder
 		 */
-		public Builder clickHandler(Consumer<CUIClickEvent<?>> clickHandler) {
+		public Builder click(Consumer<CUIClickEvent<?>> clickHandler) {
 			this.clickHandler = clickHandler;
 			return this;
 		}

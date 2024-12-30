@@ -1,6 +1,7 @@
 package fun.polyvoxel.cui;
 
 import fun.polyvoxel.cui.cmd.CmdCUI;
+import fun.polyvoxel.cui.ui.tool.Tools;
 import fun.polyvoxel.cui.ui.CUIManager;
 
 import fun.polyvoxel.cui.ui.CameraManager;
@@ -15,6 +16,7 @@ public class CUIPlugin extends JavaPlugin {
 	private static ComponentLogger logger;
 	private final CUIManager cuiManager = new CUIManager(this);
 	private final CameraManager cameraManager = new CameraManager(this);
+	private final Tools tools = new Tools(this);
 
 	public static ComponentLogger logger() {
 		return logger;
@@ -48,5 +50,9 @@ public class CUIPlugin extends JavaPlugin {
 
 	public CameraManager getCameraManager() {
 		return cameraManager;
+	}
+
+	public Tools getTools() {
+		return tools;
 	}
 }

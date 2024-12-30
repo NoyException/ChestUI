@@ -13,14 +13,16 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-public final class Camera<T extends ChestUI<T>> implements Viewable {
+public final class Camera<T extends ChestUI<T>> extends Viewable {
 	private final CameraManager manager;
 	private final CUIInstance<T> cuiInstance;
 	private final CameraHandler<T> handler;
@@ -48,6 +50,7 @@ public final class Camera<T extends ChestUI<T>> implements Viewable {
 	private State state = State.UNINITIALIZED;
 
 	Camera(CUIInstance<T> cuiInstance, CameraHandler<T> handler, int id) {
+		super(cuiInstance.getCUIPlugin());
 		this.cuiInstance = cuiInstance;
 		this.id = id;
 		this.title = cuiInstance.getDefaultTitle();
@@ -191,30 +194,15 @@ public final class Camera<T extends ChestUI<T>> implements Viewable {
 		viewers.remove(viewer);
 	}
 
-	public boolean open(Player viewer, boolean asChild) {
-		if (state != State.READY) {
-			return false;
-		}
-		if (!handler.onOpen(viewer)) {
-			return false;
-		}
-		if (!asChild) {
-			boolean success = manager.closeAll(viewer, false);
-			if (!success) {
-				return false;
-			}
-		}
+	@Override
+	public boolean canOpen(Player viewer) {
+		return state == State.READY && handler.canOpen(viewer);
+	}
+
+	protected void doOpen(Player viewer, boolean asChild) {
+		handler.onOpen(viewer);
 		viewers.add(viewer);
 		keepAliveCount.compute(viewer, (player, count) -> count == null ? 1 : count + 1);
-		var stack = manager.getViewingStack(viewer);
-		if (!stack.empty()) {
-			var parent = stack.peek();
-			if (parent != null) {
-				parent.notifySwitchOut(viewer);
-			}
-		}
-		stack.push(this);
-		return true;
 	}
 
 	@Override
@@ -222,39 +210,14 @@ public final class Camera<T extends ChestUI<T>> implements Viewable {
 		viewers.add(viewer);
 	}
 
-	/**
-	 * 尝试为玩家关闭Camera。如果玩家不在看这个Camera，或者Camera不可关闭，则返回false<br>
-	 *
-	 * @param viewer
-	 *            玩家
-	 * @param force
-	 *            是否强制关闭
-	 * @return 是否成功关闭
-	 */
-	public boolean close(Player viewer, boolean force) {
-		if (!force && !closable) {
-			return false;
-		}
-		if (!viewers.contains(viewer)) {
-			return false;
-		}
-		if (!handler.onClose(viewer)) {
-			return false;
-		}
+	@Override
+	public boolean canClose(Player viewer) {
+		return closable && handler.canClose(viewer);
+	}
 
+	protected void doClose(Player viewer) {
+		handler.onClose(viewer);
 		viewers.remove(viewer);
-		var stack = manager.getViewingStack(viewer);
-		if (stack == null || stack.empty()) {
-			return false;
-		}
-		var popped = stack.pop();
-		if (popped != this) {
-			throw new RuntimeException("Camera not match");
-		}
-		if (!stack.empty()) {
-			stack.peek().notifySwitchBack(viewer);
-		}
-
 		keepAliveCount.compute(viewer, (player, count) -> {
 			if (count == null) {
 				return 0;
@@ -266,34 +229,16 @@ public final class Camera<T extends ChestUI<T>> implements Viewable {
 		});
 		keepAliveCount.remove(viewer, 0);
 
-		if (viewer.getOpenInventory().getTopInventory().getHolder() == holder) {
-			viewer.closeInventory();
+		Inventory topInventory = viewer.getOpenInventory().getTopInventory();
+		// MockBukkit中topInventory可能为null
+		if (topInventory != null && topInventory.getHolder() == holder) {
+			viewer.closeInventory(InventoryCloseEvent.Reason.PLUGIN);
 		}
-		return true;
 	}
 
-	public boolean closeCascade(Player viewer, boolean force) {
-		var count = keepAliveCount.getOrDefault(viewer, 0);
-		if (count <= 0) {
-			return false;
-		}
-		var stack = manager.getViewingStack(viewer);
-		if (stack == null || stack.empty()) {
-			return false;
-		}
-		while (count > 0) {
-			try {
-				var viewable = stack.peek();
-				var success = viewable.close(viewer, force);
-				if (!success) {
-					return false;
-				}
-				if (viewable == this) {
-					count--;
-				}
-			} catch (EmptyStackException e) {
-				cuiInstance.getCUIPlugin().getComponentLogger()
-						.error(Component.text("Player " + viewer.getName() + " has no camera to close"), e);
+	public boolean closeCompletely(Player viewer, boolean force) {
+		while (keepAliveCount.getOrDefault(viewer, 0) > 0) {
+			if (!close(viewer, force, true)) {
 				return false;
 			}
 		}
@@ -311,7 +256,7 @@ public final class Camera<T extends ChestUI<T>> implements Viewable {
 		}
 		state = State.DESTROYING;
 		handler.onDestroy();
-		new ArrayList<>(keepAliveCount.keySet()).forEach(player -> closeCascade(player, true));
+		new ArrayList<>(keepAliveCount.keySet()).forEach(player -> closeCompletely(player, true));
 		manager.unregisterCamera(this);
 		state = State.DESTROYED;
 	}
@@ -383,16 +328,19 @@ public final class Camera<T extends ChestUI<T>> implements Viewable {
 	}
 
 	@Override
-	public void checkOpen(Player viewer) {
+	public InventoryView keepOpening(Player viewer) {
 		if (state != State.READY) {
-			return;
+			return null;
 		}
 		if (!viewers.contains(viewer)) {
-			return;
+			return null;
 		}
-		if (viewer.getOpenInventory().getTopInventory() != inventory) {
+		var view = viewer.getOpenInventory();
+		if (view.getTopInventory() != inventory) {
 			viewer.openInventory(inventory);
+			return view;
 		}
+		return null;
 	}
 
 	/**
