@@ -74,7 +74,19 @@ public class Layer {
 		dirty = false;
 	}
 
-	// 检查坐标是否超出范围
+	/**
+	 * 检查坐标是否超出范围。<br>
+	 * Check if the coordinates are out of range.
+	 * 
+	 * @param row
+	 *            行<br>
+	 *            row
+	 * @param column
+	 *            列<br>
+	 *            column
+	 * @return 如果有效返回true<br>
+	 *         true if valid
+	 */
 	public boolean isValidPosition(int row, int column) {
 		return row >= 0 && row < rowSize && column >= 0 && column < columnSize;
 	}
@@ -168,6 +180,7 @@ public class Layer {
 			Layer.this.rowSize = rowSize;
 			Layer.this.columnSize = columnSize;
 			Layer.this.slots = slots;
+			markDirty();
 			return this;
 		}
 
@@ -181,21 +194,29 @@ public class Layer {
 
 		public Editor marginLeft(int marginLeft) {
 			Layer.this.marginLeft = marginLeft;
+			markDirty();
 			return this;
 		}
 
 		public Editor marginTop(int marginTop) {
 			Layer.this.marginTop = marginTop;
+			markDirty();
 			return this;
 		}
 
+		/**
+		 * 设置margin的位置是相对摄像头还是绝对值<br>
+		 * Set whether the position of the margin is relative to the camera or absolute
+		 * 
+		 * @param relative
+		 *            是否相对摄像头<br>
+		 *            Whether it is relative to the camera
+		 * @return this
+		 */
 		public Editor relative(boolean relative) {
 			Layer.this.relative = relative;
+			markDirty();
 			return this;
-		}
-
-		public Editor slot(Position position, Supplier<Slot> supplier) {
-			return slot(position.row(), position.column(), supplier);
 		}
 
 		public Editor slot(int row, int column, Supplier<Slot> supplier) {
@@ -211,7 +232,12 @@ public class Layer {
 
 			slot.bind(Layer.this::markDirty);
 			slots[row][column] = slot;
+			markDirty();
 			return this;
+		}
+
+		public Editor slot(Position position, Supplier<Slot> supplier) {
+			return slot(position.row(), position.column(), supplier);
 		}
 
 		public Editor row(int row, Function<Integer, Slot> supplier) {
@@ -253,6 +279,21 @@ public class Layer {
 			return this;
 		}
 
+		/**
+		 * 按照书写的顺序（从左到右，从上到下）填充槽位。<br>
+		 * Fill the slots in the writing order (from left to right, from top to bottom).
+		 * 
+		 * @param maxIndex
+		 *            最大索引<br>
+		 *            The maximum index
+		 * @param resizeIfOutOfBound
+		 *            如果超出边界是否调整大小<br>
+		 *            Whether to resize if out of bounds
+		 * @param supplier
+		 *            索引->槽位<br>
+		 *            Index->Slot
+		 * @return this
+		 */
 		public Editor tile(int maxIndex, boolean resizeIfOutOfBound, Function<Integer, Slot> supplier) {
 			if (resizeIfOutOfBound) {
 				int rowSize = (maxIndex - 1) / columnSize + 1;
