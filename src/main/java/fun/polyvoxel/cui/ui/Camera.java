@@ -337,6 +337,7 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 		}
 		var view = viewer.getOpenInventory();
 		if (view.getTopInventory() != inventory) {
+			handler.onOpenInventory(inventory);
 			viewer.openInventory(inventory);
 			return view;
 		}
@@ -380,10 +381,10 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 		for (Layer layer : getActiveLayers().values()) {
 			layer.click(event);
 			if (event.isCancelled()) {
-				player.setItemOnCursor(event.getCursor());
-				return;
+				break;
 			}
 		}
+		player.setItemOnCursor(event.getCursor());
 	}
 
 	/**

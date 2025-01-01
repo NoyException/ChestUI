@@ -23,13 +23,16 @@ import java.util.function.Consumer;
 public class AnvilTextInput extends VanillaInventoryViewWrapper implements Listener {
 	private final Player player;
 	private final Consumer<String> onConfirm;
-	private String initialText = "";
-	private Component title = Component.text("Input Text Below");
+	private final Component title;
+	private final String initialText;
 
-	public AnvilTextInput(CUIPlugin plugin, Player player, Consumer<String> onConfirm) {
+	public AnvilTextInput(CUIPlugin plugin, Player player, Consumer<String> onConfirm, Component title,
+			String initialText) {
 		super(plugin, createAnvilView(player));
 		this.player = player;
 		this.onConfirm = onConfirm;
+		this.title = title;
+		this.initialText = initialText;
 		Bukkit.getPluginManager().registerEvents(this, plugin);
 	}
 
@@ -48,16 +51,8 @@ public class AnvilTextInput extends VanillaInventoryViewWrapper implements Liste
 		return initialText;
 	}
 
-	public void setInitialText(String initialText) {
-		this.initialText = initialText;
-	}
-
 	public Component getTitle() {
 		return title;
-	}
-
-	public void setTitle(Component title) {
-		this.title = title;
 	}
 
 	@EventHandler
@@ -72,8 +67,10 @@ public class AnvilTextInput extends VanillaInventoryViewWrapper implements Liste
 		event.setCancelled(true);
 		var slot = event.getSlot();
 		if (slot == 2) {
-			onConfirm.accept(this.getInventoryView().getRenameText());
-			close(player);
+			Bukkit.getScheduler().runTask(getCUIPlugin(), () -> {
+				close(player);
+				onConfirm.accept(this.getInventoryView().getRenameText());
+			});
 		}
 	}
 

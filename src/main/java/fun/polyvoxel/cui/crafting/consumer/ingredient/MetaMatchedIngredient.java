@@ -1,7 +1,6 @@
 package fun.polyvoxel.cui.crafting.consumer.ingredient;
 
 import fun.polyvoxel.cui.crafting.CraftingContext;
-import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
@@ -29,7 +28,7 @@ public class MetaMatchedIngredient implements Ingredient {
 	@Override
 	public @Nullable ItemStack consume(@NotNull CraftingContext ctx, @Nullable ItemStack itemStack) {
 		if (itemStack == null) {
-			itemStack = ItemStack.of(Material.AIR);
+			itemStack = ItemStack.empty();
 		}
 		if (!predicate.test(itemStack.getItemMeta())) {
 			return null;

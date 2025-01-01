@@ -28,7 +28,7 @@ public class MaterialMatchedIngredient implements Ingredient {
 	@Override
 	public @Nullable ItemStack consume(@NotNull CraftingContext ctx, @Nullable ItemStack itemStack) {
 		if (itemStack == null) {
-			itemStack = ItemStack.of(Material.AIR);
+			itemStack = ItemStack.empty();
 		}
 		if (!predicate.test(itemStack.getType())) {
 			return null;

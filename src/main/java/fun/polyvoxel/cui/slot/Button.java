@@ -1,29 +1,20 @@
 package fun.polyvoxel.cui.slot;
 
-import com.google.common.collect.HashMultimap;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIClickEvent;
 import fun.polyvoxel.cui.util.ItemStacks;
 
-import com.destroystokyo.paper.profile.PlayerProfile;
-
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.profile.PlayerTextures;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URL;
-import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 import java.util.function.Consumer;
 
 public class Button extends Slot {
@@ -92,12 +83,8 @@ public class Button extends Slot {
 
 	public static class Builder {
 		private Consumer<CUIClickEvent<?>> clickHandler;
-		private ItemStack itemStack = ItemStack.of(Material.STONE_BUTTON);
-		private int amount = 1;
-		private Component displayName;
-		private List<Component> lore;
-		private ItemFlag[] itemFlags = ItemFlag.values();
-		private Consumer<ItemMeta> metaModifier;
+		private final ItemStacks.Builder itemStackBuilder = ItemStacks.builder().material(Material.OAK_BUTTON)
+				.itemFlags(ItemFlag.values());
 
 		private Builder() {
 		}
@@ -105,95 +92,67 @@ public class Button extends Slot {
 		public Button build() {
 			var button = new Button();
 			button.clickHandler = clickHandler;
-			button.itemStack = ItemStacks.clone(itemStack);
-			button.itemStack.setAmount(amount);
-			button.itemStack.editMeta(itemMeta -> {
-				if (displayName != null) {
-					itemMeta.displayName(displayName);
-				}
-				if (lore != null) {
-					itemMeta.lore(lore);
-				}
-				// if(itemMeta instanceof ArmorMeta)
-				var modifiers = itemMeta.getAttributeModifiers();
-				if (modifiers == null) {
-					modifiers = HashMultimap.create();
-					itemMeta.setAttributeModifiers(modifiers);
-				}
-				itemMeta.addItemFlags(itemFlags);
-				if (metaModifier != null) {
-					metaModifier.accept(itemMeta);
-				}
-			});
+			button.itemStack = itemStackBuilder.build();
 			return button;
 		}
 
 		public Builder itemStack(ItemStack itemStack) {
-			this.itemStack = itemStack;
+			itemStackBuilder.itemStack(itemStack);
 			return this;
 		}
 
 		public Builder skull(Player player) {
-			PlayerProfile profile = Bukkit.getServer().createProfile(player.getUniqueId(), player.getName());
-			PlayerTextures textures = profile.getTextures();
-			profile.setTextures(textures);
-			itemStack = ItemStack.of(Material.PLAYER_HEAD);
-			itemStack.editMeta(meta -> ((SkullMeta) meta).setPlayerProfile(profile));
+			itemStackBuilder.skull(player);
 			return this;
 		}
 
 		public Builder skull(URL skullTexture) {
-			PlayerProfile profile = Bukkit.getServer().createProfileExact(UUID.randomUUID(),
-					UUID.randomUUID().toString());
-			PlayerTextures textures = profile.getTextures();
-			textures.setSkin(skullTexture);
-			profile.setTextures(textures);
-			itemStack = ItemStack.of(Material.PLAYER_HEAD);;
-			itemStack.editMeta(meta -> ((SkullMeta) meta).setPlayerProfile(profile));
+			itemStackBuilder.skull(skullTexture);
 			return this;
 		}
 
 		public Builder material(Material material) {
-			itemStack = ItemStack.of(material);
+			itemStackBuilder.material(material);
 			return this;
 		}
 
 		public Builder amount(int amount) {
-			this.amount = amount;
+			itemStackBuilder.amount(amount);
 			return this;
 		}
 
 		public Builder meta(Consumer<ItemMeta> metaModifier) {
-			this.metaModifier = metaModifier;
+			itemStackBuilder.meta(metaModifier);
 			return this;
 		}
 
 		public Builder displayName(Component displayName) {
-			this.displayName = ItemStacks.cleanComponent(displayName);
+			itemStackBuilder.displayName(displayName);
 			return this;
 		}
 
 		public Builder displayName(String displayName) {
-			return displayName(LegacyComponentSerializer.legacyAmpersand().deserialize(displayName));
+			itemStackBuilder.displayName(displayName);
+			return this;
 		}
 
 		public Builder lore(List<Component> lore) {
-			this.lore = lore.stream().map(ItemStacks::cleanComponent).toList();
+			itemStackBuilder.lore(lore);
 			return this;
 		}
 
 		public Builder lore(Component... lore) {
-			return lore(List.of(lore));
+			itemStackBuilder.lore(lore);
+			return this;
 		}
 
 		public Builder lore(String... lore) {
-			var list = Arrays.stream(lore)
-					.map(s -> (Component) LegacyComponentSerializer.legacyAmpersand().deserialize(s)).toList();
-			return lore(list);
+			itemStackBuilder.lore(lore);
+			return this;
 		}
 
 		public Builder itemFlags(ItemFlag... itemFlags) {
-			this.itemFlags = itemFlags;
+			itemStackBuilder.itemFlags(itemFlags);
 			return this;
 		}
 

@@ -3,30 +3,31 @@ package fun.polyvoxel.cui.serialize;
 import fun.polyvoxel.cui.ui.*;
 import fun.polyvoxel.cui.util.context.Context;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.nio.file.Path;
 
 public class SerializableChestUI implements ChestUI<SerializableChestUI> {
+	private CUIType<SerializableChestUI> type;
 	private final CUIData cuiData;
-	private final @Nullable Path path;
 
-	public SerializableChestUI(CUIData cuiData, @Nullable Path path) {
+	public SerializableChestUI(CUIData cuiData) {
 		this.cuiData = cuiData;
-		this.path = path;
+	}
+
+	public CUIType<SerializableChestUI> getType() {
+		return type;
 	}
 
 	public CUIData getData() {
 		return cuiData;
 	}
 
-	public @Nullable Path getPath() {
-		return path;
-	}
-
 	@Override
 	public void onInitialize(CUIType<SerializableChestUI> type) {
-		type.edit().defaultTitle(cuiData.title).triggerByDisplay(CameraProvider.createCameraInDefaultCUIInstance());
+		this.type = type.edit().defaultTitle(cuiData.title).triggerByDisplay((cuiType, player, asChild) -> {
+			CameraProvider<SerializableChestUI> provider = cuiData.singleton
+					? CameraProvider.createCameraInDefaultCUIInstance()
+					: CameraProvider.createCameraInNewCUIInstance();
+			return provider.provide(cuiType, player, asChild);
+		}).done();
 	}
 
 	@Override

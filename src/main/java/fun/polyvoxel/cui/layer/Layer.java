@@ -91,6 +91,10 @@ public class Layer {
 		return row >= 0 && row < rowSize && column >= 0 && column < columnSize;
 	}
 
+	public boolean isValidPosition(Position position) {
+		return isValidPosition(position.row(), position.column());
+	}
+
 	public @Nullable Slot getSlot(int row, int column) {
 		if (!isValidPosition(row, column)) {
 			return null;

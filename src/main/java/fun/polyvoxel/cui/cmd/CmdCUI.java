@@ -7,6 +7,7 @@ import fun.polyvoxel.cui.ui.CUIManager;
 import fun.polyvoxel.cui.ui.CUIType;
 import fun.polyvoxel.cui.ui.Camera;
 import fun.polyvoxel.cui.ui.CUIInstance;
+import fun.polyvoxel.cui.util.CmdHelper;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.*;
@@ -75,7 +76,7 @@ public class CmdCUI implements TabExecutor {
 				if (args.length < 3) {
 					return false;
 				}
-				var entities = Bukkit.getServer().selectEntities(sender, args[1]);
+				var entities = CmdHelper.selectEntities(sender, args[1]);
 				var mode = switch (args[2]) {
 					case "top" -> 1;
 					case "all" -> 2;
@@ -210,7 +211,7 @@ public class CmdCUI implements TabExecutor {
 					sender.sendMessage("If you are the developer of this CUI, please add a display trigger.");
 					return true;
 				}
-				var entities = args.length == 3 ? Bukkit.getServer().selectEntities(sender, args[2]) : List.of(sender);
+				var entities = args.length == 3 ? CmdHelper.selectEntities(sender, args[2]) : List.of(sender);
 				var asChild = args.length == 4 && args[3].equals("asChild");
 				for (var entity : entities) {
 					if (!(entity instanceof Player player)) {
@@ -302,7 +303,7 @@ public class CmdCUI implements TabExecutor {
 					return true;
 				}
 
-				var entities = args.length == 3 ? Bukkit.getServer().selectEntities(sender, args[2]) : List.of(sender);
+				var entities = args.length == 3 ? CmdHelper.selectEntities(sender, args[2]) : List.of(sender);
 				var asChild = args.length == 4 && args[3].equals("asChild");
 				for (var entity : entities) {
 					if (!(entity instanceof Player player)) {

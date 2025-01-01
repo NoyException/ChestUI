@@ -10,15 +10,20 @@ import java.util.HashMap;
 public class LayerData {
 	public int maxRow = 3;
 	public int maxColumn = 9;
-	public int marginTop;
-	public int marginLeft;
-	public boolean relative;
+	public int marginTop = 0;
+	public int marginLeft = 0;
+	public boolean relative = false;
 	public final HashMap<Position, SlotData> slots = new HashMap<>();
 
 	public Layer toLayer() {
 		var layer = new Layer(maxRow, maxColumn).edit().marginTop(marginTop).marginLeft(marginLeft).relative(relative)
 				.done();
-		slots.forEach((position, slotData) -> layer.edit().slot(position.row(), position.column(), slotData::toSlot));
+		slots.forEach((position, slotData) -> {
+			if (!layer.isValidPosition(position)) {
+				return;
+			}
+			layer.edit().slot(position.row(), position.column(), slotData::toSlot);
+		});
 		return layer;
 	}
 
@@ -42,11 +47,11 @@ public class LayerData {
 				throws JsonParseException {
 			var obj = json.getAsJsonObject();
 			var layerData = new LayerData();
-			layerData.maxRow = obj.get("maxRow").getAsInt();
-			layerData.maxColumn = obj.get("maxColumn").getAsInt();
-			layerData.marginTop = obj.get("marginTop").getAsInt();
-			layerData.marginLeft = obj.get("marginLeft").getAsInt();
-			layerData.relative = obj.get("relative").getAsBoolean();
+			layerData.maxRow = obj.has("maxRow") ? obj.get("maxRow").getAsInt() : 3;
+			layerData.maxColumn = obj.has("maxColumn") ? obj.get("maxColumn").getAsInt() : 9;
+			layerData.marginTop = obj.has("marginTop") ? obj.get("marginTop").getAsInt() : 0;
+			layerData.marginLeft = obj.has("marginLeft") ? obj.get("marginLeft").getAsInt() : 0;
+			layerData.relative = obj.has("relative") && obj.get("relative").getAsBoolean();
 			var slots = obj.getAsJsonObject("slots");
 			slots.entrySet().forEach(entry -> layerData.slots.put(Position.fromString(entry.getKey()),
 					context.deserialize(entry.getValue(), SlotData.class)));

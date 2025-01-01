@@ -4,6 +4,7 @@ import fun.polyvoxel.cui.event.CUIClickEvent;
 
 import fun.polyvoxel.cui.util.ItemStacks;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
@@ -19,14 +20,26 @@ import java.util.function.Function;
 public class Transformer extends Slot {
 	private List<Function<ItemStack, ItemStack>> transformations;
 	private Consumer<CUIClickEvent<?>> clickHandler;
+	private boolean enabled = true;
 
 	@Override
 	public ItemStack display(ItemStack legacy) {
+		if (!enabled) {
+			return legacy;
+		}
 		var itemStack = ItemStacks.clone(legacy);
 		for (Function<ItemStack, ItemStack> transformation : transformations) {
 			itemStack = transformation.apply(itemStack);
 		}
 		return itemStack;
+	}
+
+	public void setEnabled(boolean enabled) {
+		if (this.enabled == enabled) {
+			return;
+		}
+		this.enabled = enabled;
+		markDirty();
 	}
 
 	@Override
@@ -82,8 +95,28 @@ public class Transformer extends Slot {
 			return this;
 		}
 
+		public Builder changeItemStack(ItemStack itemStack) {
+			var copy = ItemStacks.clone(itemStack);
+			return filter(i -> copy);
+		}
+
+		public Builder changeMaterial(Material material) {
+			if (material == null) {
+				return filter(itemStack -> ItemStack.empty());
+			}
+			return filter(itemStack -> {
+				if (ItemStacks.isEmpty(itemStack)) {
+					return ItemStack.of(material);
+				}
+				return itemStack.withType(material);
+			});
+		}
+
 		public Builder changeDisplayName(Component displayName) {
 			return filter(itemStack -> {
+				if (ItemStacks.isEmpty(itemStack)) {
+					return itemStack;
+				}
 				itemStack.editMeta(meta -> meta.displayName(displayName));
 				return itemStack;
 			});
@@ -91,6 +124,9 @@ public class Transformer extends Slot {
 
 		public Builder changeDisplayName(Function<Component, Component> displayName) {
 			return filter(itemStack -> {
+				if (ItemStacks.isEmpty(itemStack)) {
+					return itemStack;
+				}
 				itemStack.editMeta(meta -> meta.displayName(displayName.apply(meta.displayName())));
 				return itemStack;
 			});
@@ -98,6 +134,9 @@ public class Transformer extends Slot {
 
 		public Builder appendLore(Component... lore) {
 			return filter(itemStack -> {
+				if (ItemStacks.isEmpty(itemStack)) {
+					return itemStack;
+				}
 				itemStack.editMeta(meta -> {
 					var newLore = meta.hasLore()
 							? new ArrayList<>(Objects.requireNonNull(meta.lore()))
@@ -111,6 +150,9 @@ public class Transformer extends Slot {
 
 		public Builder changeLore(Component... lore) {
 			return filter(itemStack -> {
+				if (ItemStacks.isEmpty(itemStack)) {
+					return itemStack;
+				}
 				itemStack.editMeta(meta -> meta.lore(List.of(lore)));
 				return itemStack;
 			});
@@ -119,6 +161,9 @@ public class Transformer extends Slot {
 		// TODO: 自制一个GlowEnchant
 		public Builder enchant() {
 			return filter(itemStack -> {
+				if (ItemStacks.isEmpty(itemStack)) {
+					return itemStack;
+				}
 				itemStack.editMeta(meta -> {
 					meta.addEnchant(Enchantment.UNBREAKING, 1, true);
 					meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);

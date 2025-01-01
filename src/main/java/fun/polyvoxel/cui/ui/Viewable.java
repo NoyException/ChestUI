@@ -11,6 +11,10 @@ public abstract class Viewable {
 		this.plugin = plugin;
 	}
 
+	public CUIPlugin getCUIPlugin() {
+		return plugin;
+	}
+
 	public boolean canOpen(Player viewer) {
 		return true;
 	}

@@ -29,24 +29,24 @@ public class SerializeTest {
 	@Test
 	public void testSerialize() {
 		var cuiData = new CUIData();
-		cuiData.key = "test:ui1";
+		cuiData.name = "ui1";
 		cuiData.title = "测试";
 		cuiData.singleton = true;
 		var layerData = new LayerData();
 		cuiData.layers.put(1, layerData);
 		for (int i = 1; i < 9; i++) {
 			var slotData = new SlotData();
-			slotData.type = "button";
+			slotData.type = SlotData.SlotType.BUTTON;
 			slotData.material = Material.BLACK_STAINED_GLASS_PANE;
 			slotData.displayName = "";
 			layerData.slots.put(new Position(0, i), slotData);
 		}
 		var exitButton = new SlotData();
-		exitButton.type = "button";
+		exitButton.type = SlotData.SlotType.BUTTON;
 		exitButton.material = Material.RED_STAINED_GLASS_PANE;
 		exitButton.displayName = "退出";
 		var onClick = new SlotData.OnClick();
-		onClick.action = "command";
+		onClick.action = SlotData.OnClick.Action.COMMAND_OP;
 		onClick.value = "/cui close @s top";
 		exitButton.onClicks.put(ClickType.LEFT, new ArrayList<>() {
 			{
@@ -65,7 +65,7 @@ public class SerializeTest {
 	public void testDeserialize() {
 		var json = """
 				{
-				  "key": "test:ui1",
+				  "name": "ui1",
 				  "singleton": true,
 				  "title": "测试",
 				  "maxRow": 6,
@@ -85,7 +85,7 @@ public class SerializeTest {
 				          "onClicks": {
 				            "LEFT": [
 				              {
-				                "action": "command-op",
+				                "action": "command_op",
 				                "value": "cui close @s top"
 				              }
 				            ]
@@ -138,7 +138,7 @@ public class SerializeTest {
 		Assertions.assertDoesNotThrow(() -> {
 			var cuiData = CUIData.fromJson(json);
 			Assertions.assertNotNull(cuiData);
-			plugin.getCUIManager().registerCUI(cuiData, null);
+			plugin.getCUIManager().registerCUI(cuiData);
 		});
 	}
 }

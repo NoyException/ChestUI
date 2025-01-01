@@ -218,6 +218,7 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 								cui.getCUIPlugin().getTools().wrapInventory(player.getEnderChest())
 										.open(event.getPlayer(), true);
 							}).build())
+					// TODO: 跟踪该玩家看UI的视角
 					.slot(0, 2,
 							() -> Button.builder().material(Material.CRAFTING_TABLE)
 									.displayName(Component.text("Common Operations", NamedTextColor.GREEN))

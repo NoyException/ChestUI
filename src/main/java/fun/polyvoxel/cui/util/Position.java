@@ -5,6 +5,12 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 
 public record Position(int row, int column) implements Comparable<Position> {
+	public static Position ZERO = new Position(0, 0);
+
+	public static Position of(int row, int column) {
+		return new Position(row, column);
+	}
+
 	public Position add(int row, int column) {
 		return new Position(this.row + row, this.column + column);
 	}
@@ -41,5 +47,9 @@ public record Position(int row, int column) implements Comparable<Position> {
 		int row = Integer.parseInt(parts[0]);
 		int column = Integer.parseInt(parts[1]);
 		return new Position(row, column);
+	}
+
+	public Position clamp(int minRow, int minColumn, int maxRow, int maxColumn) {
+		return new Position(Math.clamp(row, minRow, maxRow), Math.clamp(column, minColumn, maxColumn));
 	}
 }

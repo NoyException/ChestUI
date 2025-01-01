@@ -1,6 +1,7 @@
 package fun.polyvoxel.cui.ui.tool;
 
 import fun.polyvoxel.cui.CUIPlugin;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.Inventory;
@@ -26,6 +27,17 @@ public class Tools implements Listener {
 
 	@ApiStatus.Experimental
 	public AnvilTextInput createAnvilTextInput(Player player, Consumer<String> onConfirm) {
-		return new AnvilTextInput(plugin, player, onConfirm);
+		return new AnvilTextInput(plugin, player, onConfirm, Component.text("Enter text:"), "");
+	}
+
+	@ApiStatus.Experimental
+	public AnvilTextInput createAnvilTextInput(Player player, Consumer<String> onConfirm, Component title) {
+		return new AnvilTextInput(plugin, player, onConfirm, title, "");
+	}
+
+	@ApiStatus.Experimental
+	public AnvilTextInput createAnvilTextInput(Player player, Consumer<String> onConfirm, Component title,
+			String initialText) {
+		return new AnvilTextInput(plugin, player, onConfirm, title, initialText);
 	}
 }

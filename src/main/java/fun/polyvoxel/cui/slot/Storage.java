@@ -4,7 +4,6 @@ import fun.polyvoxel.cui.event.CUIClickEvent;
 import fun.polyvoxel.cui.util.ItemStacks;
 
 import org.bukkit.GameMode;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -70,11 +69,11 @@ public class Storage extends Slot {
 		if (source.bidirectional()) {
 			var itemStack = source.get();
 			if (itemStack == null) {
-				itemStack = ItemStack.of(Material.AIR);
+				itemStack = ItemStack.empty();
 			}
 			var cursor = event.getCursor();
 			if (cursor == null) {
-				cursor = ItemStack.of(Material.AIR);
+				cursor = ItemStack.empty();
 			}
 			switch (event.getClickType()) {
 				case DROP -> {
