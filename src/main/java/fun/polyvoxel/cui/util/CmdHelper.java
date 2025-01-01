@@ -4,6 +4,9 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.conversations.Conversation;
+import org.bukkit.conversations.ConversationAbandonedEvent;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.PermissibleBase;
@@ -34,7 +37,11 @@ public class CmdHelper {
 		}
 	}
 
-	private static class AsOpSender implements CommandSender {
+	public static void performCommandAsOp(Player player, String command) {
+		Bukkit.dispatchCommand(asOpSender(player), "execute as " + player.getName() + " at @s run " + command);
+	}
+
+	private static class AsOpSender implements ConsoleCommandSender {
 		private final Player player;
 		private final PermissibleBase perm = new PermissibleBase(this);
 
@@ -153,6 +160,43 @@ public class CmdHelper {
 
 		@Override
 		public void setOp(boolean value) {
+		}
+
+		@Override
+		public boolean isConversing() {
+			return player.isConversing();
+		}
+
+		@Override
+		public void acceptConversationInput(@NotNull String input) {
+			player.acceptConversationInput(input);
+		}
+
+		@Override
+		public boolean beginConversation(@NotNull Conversation conversation) {
+			return player.beginConversation(conversation);
+		}
+
+		@Override
+		public void abandonConversation(@NotNull Conversation conversation) {
+			player.abandonConversation(conversation);
+		}
+
+		@Override
+		public void abandonConversation(@NotNull Conversation conversation,
+				@NotNull ConversationAbandonedEvent details) {
+			player.abandonConversation(conversation, details);
+		}
+
+		@Override
+		public void sendRawMessage(@NotNull String message) {
+			player.sendRawMessage(message);
+		}
+
+		@Deprecated
+		@Override
+		public void sendRawMessage(@Nullable UUID sender, @NotNull String message) {
+			player.sendRawMessage(sender, message);
 		}
 	}
 }

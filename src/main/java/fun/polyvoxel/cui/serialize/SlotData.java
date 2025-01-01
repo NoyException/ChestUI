@@ -43,7 +43,9 @@ public class SlotData {
 					onClick.onClick(event);
 				}
 			}).build();
+			// TODO: 更多storage的功能
 			case STORAGE -> Storage.builder().withInitial(itemStack).build();
+			// TODO: transformer，default全部设成null
 			default -> throw new IllegalStateException("Unexpected value: " + type);
 		};
 	}
@@ -164,10 +166,7 @@ public class SlotData {
 		public void onClick(CUIClickEvent<?> event) {
 			switch (action) {
 				case COMMAND -> event.getPlayer().performCommand(value);
-				case COMMAND_OP -> {
-					var opSender = CmdHelper.asOpSender(event.getPlayer());
-					Bukkit.dispatchCommand(opSender, value);
-				}
+				case COMMAND_OP -> CmdHelper.performCommandAsOp(event.getPlayer(), value);
 				case COMMAND_CONSOLE -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), value);
 			}
 		}
