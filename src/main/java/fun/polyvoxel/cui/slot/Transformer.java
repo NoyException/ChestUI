@@ -31,6 +31,10 @@ public class Transformer extends Slot {
 		for (Function<ItemStack, ItemStack> transformation : transformations) {
 			itemStack = transformation.apply(itemStack);
 		}
+		// 继承防刷物品标记，如果无中生有也应该打上标记
+		if ((ItemStacks.isEmpty(legacy) || ItemStacks.hasTag(legacy, "cui")) && !ItemStacks.isEmpty(itemStack)) {
+			ItemStacks.addTag(itemStack, "cui");
+		}
 		return itemStack;
 	}
 

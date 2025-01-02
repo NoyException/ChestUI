@@ -19,6 +19,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.server.PluginEnableEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.reflections.Reflections;
@@ -328,6 +329,18 @@ public final class CUIManager implements Listener {
 			event.setCancelled(true);
 		} else {
 			// 点击的是玩家背包
+			// 防刷物品
+			if (ItemStacks.hasTag(event.getCursor(), "cui")) {
+				event.getWhoClicked().setItemOnCursor(ItemStack.empty());
+				event.setCancelled(true);
+				return;
+			}
+			if (ItemStacks.hasTag(event.getCurrentItem(), "cui")) {
+				event.setCurrentItem(ItemStack.empty());
+				event.setCancelled(true);
+				return;
+			}
+			// 处理与CUI有关交互
 			switch (event.getAction()) {
 				case MOVE_TO_OTHER_INVENTORY -> {
 					var itemStack = event.getCurrentItem();

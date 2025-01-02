@@ -15,10 +15,11 @@ import org.jetbrains.annotations.Nullable;
 
 import java.net.URL;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class Button extends Slot {
-	private Consumer<CUIClickEvent<?>> clickHandler;
+	private BiConsumer<CUIClickEvent<?>, Button> clickHandler;
 	private ItemStack itemStack;
 
 	private Button() {
@@ -40,7 +41,7 @@ public class Button extends Slot {
 		event.setCancelled(true);
 		if (clickHandler != null) {
 			try {
-				clickHandler.accept(event);
+				clickHandler.accept(event, this);
 			} catch (Exception e) {
 				e.printStackTrace();
 				CUIPlugin.logger().warn("An error occurred while handling a button click event.");
@@ -82,7 +83,7 @@ public class Button extends Slot {
 	}
 
 	public static class Builder {
-		private Consumer<CUIClickEvent<?>> clickHandler;
+		private BiConsumer<CUIClickEvent<?>, Button> clickHandler;
 		private final ItemStacks.Builder itemStackBuilder = ItemStacks.builder().material(Material.OAK_BUTTON)
 				.itemFlags(ItemFlag.values());
 
@@ -93,6 +94,7 @@ public class Button extends Slot {
 			var button = new Button();
 			button.clickHandler = clickHandler;
 			button.itemStack = itemStackBuilder.build();
+			ItemStacks.addTag(button.itemStack, "cui");
 			return button;
 		}
 
@@ -101,56 +103,67 @@ public class Button extends Slot {
 			return this;
 		}
 
+		@Deprecated
 		public Builder skull(Player player) {
 			itemStackBuilder.skull(player);
 			return this;
 		}
 
+		@Deprecated
 		public Builder skull(URL skullTexture) {
 			itemStackBuilder.skull(skullTexture);
 			return this;
 		}
 
+		@Deprecated
 		public Builder material(Material material) {
 			itemStackBuilder.material(material);
 			return this;
 		}
 
+		@Deprecated
 		public Builder amount(int amount) {
 			itemStackBuilder.amount(amount);
 			return this;
 		}
 
+		@Deprecated
 		public Builder meta(Consumer<ItemMeta> metaModifier) {
 			itemStackBuilder.meta(metaModifier);
 			return this;
 		}
 
+		@Deprecated
 		public Builder displayName(Component displayName) {
 			itemStackBuilder.displayName(displayName);
 			return this;
 		}
 
+		@Deprecated
 		public Builder displayName(String displayName) {
 			itemStackBuilder.displayName(displayName);
 			return this;
 		}
 
+		@Deprecated
 		public Builder lore(List<Component> lore) {
 			itemStackBuilder.lore(lore);
 			return this;
 		}
 
+		@Deprecated
 		public Builder lore(Component... lore) {
 			itemStackBuilder.lore(lore);
 			return this;
 		}
 
+		@Deprecated
 		public Builder lore(String... lore) {
 			itemStackBuilder.lore(lore);
 			return this;
 		}
 
+		@Deprecated
 		public Builder itemFlags(ItemFlag... itemFlags) {
 			itemStackBuilder.itemFlags(itemFlags);
 			return this;
@@ -171,6 +184,11 @@ public class Button extends Slot {
 		 *         Builder
 		 */
 		public Builder click(Consumer<CUIClickEvent<?>> clickHandler) {
+			this.clickHandler = (event, button) -> clickHandler.accept(event);
+			return this;
+		}
+
+		public Builder click(BiConsumer<CUIClickEvent<?>, Button> clickHandler) {
 			this.clickHandler = clickHandler;
 			return this;
 		}

@@ -10,11 +10,13 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.profile.PlayerTextures;
 import org.jetbrains.annotations.NotNull;
 
@@ -126,6 +128,20 @@ public class ItemStacks {
 
 	public static Pair<Position, Position> trim(ItemStack[][] itemStacks) {
 		return Array2Ds.trim(itemStacks, ItemStacks::isEmpty);
+	}
+
+	public static void addTag(ItemStack itemStack, String tag) {
+		itemStack.editMeta(meta -> {
+			meta.getPersistentDataContainer().set(new NamespacedKey("tag", tag), PersistentDataType.BYTE, (byte) 1);
+		});
+	}
+
+	public static boolean hasTag(ItemStack itemStack, String tag) {
+		if (isEmpty(itemStack)) {
+			return false;
+		}
+		return itemStack.getItemMeta().getPersistentDataContainer().has(new NamespacedKey("tag", tag),
+				PersistentDataType.BYTE);
 	}
 
 	public static Builder builder() {
