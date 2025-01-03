@@ -62,12 +62,14 @@ public final class CUIManager implements Listener {
 				.filter(namespacedKey -> namespacedKey.getNamespace().equalsIgnoreCase(plugin.getName())).toList();
 	}
 
-	public CUIType<?> getCUIType(NamespacedKey key) {
-		return cuiTypes.get(key);
+	@SuppressWarnings("unchecked")
+	public <T extends ChestUI<T>> CUIType<T> getCUIType(NamespacedKey key) {
+		return (CUIType<T>) cuiTypes.get(key);
 	}
 
-	public CUIType<?> getCUIType(Plugin plugin, String name) {
-		return cuiTypes.get(NamespacedKey.fromString(name, plugin));
+	@SuppressWarnings("unchecked")
+	public <T extends ChestUI<T>> CUIType<T> getCUIType(Plugin plugin, String name) {
+		return (CUIType<T>) cuiTypes.get(NamespacedKey.fromString(name, plugin));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -118,9 +120,11 @@ public final class CUIManager implements Listener {
 		}
 	}
 
+	@Deprecated
 	public record ParseResult(CUIType<?> cuiType, Integer instanceId, Integer cameraId) {
 	}
 
+	@Deprecated
 	public ParseResult parse(String name) throws IllegalArgumentException {
 		var split = name.split("#");
 		if (split.length < 1) {

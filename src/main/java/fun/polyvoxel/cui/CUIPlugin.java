@@ -1,6 +1,7 @@
 package fun.polyvoxel.cui;
 
 import fun.polyvoxel.cui.cmd.CmdCUI;
+import fun.polyvoxel.cui.cmd.CommandCUI;
 import fun.polyvoxel.cui.ui.tool.Tools;
 import fun.polyvoxel.cui.ui.CUIManager;
 
@@ -26,7 +27,13 @@ public class CUIPlugin extends JavaPlugin {
 	public void onEnable() {
 		logger = getComponentLogger();
 		cuiManager.setup();
-		bindCommand("cui", new CmdCUI(this));
+		// Experimental. MockBukkit does not support Brigadier
+		try {
+			new CommandCUI(this).register();
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
+		bindCommand("cui-legacy", new CmdCUI(this));
 	}
 
 	@Override

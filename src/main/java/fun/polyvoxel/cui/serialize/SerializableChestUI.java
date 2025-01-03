@@ -24,7 +24,7 @@ public class SerializableChestUI implements ChestUI<SerializableChestUI> {
 	public void onInitialize(CUIType<SerializableChestUI> type) {
 		this.type = type.edit().defaultTitle(cuiData.title).triggerByDisplay((cuiType, player, asChild) -> {
 			CameraProvider<SerializableChestUI> provider = cuiData.singleton
-					? CameraProvider.createCameraInDefaultCUIInstance()
+					? CameraProvider.useDefaultCameraInDefaultCUIInstance()
 					: CameraProvider.createCameraInNewCUIInstance();
 			return provider.provide(cuiType, player, asChild);
 		}).done();

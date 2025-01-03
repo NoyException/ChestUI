@@ -1,6 +1,17 @@
 package fun.polyvoxel.cui.util;
 
+import com.mojang.brigadier.Message;
+import com.mojang.brigadier.arguments.ArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import io.papermc.paper.command.brigadier.MessageComponentSerializer;
+import io.papermc.paper.command.brigadier.argument.CustomArgumentType;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
@@ -19,11 +30,63 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 @ApiStatus.Experimental
 public class CmdHelper {
+
+	public static class EnumArgument<E extends Enum<E>> implements CustomArgumentType.Converted<E, String> {
+		private final Class<E> enumClass;
+		private final E[] values;
+		private final @Nullable Function<E, Component> suggestionProvider;
+
+		public EnumArgument(@NotNull Class<E> enumClass) {
+			this(enumClass, null);
+		}
+
+		public EnumArgument(@NotNull Class<E> enumClass, @Nullable Function<E, Component> suggestionProvider) {
+			this.enumClass = enumClass;
+			this.values = enumClass.getEnumConstants();
+			this.suggestionProvider = suggestionProvider;
+		}
+
+		@Override
+		public E convert(String nativeType) throws CommandSyntaxException {
+			try {
+				return E.valueOf(enumClass, nativeType.toUpperCase(Locale.ROOT));
+			} catch (IllegalArgumentException ignored) {
+				Message message = MessageComponentSerializer.message()
+						.serialize(Component.text("Invalid argument: %s".formatted(nativeType), NamedTextColor.RED));
+
+				throw new CommandSyntaxException(new SimpleCommandExceptionType(message), message);
+			}
+		}
+
+		@Override
+		public ArgumentType<String> getNativeType() {
+			return StringArgumentType.word();
+		}
+
+		@Override
+		public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context,
+				SuggestionsBuilder builder) {
+			if (suggestionProvider == null) {
+				for (E e : values) {
+					builder.suggest(e.name());
+				}
+			} else {
+				for (E e : values) {
+					builder.suggest(e.name(),
+							MessageComponentSerializer.message().serialize(suggestionProvider.apply(e)));
+				}
+			}
+			return builder.buildFuture();
+		}
+	}
 
 	public static CommandSender asOpSender(Player player) {
 		return new AsOpSender(player);

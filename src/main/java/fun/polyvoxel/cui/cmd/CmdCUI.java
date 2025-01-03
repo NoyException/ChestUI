@@ -21,6 +21,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+@Deprecated
 public class CmdCUI implements TabExecutor {
 	private final CUIPlugin plugin;
 	private final Permission permission;

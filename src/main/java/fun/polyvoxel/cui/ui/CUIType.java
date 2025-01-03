@@ -238,5 +238,7 @@ public final class CUIType<T extends ChestUI<T>> {
 			displayCameraProvider = cameraProvider;
 			return this;
 		}
+
+		// TODO: triggerByItemStack
 	}
 }

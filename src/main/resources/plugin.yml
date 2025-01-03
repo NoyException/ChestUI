@@ -3,6 +3,6 @@ version: '${version}'
 main: fun.polyvoxel.cui.CUIPlugin
 api-version: '1.21'
 commands:
-  cui:
-    description: Open the CUI
-    usage: For help, type /<command> help
+  cui-legacy:
+    description: Use /cui instead
+    usage: Type "/cui help" for help.
