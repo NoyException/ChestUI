@@ -289,7 +289,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 			}, () -> Transformer.builder()
 					.changeItemStack(ItemStacks.builder().material(toEdit.icon).displayName(Component.text("Icon"))
 							.lore(Component.text("Click with item in cursor to change")).build())
-					.build());
+					.enchant().build());
 
 			setButton(1, (event, refresh) -> {
 				var player = event.getPlayer();

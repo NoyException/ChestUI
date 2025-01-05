@@ -1,11 +1,11 @@
 package fun.polyvoxel.cui.slot;
 
+import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIClickEvent;
 
 import fun.polyvoxel.cui.util.ItemStacks;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -169,7 +169,7 @@ public class Transformer extends Slot {
 					return itemStack;
 				}
 				itemStack.editMeta(meta -> {
-					meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+					meta.addEnchant(CUIPlugin.GLOW, 1, true);
 					meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
 				});
 				return itemStack;

@@ -134,7 +134,7 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 			cui.edit().layer(1, new Layer(0, 9).edit().marginTop(1).tile(size, true, index -> {
 				var player = players[index];
 				var health = String.format("%.1f", player.getHealth());
-				var maxHealth = String.format("%.1f", player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+				var maxHealth = String.format("%.1f", player.getAttribute(Attribute.MAX_HEALTH).getValue());
 				var lore = new ArrayList<Component>();
 				if (player.isOp()) {
 					lore.add(Component.text("- ", NamedTextColor.GRAY)

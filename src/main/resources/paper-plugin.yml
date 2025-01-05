@@ -1,0 +1,7 @@
+name: ChestUI
+version: '${version}'
+main: fun.polyvoxel.cui.CUIPlugin
+description: Paper Test Plugin
+api-version: '1.21'
+bootstrapper: fun.polyvoxel.cui.CUIPluginBootstrap
+#loader: fun.polyvoxel.cui.CUIPlugin

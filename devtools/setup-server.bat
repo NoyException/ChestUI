@@ -2,7 +2,7 @@
 
 chcp 65001
 REM Define the PAPER_URL and destination directory
-set "PAPER_URL=https://api.papermc.io/v2/projects/paper/versions/1.21.3/builds/80/downloads/paper-1.21.3-80.jar"
+set "PAPER_URL=https://api.papermc.io/v2/projects/paper/versions/1.21.3/builds/82/downloads/paper-1.21.3-82.jar"
 set "SCRIPT_DIR=%~dp0"
 set "DEST_DIR=%SCRIPT_DIR%..\server"
 set "PAPER_FILE=%DEST_DIR%\paper.jar"

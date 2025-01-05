@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the PAPER_URL and destination directory
-PAPER_URL="https://api.papermc.io/v2/projects/paper/versions/1.21.3/builds/80/downloads/paper-1.21.3-80.jar"
+PAPER_URL="https://api.papermc.io/v2/projects/paper/versions/1.21.3/builds/82/downloads/paper-1.21.3-82.jar"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEST_DIR="$SCRIPT_DIR/../server"
 PAPER_FILE="$DEST_DIR/paper.jar"
