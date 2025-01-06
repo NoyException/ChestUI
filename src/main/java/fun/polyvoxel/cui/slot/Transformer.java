@@ -2,13 +2,14 @@ package fun.polyvoxel.cui.slot;
 
 import fun.polyvoxel.cui.event.CUIClickEvent;
 
+import fun.polyvoxel.cui.event.CUIDropAllEvent;
 import fun.polyvoxel.cui.util.ItemStacks;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ public class Transformer extends Slot {
 	private boolean enabled = true;
 
 	@Override
-	public ItemStack display(ItemStack legacy) {
+	public ItemStack display(@Nullable ItemStack legacy) {
 		if (!enabled) {
 			return legacy;
 		}
@@ -47,25 +48,24 @@ public class Transformer extends Slot {
 	}
 
 	@Override
-	public void set(ItemStack itemStack, @Nullable Player player) {
-	}
-
-	@Override
-	public void click(CUIClickEvent<?> event) {
-		if (clickHandler != null) {
-			event.setCancelled(true);
-			clickHandler.accept(event);
+	public boolean prepareClick(@NotNull CUIClickEvent<?> event) {
+		if (clickHandler == null) {
+			return false;
 		}
+		event.setSlot(this);
+		return true;
 	}
 
 	@Override
-	public ItemStack place(ItemStack itemStack, @Nullable Player player) {
-		return itemStack;
+	public void click(@NotNull CUIClickEvent<?> event) {
+		if (clickHandler == null) {
+			return;
+		}
+		clickHandler.accept(event);
 	}
 
 	@Override
-	public ItemStack collect(ItemStack itemStack, @Nullable Player player) {
-		return itemStack;
+	public void prepareDrop(CUIDropAllEvent<?> event) {
 	}
 
 	@Override

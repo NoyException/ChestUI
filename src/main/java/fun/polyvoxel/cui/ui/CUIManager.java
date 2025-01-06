@@ -386,6 +386,8 @@ public final class CUIManager implements Listener {
 			}
 
 			itemStack.setAmount(itemStack.getAmount() - ItemStacks.getAmount(view.getItem(rawSlot)));
+			// 拖拽式放置时，如果都放置失败，则Layer不会置脏，但由于事件未被cancel，所以会显示放在了箱子里，因此需要刷新
+			camera.markDirty();
 			var remaining = camera.place(player, itemStack, rawSlot / 9, rawSlot % 9);
 			if (!ItemStacks.isEmpty(remaining)) {
 				amount.addAndGet(remaining.getAmount());

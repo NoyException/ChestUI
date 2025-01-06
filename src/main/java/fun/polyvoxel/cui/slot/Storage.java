@@ -1,6 +1,9 @@
 package fun.polyvoxel.cui.slot;
 
 import fun.polyvoxel.cui.event.CUIClickEvent;
+import fun.polyvoxel.cui.event.CUIDropAllEvent;
+import fun.polyvoxel.cui.event.CUIPickItemEvent;
+import fun.polyvoxel.cui.event.CUIPlaceItemEvent;
 import fun.polyvoxel.cui.util.ItemStacks;
 
 import org.bukkit.GameMode;
@@ -52,13 +55,19 @@ public class Storage extends Slot {
 	}
 
 	@Override
-	public ItemStack display(ItemStack legacy) {
+	public ItemStack display(@Nullable ItemStack legacy) {
 		return source.get();
 	}
 
 	@Override
-	public void set(ItemStack itemStack, @Nullable Player player) {
-		source.set(itemStack, player);
+	public void set(ItemStack itemStack) {
+		source.set(itemStack, null);
+	}
+
+	@Override
+	public boolean prepareClick(@NotNull CUIClickEvent<?> event) {
+		event.setSlot(this);
+		return true;
 	}
 
 	@Override
@@ -141,7 +150,7 @@ public class Storage extends Slot {
 				}
 			}
 			source.set(itemStack, player);
-			event.setCursor(cursor);
+			player.setItemOnCursor(cursor);
 		} else {
 			switch (event.getClickType()) {
 				case LEFT, RIGHT -> {
@@ -154,7 +163,7 @@ public class Storage extends Slot {
 						itemStack = null;
 					}
 					source.set(itemStack, player);
-					event.setCursor(cursor);
+					player.setItemOnCursor(cursor);
 				}
 				case SHIFT_LEFT, SHIFT_RIGHT -> {
 					// 在Similar的情况下尽可能生产
@@ -176,23 +185,44 @@ public class Storage extends Slot {
 	}
 
 	@Override
-	public ItemStack place(ItemStack itemStack, @Nullable Player player) {
+	public boolean preparePlace(@NotNull CUIPlaceItemEvent<?> event) {
+		event.setSlot(this);
+		return true;
+	}
+
+	@Override
+	public ItemStack place(@NotNull CUIPlaceItemEvent<?> event) {
+		var itemStack = event.getItemStack();
 		if (!source.bidirectional()) {
 			return ItemStacks.clone(itemStack);
 		}
 		var result = ItemStacks.place(source.get(), itemStack, false);
-		source.set(result.placed(), player);
+		source.set(result.placed(), event.getPlayer());
 		return result.remaining();
 	}
 
 	@Override
-	public ItemStack collect(ItemStack itemStack, @Nullable Player player) {
+	public boolean preparePick(@NotNull CUIPickItemEvent<?> event) {
+		event.setSlot(this);
+		return true;
+	}
+
+	@Override
+	public ItemStack pick(@NotNull CUIPickItemEvent<?> event) {
 		if (!source.bidirectional()) {
-			return ItemStacks.clone(itemStack);
+			return ItemStacks.clone(event.getCursor());
 		}
-		var result = ItemStacks.place(itemStack, source.get(), false);
-		source.set(result.remaining(), player);
+		var result = ItemStacks.place(event.getCursor(), source.get(), false);
+		source.set(result.remaining(), event.getPlayer());
 		return result.placed();
+	}
+
+	@Override
+	public void prepareDrop(CUIDropAllEvent<?> event) {
+		var itemStack = source.get();
+		if (!ItemStacks.isEmpty(itemStack)) {
+			event.getDrops().put(this, itemStack);
+		}
 	}
 
 	@Override

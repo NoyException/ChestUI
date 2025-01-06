@@ -1,6 +1,6 @@
 package fun.polyvoxel.cui.layer;
 
-import fun.polyvoxel.cui.event.CUIClickEvent;
+import fun.polyvoxel.cui.event.CUIDropAllEvent;
 import fun.polyvoxel.cui.slot.Empty;
 import fun.polyvoxel.cui.slot.Slot;
 import fun.polyvoxel.cui.ui.CUIContents;
@@ -129,21 +129,14 @@ public class Layer {
 		}
 	}
 
-	public void click(CUIClickEvent<?> event) {
-		var position = event.getPosition();
-		var row = position.row() - marginTop;
-		var column = position.column() - marginLeft;
-		if (relative) {
-			var topLeft = event.getCamera().getTopLeft();
-			row -= topLeft.row();
-			column -= topLeft.column();
-		}
-		if (row < 0 || row >= rowSize || column < 0 || column >= columnSize) {
-			return;
-		}
-		var slot = slots[row][column];
-		if (slot != null) {
-			slot.click(event);
+	public void prepareDrop(CUIDropAllEvent<?> event) {
+		for (int row = 0; row < rowSize; row++) {
+			for (int column = 0; column < columnSize; column++) {
+				var slot = slots[row][column];
+				if (slot != null) {
+					slot.prepareDrop(event);
+				}
+			}
 		}
 	}
 

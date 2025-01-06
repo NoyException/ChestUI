@@ -1,8 +1,8 @@
 package fun.polyvoxel.cui.ui;
 
-import fun.polyvoxel.cui.event.CUIAddItemEvent;
-import fun.polyvoxel.cui.event.CUIClickEvent;
+import fun.polyvoxel.cui.event.*;
 import fun.polyvoxel.cui.layer.Layer;
+import fun.polyvoxel.cui.slot.Slot;
 import fun.polyvoxel.cui.util.ItemStacks;
 import fun.polyvoxel.cui.util.Position;
 
@@ -10,6 +10,7 @@ import net.kyori.adventure.text.Component;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -19,6 +20,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -42,6 +44,7 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 	private boolean keepAlive;
 	private boolean closable = true;
 	private Component title;
+	private CUIContents<T> contents;
 	private Inventory inventory;
 
 	private long ticksLived;
@@ -81,6 +84,10 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 		return handler;
 	}
 
+	public void markDirty() {
+		dirty = true;
+	}
+
 	/**
 	 * 获取所有正在使用该Camera的玩家。需要注意的是，切换到别的摄像头的玩家不会在列表里。<br>
 	 * Get all players who are using this Camera. It should be noted that players
@@ -95,6 +102,18 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 
 	public int getViewerCount() {
 		return viewers.size();
+	}
+
+	/**
+	 * 获取Camera看到的内容快照。任何对其的修改均不会反映到实际。<br>
+	 * Get a snapshot of the contents seen by the Camera. Any modifications to it
+	 * will not be reflected in reality.
+	 * 
+	 * @return 内容快照<br>
+	 *         Contents snapshot
+	 */
+	public CUIContents<T> getContents() {
+		return contents;
 	}
 
 	/**
@@ -273,7 +292,7 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 		}
 		dirty = false;
 
-		var contents = new CUIContents<>(this);
+		contents = new CUIContents<>(this);
 		activeLayers.descendingMap().values().forEach(layer -> layer.display(contents));
 
 		for (int row = 0; row < rowSize; row++) {
@@ -369,22 +388,26 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 	 */
 	public void click(Player player, ClickType clickType, InventoryAction action, int row, int column,
 			ItemStack cursor) {
-		var topLeft = getTopLeft();
-		var event = new CUIClickEvent<>(this, player, clickType, action,
-				new Position(row + topLeft.row(), column + topLeft.column()), cursor);
-		Bukkit.getPluginManager().callEvent(event);
-		if (event.isCancelled()) {
-			return;
+		if (state != State.READY) {
+			throw new IllegalStateException("Camera is not ready");
 		}
+
+		var event = new CUIClickEvent<>(this, player, clickType, action, new Position(row, column), cursor);
 
 		// 深度低的先click
 		for (Layer layer : getActiveLayers().values()) {
-			layer.click(event);
-			if (event.isCancelled()) {
+			var slot = layer.getRelativeSlot(this, row, column);
+			if (slot != null && slot.prepareClick(event)) {
 				break;
 			}
 		}
-		player.setItemOnCursor(event.getCursor());
+
+		Bukkit.getPluginManager().callEvent(event);
+		if (event.isCancelled() || event.getSlot() == null) {
+			return;
+		}
+
+		event.getSlot().click(event);
 	}
 
 	/**
@@ -407,25 +430,31 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 	 *         Remaining ItemStack
 	 */
 	public ItemStack place(Player player, ItemStack itemStack, int row, int column) {
+		if (state != State.READY) {
+			throw new IllegalStateException("Camera is not ready");
+		}
+
 		if (ItemStacks.isEmpty(itemStack)) {
 			return null;
 		}
 
-		// 拖拽式放置时，如果都放置失败，则Layer不会置脏，但由于事件未被cancel，所以会显示放在了箱子里，因此需要刷新
-		dirty = true;
+		var event = new CUIPlaceItemEvent<>(this, player, Position.of(row, column), itemStack);
 		// 深度低的先place
-		// TODO: 改为事件驱动
 		for (Layer layer : getActiveLayers().values()) {
 			var slot = layer.getRelativeSlot(this, row, column);
-			if (slot == null) {
-				continue;
-			}
-			itemStack = slot.place(itemStack, player);
-			if (ItemStacks.isEmpty(itemStack)) {
-				return null;
+			if (slot != null && slot.preparePlace(event)) {
+				break;
 			}
 		}
-		return itemStack;
+
+		Bukkit.getPluginManager().callEvent(event);
+		if (event.isCancelled()) {
+			return itemStack;
+		}
+		if (event.getSlot() == null) {
+			return event.getItemStack();
+		}
+		return event.getSlot().place(event);
 	}
 
 	/**
@@ -443,6 +472,10 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 	 *         Remaining ItemStack, return null if there is no remaining
 	 */
 	public ItemStack addItem(Player player, ItemStack itemStack) {
+		if (state != State.READY) {
+			throw new IllegalStateException("Camera is not ready");
+		}
+
 		if (ItemStacks.isEmpty(itemStack)) {
 			return null;
 		}
@@ -457,19 +490,11 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 			return null;
 		}
 
-		// 深度低的先addItem
-		var activeLayers = getActiveLayers().values();
 		for (int row = 0; row < rowSize; row++) {
 			for (int column = 0; column < columnSize; column++) {
-				for (Layer layer : activeLayers) {
-					var slot = layer.getRelativeSlot(this, row, column);
-					if (slot == null) {
-						continue;
-					}
-					itemStack = slot.place(itemStack, player);
-					if (ItemStacks.isEmpty(itemStack)) {
-						return null;
-					}
+				itemStack = place(player, itemStack, row, column);
+				if (ItemStacks.isEmpty(itemStack)) {
+					return null;
 				}
 			}
 		}
@@ -477,50 +502,101 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 	}
 
 	/**
-	 * 收集物品（双击物品时触发），仅收集Camera视野范围内的物品<br>
+	 * 捡起物品<br>
+	 * Pick item
+	 *
+	 * @param player
+	 *            玩家<br>
+	 *            Player
+	 * @param row
+	 *            相对于Camera的行<br>
+	 *            Relative to Camera row
+	 * @param column
+	 *            相对于Camera的列<br>
+	 *            Relative to Camera column
+	 * @param cursor
+	 *            鼠标上的物品<br>
+	 *            Item on cursor
+	 * @return 获得的物品<br>
+	 *         Obtained ItemStack
+	 */
+	public ItemStack pick(Player player, int row, int column, ItemStack cursor) {
+		if (state != State.READY) {
+			throw new IllegalStateException("Camera is not ready");
+		}
+
+		var event = new CUIPickItemEvent<>(this, player, Position.of(row, column), cursor);
+		for (Layer layer : getActiveLayers().values()) {
+			var slot = layer.getRelativeSlot(this, row, column);
+			if (slot != null && slot.preparePick(event)) {
+				break;
+			}
+		}
+
+		Bukkit.getPluginManager().callEvent(event);
+		if (event.isCancelled()) {
+			return cursor;
+		}
+		if (event.getSlot() == null) {
+			return event.getCursor();
+		}
+		return event.getSlot().pick(event);
+	}
+
+	/**
+	 * 收集物品（双击物品时触发），仅收集Camera视野范围内的物品。显示数量少的槽位将会被优先收集。<br>
 	 * Collect items (triggered when double-clicking items), only collect items
-	 * within the Camera's field of view
+	 * within the Camera's field of view. Slots with fewer displayed items will be
+	 * collected first.
 	 *
 	 * @param player
 	 *            玩家<br>
 	 *            The player
-	 * @param itemStack
-	 *            待收集的物品<br>
-	 *            The item to collect
-	 * @param collectBackpack
+	 * @param cursor
+	 *            鼠标上的物品<br>
+	 *            Item on cursor
+	 * @param includeBackpack
 	 *            是否收集背包中的物品<br>
 	 *            Whether to collect items in the backpack
 	 * @return 收集到的物品，如果没有收集到则返回null<br>
 	 *         The collected item, if there is no collected item, return null
 	 */
-	public ItemStack collect(Player player, ItemStack itemStack, boolean collectBackpack) {
-		if (ItemStacks.isEmpty(itemStack)) {
+	public ItemStack collect(Player player, ItemStack cursor, boolean includeBackpack) {
+		if (state != State.READY) {
+			throw new IllegalStateException("Camera is not ready");
+		}
+
+		if (ItemStacks.isEmpty(cursor)) {
 			return null;
 		}
+
+		var event = new CUICollectItemEvent<>(this, player, cursor, includeBackpack);
+		Bukkit.getPluginManager().callEvent(event);
+		if (event.isCancelled()) {
+			return cursor;
+		}
+		cursor = event.getCursor();
+		includeBackpack = event.isIncludeBackpack();
+
+		@FunctionalInterface
 		interface Collectable {
 			ItemStack collect(ItemStack itemStack);
 		}
 		var list = new ArrayList<Pair<Integer, Collectable>>();
 
-		// TODO: 改为事件驱动
-		var activeLayers = getActiveLayers().values();
 		for (int row = 0; row < rowSize; row++) {
 			for (int column = 0; column < columnSize; column++) {
-				for (Layer layer : activeLayers) {
-					var slot = layer.getRelativeSlot(this, row, column);
-					if (slot == null) {
-						continue;
-					}
-					var inSlot = slot.get();
-					if (ItemStacks.isEmpty(inSlot)) {
-						continue;
-					}
-					list.add(Pair.of(inSlot.getAmount(), itemStack1 -> slot.collect(itemStack1, player)));
+				var amount = ItemStacks.getAmount(contents.getItem(row, column));
+				if (amount == 0) {
+					continue;
 				}
+				int finalRow = row;
+				int finalColumn = column;
+				list.add(Pair.of(amount, itemStack1 -> pick(player, finalRow, finalColumn, itemStack1)));
 			}
 		}
 
-		if (collectBackpack) {
+		if (includeBackpack) {
 			var inventory = player.getInventory();
 			for (int slot = 0; slot < inventory.getSize(); slot++) {
 				var item = inventory.getItem(slot);
@@ -539,12 +615,43 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 
 		list.sort(Comparator.comparingInt(Pair::getLeft));
 		for (var pair : list) {
-			itemStack = pair.getRight().collect(itemStack);
-			if (ItemStacks.isFull(itemStack)) {
-				return itemStack;
+			cursor = pair.getRight().collect(cursor);
+			if (ItemStacks.isFull(cursor)) {
+				return cursor;
 			}
 		}
-		return itemStack;
+		return cursor;
+	}
+
+	public void dropAll(@NotNull Location location) {
+		dropAll(null, location);
+	}
+
+	public void dropAll(@NotNull Player player) {
+		dropAll(player, player.getEyeLocation());
+	}
+
+	public void dropAll(@Nullable Player player, @NotNull Location location) {
+		var activeLayers = getActiveLayers().values();
+		var drops = new HashMap<Slot, ItemStack>();
+		var event = new CUIDropAllEvent<>(this, player, location, drops);
+		for (Layer layer : activeLayers) {
+			layer.prepareDrop(event);
+		}
+
+		Bukkit.getPluginManager().callEvent(event);
+		if (event.isCancelled()) {
+			return;
+		}
+		location = event.getLocation();
+
+		event.getDrops().keySet().forEach(slot -> slot.set(null));
+		for (ItemStack itemStack : event.getDrops().values()) {
+			if (ItemStacks.isEmpty(itemStack)) {
+				continue;
+			}
+			location.getWorld().dropItemNaturally(location, itemStack);
+		}
 	}
 
 	public enum HorizontalAlign {

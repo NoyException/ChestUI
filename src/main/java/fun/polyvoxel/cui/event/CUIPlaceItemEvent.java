@@ -1,41 +1,33 @@
 package fun.polyvoxel.cui.event;
 
 import fun.polyvoxel.cui.slot.Slot;
-import fun.polyvoxel.cui.ui.ChestUI;
-import fun.polyvoxel.cui.ui.Camera;
 import fun.polyvoxel.cui.ui.CUIInstance;
+import fun.polyvoxel.cui.ui.Camera;
+import fun.polyvoxel.cui.ui.ChestUI;
 import fun.polyvoxel.cui.util.Position;
-
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class CUIClickEvent<T extends ChestUI<T>> extends Event implements Cancellable {
+public class CUIPlaceItemEvent<T extends ChestUI<T>> extends Event implements Cancellable {
 	private static final HandlerList HANDLERS = new HandlerList();
 	private final @NotNull Camera<T> camera;
-	private final @NotNull Player player;
-	private final @NotNull ClickType clickType;
-	private final @NotNull InventoryAction action;
-	// 相对于Camera的点击位置
+	private final @Nullable Player player;
 	private final @NotNull Position position;
-	private @Nullable ItemStack cursor;
+	private ItemStack itemStack;
 	private @Nullable Slot slot;
 	private boolean cancel;
 
-	public CUIClickEvent(@NotNull Camera<T> camera, @NotNull Player player, @NotNull ClickType clickType,
-			@NotNull InventoryAction action, @NotNull Position position, @Nullable ItemStack cursor) {
+	public CUIPlaceItemEvent(@NotNull Camera<T> camera, @Nullable Player player, @NotNull Position position,
+			@NotNull ItemStack itemStack) {
 		this.camera = camera;
 		this.player = player;
-		this.clickType = clickType;
-		this.action = action;
 		this.position = position;
-		this.cursor = cursor;
+		this.itemStack = itemStack;
 	}
 
 	public CUIInstance<T> getCUIInstance() {
@@ -46,28 +38,20 @@ public class CUIClickEvent<T extends ChestUI<T>> extends Event implements Cancel
 		return camera;
 	}
 
-	public @NotNull Player getPlayer() {
+	public @Nullable Player getPlayer() {
 		return player;
-	}
-
-	public @NotNull ClickType getClickType() {
-		return clickType;
-	}
-
-	public @NotNull InventoryAction getAction() {
-		return action;
 	}
 
 	public @NotNull Position getPosition() {
 		return position;
 	}
 
-	public @Nullable ItemStack getCursor() {
-		return cursor;
+	public ItemStack getItemStack() {
+		return itemStack;
 	}
 
-	public void setCursor(@Nullable ItemStack cursor) {
-		this.cursor = cursor;
+	public void setItemStack(ItemStack itemStack) {
+		this.itemStack = itemStack;
 	}
 
 	public @Nullable Slot getSlot() {

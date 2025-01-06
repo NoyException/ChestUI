@@ -1,7 +1,6 @@
 package fun.polyvoxel.cui.slot;
 
-import fun.polyvoxel.cui.event.CUIClickEvent;
-import org.bukkit.entity.Player;
+import fun.polyvoxel.cui.event.CUIDropAllEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,26 +15,12 @@ public class Empty extends Slot {
 	}
 
 	@Override
-	public ItemStack display(ItemStack legacy) {
+	public ItemStack display(@Nullable ItemStack legacy) {
 		return legacy;
 	}
 
 	@Override
-	public void set(ItemStack itemStack, @Nullable Player player) {
-	}
-
-	@Override
-	public void click(CUIClickEvent<?> event) {
-	}
-
-	@Override
-	public ItemStack place(ItemStack itemStack, @Nullable Player player) {
-		return itemStack;
-	}
-
-	@Override
-	public ItemStack collect(ItemStack itemStack, @Nullable Player player) {
-		return itemStack;
+	public void prepareDrop(CUIDropAllEvent<?> event) {
 	}
 
 	@Override

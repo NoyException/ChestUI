@@ -64,14 +64,14 @@ public class CraftingTableTypeTest {
 
 		Layer inputLayer = workbench.generateInputLayer(0);
 		Layer outputLayer = workbench.generateOutputLayer(0);
-		inputLayer.getSlot(0, 0).place(ItemStack.of(Material.IRON_INGOT, 1), null);
-		inputLayer.getSlot(0, 2).place(ItemStack.of(Material.IRON_INGOT, 1), null);
-		inputLayer.getSlot(1, 0).place(ItemStack.of(Material.IRON_INGOT, 4), null);
-		inputLayer.getSlot(1, 1).place(ItemStack.of(Material.IRON_INGOT, 2), null);
-		inputLayer.getSlot(1, 2).place(ItemStack.of(Material.IRON_INGOT, 4), null);
-		inputLayer.getSlot(2, 0).place(ItemStack.of(Material.IRON_INGOT, 4), null);
-		inputLayer.getSlot(2, 1).place(ItemStack.of(Material.IRON_INGOT, 1), null);
-		inputLayer.getSlot(2, 2).place(ItemStack.of(Material.IRON_INGOT, 4), null);
+		inputLayer.getSlot(0, 0).set(ItemStack.of(Material.IRON_INGOT, 1));
+		inputLayer.getSlot(0, 2).set(ItemStack.of(Material.IRON_INGOT, 1));
+		inputLayer.getSlot(1, 0).set(ItemStack.of(Material.IRON_INGOT, 4));
+		inputLayer.getSlot(1, 1).set(ItemStack.of(Material.IRON_INGOT, 2));
+		inputLayer.getSlot(1, 2).set(ItemStack.of(Material.IRON_INGOT, 4));
+		inputLayer.getSlot(2, 0).set(ItemStack.of(Material.IRON_INGOT, 4));
+		inputLayer.getSlot(2, 1).set(ItemStack.of(Material.IRON_INGOT, 1));
+		inputLayer.getSlot(2, 2).set(ItemStack.of(Material.IRON_INGOT, 4));
 		workbench.match(Context.background().withPlayer(player));
 		workbench.apply();
 		workbench.match(Context.background().withPlayer(player));
@@ -85,7 +85,7 @@ public class CraftingTableTypeTest {
 		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_HELMET), outputLayer.getSlot(0, 1).get(),
 				"应当成功合成铁头盔");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_BOOTS), outputLayer.getSlot(0, 2).get(), "应当成功合成铁靴子");
-		outputLayer.getSlot(0, 0).set(null, null);
+		outputLayer.getSlot(0, 0).set(null);
 		workbench.match(Context.background());
 		workbench.apply();
 		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_BOOTS), outputLayer.getSlot(0, 0).get(), "应当成功合成铁靴子");

@@ -2,6 +2,7 @@ package fun.polyvoxel.cui.slot;
 
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIClickEvent;
+import fun.polyvoxel.cui.event.CUIDropAllEvent;
 import fun.polyvoxel.cui.util.ItemStacks;
 
 import net.kyori.adventure.text.Component;
@@ -11,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URL;
@@ -26,48 +28,48 @@ public class Button extends Slot {
 	}
 
 	@Override
-	public ItemStack display(ItemStack legacy) {
+	public ItemStack display(@Nullable ItemStack legacy) {
 		return itemStack;
 	}
 
 	@Override
-	public void set(ItemStack itemStack, @Nullable Player player) {
+	public void set(ItemStack itemStack) {
 		this.itemStack = itemStack;
 		markDirty();
 	}
 
 	@Override
-	public void click(CUIClickEvent<?> event) {
-		event.setCancelled(true);
-		if (clickHandler != null) {
-			try {
-				clickHandler.accept(event, this);
-			} catch (Exception e) {
-				e.printStackTrace();
-				CUIPlugin.logger().warn("An error occurred while handling a button click event.");
-				var plugin = event.getCUIInstance().getType().getPlugin();
-				if (plugin == null) {
-					CUIPlugin.logger().warn(
-							"This is a bug of the ChestUI loaded from json. Please check the json file, or report it to the plugin author.");
-				} else if (plugin.getClass() == CUIPlugin.class) {
-					CUIPlugin.logger().warn("This is a bug of ChestUI, please report it to the plugin author.");
-				} else {
-					CUIPlugin.logger().warn(
-							"This is not a bug of ChestUI, please report it to the plugin author of {}.",
-							plugin.getName());
-				}
+	public boolean prepareClick(@NotNull CUIClickEvent<?> event) {
+		event.setSlot(this);
+		return true;
+	}
+
+	@Override
+	public void click(@NotNull CUIClickEvent<?> event) {
+		if (clickHandler == null) {
+			return;
+		}
+
+		try {
+			clickHandler.accept(event, this);
+		} catch (Exception e) {
+			e.printStackTrace();
+			CUIPlugin.logger().warn("An error occurred while handling a button click event.");
+			var plugin = event.getCUIInstance().getType().getPlugin();
+			if (plugin == null) {
+				CUIPlugin.logger().warn(
+						"This is a bug of the ChestUI loaded from json. Please check the json file, or report it to the plugin author.");
+			} else if (plugin.getClass() == CUIPlugin.class) {
+				CUIPlugin.logger().warn("This is a bug of ChestUI, please report it to the plugin author.");
+			} else {
+				CUIPlugin.logger().warn("This is not a bug of ChestUI, please report it to the plugin author of {}.",
+						plugin.getName());
 			}
 		}
 	}
 
 	@Override
-	public ItemStack place(ItemStack itemStack, @Nullable Player player) {
-		return itemStack;
-	}
-
-	@Override
-	public ItemStack collect(ItemStack itemStack, @Nullable Player player) {
-		return itemStack;
+	public void prepareDrop(CUIDropAllEvent<?> event) {
 	}
 
 	@Override
