@@ -3,6 +3,7 @@ package fun.polyvoxel.cui.ui;
 import fun.polyvoxel.cui.event.*;
 import fun.polyvoxel.cui.layer.Layer;
 import fun.polyvoxel.cui.slot.Slot;
+import fun.polyvoxel.cui.ui.source.DisplaySource;
 import fun.polyvoxel.cui.util.ItemStacks;
 import fun.polyvoxel.cui.util.Position;
 
@@ -29,16 +30,12 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 	private final CUIInstance<T> cuiInstance;
 	private final CameraHandler<T> handler;
 	private final int id;
-	private final HashSet<Player> viewers = new HashSet<>();
-	/**
-	 * 用于保活的计数，玩家使用该相机则计数+1，不使用则计数-1，从本相机跳到别的相机计数不变（因为会跳回来）
-	 */
-	private final HashMap<Player, Integer> keepAliveCount = new HashMap<>();
+	private final HashMap<Player, ViewerInfo> viewers = new HashMap<>();
 	private final TreeMap<Integer, LayerWrapper> layers = new TreeMap<>();
 	private final HashMap<Layer, Integer> layerDepths = new HashMap<>();
 	private final InventoryHolder holder = new DummyHolder();
 	private Position position = new Position(0, 0);
-	private int rowSize = 3, columnSize = 9;
+	private int rowSize = 6, columnSize = 9;
 	private HorizontalAlign horizontalAlign = HorizontalAlign.LEFT;
 	private VerticalAlign verticalAlign = VerticalAlign.TOP;
 	private boolean keepAlive;
@@ -61,6 +58,7 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 		this.manager.registerCamera(this);
 		this.handler = handler;
 		this.handler.onInitialize(this);
+		sync(true);
 		state = State.READY;
 	}
 
@@ -89,15 +87,15 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 	}
 
 	/**
-	 * 获取所有正在使用该Camera的玩家。需要注意的是，切换到别的摄像头的玩家不会在列表里。<br>
+	 * 获取所有正在使用该Camera的玩家。需要注意的是，切换到别的摄像头的玩家也会在列表里。<br>
 	 * Get all players who are using this Camera. It should be noted that players
-	 * who switch to other cameras will not be in the list.
+	 * who switch to other cameras will also be in the list.
 	 *
 	 * @return 玩家列表<br>
 	 *         Player list
 	 */
 	public List<Player> getViewers() {
-		return new ArrayList<>(viewers);
+		return new ArrayList<>(viewers.keySet());
 	}
 
 	public int getViewerCount() {
@@ -210,7 +208,12 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 
 	@Override
 	public void notifySwitchOut(Player viewer) {
-		viewers.remove(viewer);
+		var info = viewers.get(viewer);
+		if (info == null) {
+			getCUIPlugin().getLogger().warning("ViewerInfo is null");
+			return;
+		}
+		info.viewing = false;
 	}
 
 	@Override
@@ -218,15 +221,21 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 		return state == State.READY && handler.canOpen(viewer);
 	}
 
-	protected void doOpen(Player viewer, boolean asChild) {
+	protected void doOpen(Player viewer, boolean asChild, @Nullable DisplaySource<?> source) {
 		handler.onOpen(viewer);
-		viewers.add(viewer);
-		keepAliveCount.compute(viewer, (player, count) -> count == null ? 1 : count + 1);
+		ViewerInfo info = viewers.computeIfAbsent(viewer, ViewerInfo::new);
+		info.sources.push(source);
+		info.viewing = true;
 	}
 
 	@Override
 	public void notifySwitchBack(Player viewer) {
-		viewers.add(viewer);
+		var info = viewers.get(viewer);
+		if (info == null) {
+			getCUIPlugin().getLogger().warning("ViewerInfo is null");
+			return;
+		}
+		info.viewing = true;
 	}
 
 	@Override
@@ -236,17 +245,16 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 
 	protected void doClose(Player viewer) {
 		handler.onClose(viewer);
-		viewers.remove(viewer);
-		keepAliveCount.compute(viewer, (player, count) -> {
-			if (count == null) {
-				return 0;
-			}
-			if (count <= 0) {
-				throw new RuntimeException("Keep alive count is less than 0");
-			}
-			return count - 1;
-		});
-		keepAliveCount.remove(viewer, 0);
+		var info = viewers.get(viewer);
+		if (info == null) {
+			getCUIPlugin().getLogger().warning("ViewerInfo is null");
+			return;
+		}
+		info.sources.pop();
+		info.viewing = false;
+		if (info.sources.empty()) {
+			viewers.remove(viewer);
+		}
 
 		Inventory topInventory = viewer.getOpenInventory().getTopInventory();
 		// MockBukkit中topInventory可能为null
@@ -256,7 +264,12 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 	}
 
 	public boolean closeCompletely(Player viewer, boolean force) {
-		while (keepAliveCount.getOrDefault(viewer, 0) > 0) {
+		var info = viewers.get(viewer);
+		if (info == null) {
+			getCUIPlugin().getLogger().warning("ViewerInfo is null");
+			return true;
+		}
+		while (!info.sources.empty()) {
 			if (!close(viewer, force, true)) {
 				return false;
 			}
@@ -275,7 +288,7 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 		}
 		state = State.DESTROYING;
 		handler.onDestroy();
-		new ArrayList<>(keepAliveCount.keySet()).forEach(player -> closeCompletely(player, true));
+		getViewers().forEach(player -> closeCompletely(player, true));
 		manager.unregisterCamera(this);
 		state = State.DESTROYED;
 	}
@@ -315,7 +328,7 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 	}
 
 	public void tick() {
-		if (!keepAlive && keepAliveCount.isEmpty()) {
+		if (!keepAlive && viewers.isEmpty()) {
 			destroy();
 			return;
 		}
@@ -332,7 +345,7 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 	public void tickEnd() {
 		handler.onTickEnd();
 
-		if (viewers.isEmpty()) {
+		if (viewers.values().stream().noneMatch(info -> info.viewing)) {
 			// Layer的dirty只在某一tick生效，所以在没有玩家的情况下，需要手动置脏
 			dirty = true;
 		} else {
@@ -351,12 +364,17 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 		if (state != State.READY) {
 			return null;
 		}
-		if (!viewers.contains(viewer)) {
+		var info = viewers.get(viewer);
+		if (info == null) {
+			getCUIPlugin().getLogger().warning("ViewerInfo is null");
+			return null;
+		}
+		if (!info.viewing) {
 			return null;
 		}
 		var view = viewer.getOpenInventory();
 		if (view.getTopInventory() != inventory) {
-			handler.onOpenInventory(inventory);
+			handler.onOpenInventory(viewer, inventory);
 			viewer.openInventory(inventory);
 			return view;
 		}
@@ -679,6 +697,21 @@ public final class Camera<T extends ChestUI<T>> extends Viewable {
 			var clone = new LayerWrapper(layer.deepClone());
 			clone.active = active;
 			return clone;
+		}
+	}
+
+	private static class ViewerInfo {
+		private final Player player;
+		/**
+		 * 是否正在查看。玩家有可能在查看时切换到别的相机，此时该值为false。<br>
+		 * Whether viewing. The player may switch to another camera while viewing, in
+		 * which case this value is false.
+		 */
+		private boolean viewing;
+		private final Stack<DisplaySource<?>> sources = new Stack<>();
+
+		private ViewerInfo(Player player) {
+			this.player = player;
 		}
 	}
 

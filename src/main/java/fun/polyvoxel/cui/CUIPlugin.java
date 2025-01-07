@@ -1,22 +1,18 @@
 package fun.polyvoxel.cui;
 
-import fun.polyvoxel.cui.cmd.CmdCUI;
 import fun.polyvoxel.cui.cmd.CommandCUI;
 import fun.polyvoxel.cui.ui.tool.Tools;
 import fun.polyvoxel.cui.ui.CUIManager;
 
 import fun.polyvoxel.cui.ui.CameraManager;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
-import org.bukkit.Bukkit;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.PluginCommand;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class CUIPlugin extends JavaPlugin {
 	private static ComponentLogger logger;
 	private final CUIManager cuiManager = new CUIManager(this);
 	private final CameraManager cameraManager = new CameraManager(this);
+	private CommandCUI command;
 	private final Tools tools = new Tools(this);
 
 	public static ComponentLogger logger() {
@@ -29,26 +25,16 @@ public class CUIPlugin extends JavaPlugin {
 		cuiManager.setup();
 		// Experimental. MockBukkit does not support Brigadier
 		try {
-			new CommandCUI(this).register();
+			command = new CommandCUI(this);
+			command.register();
 		} catch (Throwable e) {
 			e.printStackTrace();
 		}
-		bindCommand("cui-legacy", new CmdCUI(this));
 	}
 
 	@Override
 	public void onDisable() {
 		cuiManager.teardown();
-	}
-
-	private void bindCommand(String name, Object executor) {
-		PluginCommand command = Bukkit.getPluginCommand(name);
-		if (command == null) {
-			getLogger().warning("Command `" + name + "` not found");
-			return;
-		}
-		command.setExecutor(executor instanceof CommandExecutor ? (CommandExecutor) executor : null);
-		command.setTabCompleter(executor instanceof TabCompleter ? (TabCompleter) executor : null);
 	}
 
 	public CUIManager getCUIManager() {
@@ -57,6 +43,10 @@ public class CUIPlugin extends JavaPlugin {
 
 	public CameraManager getCameraManager() {
 		return cameraManager;
+	}
+
+	public CommandCUI getCommand() {
+		return command;
 	}
 
 	public Tools getTools() {

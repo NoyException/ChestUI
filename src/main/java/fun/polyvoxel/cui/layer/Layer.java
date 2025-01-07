@@ -218,8 +218,8 @@ public class Layer {
 
 		public Editor slot(int row, int column, Supplier<Slot> supplier) {
 			if (!isValidPosition(row, column)) {
-				throw new IndexOutOfBoundsException(
-						"(row, column) must be between (0, 0) and (" + rowSize + ", " + columnSize + ")");
+				throw new IndexOutOfBoundsException("(row, column) must be between (0, 0) and (" + rowSize + ", "
+						+ columnSize + "), but got (" + row + ", " + column + ")");
 			}
 
 			Slot slot = supplier.get();

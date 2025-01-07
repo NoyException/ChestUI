@@ -1,5 +1,6 @@
 package fun.polyvoxel.cui.prebuilt;
 
+import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.layer.Layer;
 
 import fun.polyvoxel.cui.slot.Button;
@@ -7,7 +8,6 @@ import fun.polyvoxel.cui.slot.Storage;
 import fun.polyvoxel.cui.ui.*;
 import fun.polyvoxel.cui.util.ItemStacks;
 import fun.polyvoxel.cui.util.Position;
-import fun.polyvoxel.cui.util.context.Context;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -21,7 +21,6 @@ import org.bukkit.entity.Pose;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionType;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -29,6 +28,7 @@ import java.util.function.Supplier;
 
 @CUI(name = "pm", icon = Material.PLAYER_HEAD)
 public class PlayerMonitor implements ChestUI<PlayerMonitor> {
+	private CUIPlugin plugin;
 	private CUIType<PlayerMonitor> type;
 	private CUIInstance<PlayerMonitor> allPlayers;
 	private final Map<Player, CUIInstance<PlayerMonitor>> byPlayer = new HashMap<>();
@@ -37,49 +37,33 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 
 	@Override
 	public void onInitialize(CUIType<PlayerMonitor> type) {
-		this.type = type.edit().defaultTitle("Inventory Monitor")
-				.triggerByDisplay((cuiType, player, asChild) -> getAllPlayers().createCamera()).done();
+		this.plugin = type.getCUIPlugin();
+		this.type = type.edit().defaultTitle("Inventory Monitor").done();
 	}
 
 	@Override
-	public @NotNull CUIInstanceHandler<PlayerMonitor> createCUIInstanceHandler(Context context) {
-		var player = context.player();
-		if (player == null) {
-			return new MonitorAllPlayersHandler();
-		}
-		String monitor = context.get("monitor");
-		switch (monitor) {
-			case "backpack" -> {
-				return new MonitorBackpackHandler(player);
-			}
-			case "armor" -> {
-				return new MonitorArmorHandler(player);
-			}
-			case null, default -> {
-				return new MonitorPlayerHandler(player);
-			}
-		}
+	public @Nullable <S> Camera<PlayerMonitor> getDisplayedCamera(DisplayContext<S> context) {
+		return getAllPlayers().createCamera(camera -> {
+		});
 	}
 
 	private CUIInstance<PlayerMonitor> getAllPlayers() {
 		if (allPlayers == null) {
-			allPlayers = type.createInstance(Context.background());
+			allPlayers = type.createInstance(new MonitorAllPlayersHandler());
 		}
 		return allPlayers;
 	}
 
 	private CUIInstance<PlayerMonitor> getByPlayer(Player player) {
-		return byPlayer.computeIfAbsent(player, p -> type.createInstance(Context.background().withPlayer(p)));
+		return byPlayer.computeIfAbsent(player, p -> type.createInstance(new MonitorPlayerHandler(player)));
 	}
 
 	private CUIInstance<PlayerMonitor> getBackpack(Player player) {
-		return backpacks.computeIfAbsent(player,
-				p -> type.createInstance(Context.background().withPlayer(p).withValue("monitor", "backpack")));
+		return backpacks.computeIfAbsent(player, p -> type.createInstance(new MonitorBackpackHandler(player)));
 	}
 
 	private CUIInstance<PlayerMonitor> getArmor(Player player) {
-		return armors.computeIfAbsent(player,
-				p -> type.createInstance(Context.background().withPlayer(p).withValue("monitor", "armor")));
+		return armors.computeIfAbsent(player, p -> type.createInstance(new MonitorArmorHandler(player)));
 	}
 
 	private class MonitorAllPlayersHandler implements CUIInstanceHandler<PlayerMonitor> {
@@ -115,11 +99,6 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 		@Override
 		public void onDestroy() {
 			allPlayers = null;
-		}
-
-		@Override
-		public @NotNull CameraHandler<PlayerMonitor> createCameraHandler(Context context) {
-			return camera -> camera.edit().rowSize(6);
 		}
 
 		private void refresh() {
@@ -170,7 +149,8 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 				return Button.builder().skull(player).displayName(player.displayName()).lore(lore)
 						.click(cuiClickEvent -> {
 							if (cuiClickEvent.getClickType().isLeftClick()) {
-								getByPlayer(player).createCamera().open(cuiClickEvent.getPlayer(), true);
+								getByPlayer(player).createCamera(camera -> {
+								}).open(cuiClickEvent.getPlayer(), true);
 							}
 						}).build();
 			}).done()).done();
@@ -206,16 +186,17 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 					.slot(0, 0, () -> Button.builder().skull(player).displayName(player.displayName()).build())
 					.slot(2, 0, () -> Button.builder().material(Material.BUNDLE)
 							.displayName(Component.text("Backpack", TextColor.color(140, 81, 25))).click(event -> {
-								getBackpack(player).getCamera().open(event.getPlayer(), true);
+								getBackpack(player).createCamera(camera -> {
+								}).open(event.getPlayer(), true);
 							}).build())
 					.slot(3, 0, () -> Button.builder().material(Material.ARMOR_STAND)
 							.displayName(Component.text("Armor", NamedTextColor.GRAY)).click(event -> {
-								getArmor(player).getCamera().open(event.getPlayer(), true);
+								getArmor(player).createCamera(camera -> {
+								}).open(event.getPlayer(), true);
 							}).build())
 					.slot(4, 0, () -> Button.builder().material(Material.ENDER_CHEST)
 							.displayName(Component.text("Ender Chest", NamedTextColor.DARK_PURPLE)).click(event -> {
-								cui.getCUIPlugin().getTools().wrapInventory(player.getEnderChest())
-										.open(event.getPlayer(), true);
+								plugin.getTools().wrapInventory(player.getEnderChest()).open(event.getPlayer(), true);
 							}).build())
 					// TODO: 跟踪该玩家看UI的视角
 					.slot(0, 2,
@@ -536,11 +517,6 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 			}
 			refresh();
 		}
-
-		@Override
-		public @NotNull CameraHandler<PlayerMonitor> createCameraHandler(Context context) {
-			return camera -> camera.edit().rowSize(6);
-		}
 	}
 
 	private class MonitorBackpackHandler implements CUIInstanceHandler<PlayerMonitor> {
@@ -573,11 +549,6 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 		@Override
 		public void onDestroy() {
 			backpacks.remove(player);
-		}
-
-		@Override
-		public @NotNull CameraHandler<PlayerMonitor> createCameraHandler(Context context) {
-			return camera -> camera.edit().rowSize(6);
 		}
 	}
 
@@ -665,11 +636,6 @@ public class PlayerMonitor implements ChestUI<PlayerMonitor> {
 		@Override
 		public void onDestroy() {
 			armors.remove(player);
-		}
-
-		@Override
-		public @NotNull CameraHandler<PlayerMonitor> createCameraHandler(Context context) {
-			return camera -> camera.edit().rowSize(6);
 		}
 	}
 }

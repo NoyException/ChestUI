@@ -3,9 +3,8 @@ package fun.polyvoxel.cui.ui;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.layer.Layer;
 import fun.polyvoxel.cui.slot.Button;
-import fun.polyvoxel.cui.util.context.Context;
 import org.bukkit.Material;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.*;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.ServerMock;
@@ -45,20 +44,23 @@ public class CUIInstanceTest {
 	@Test
 	@Order(1)
 	public void testCreate() {
-		cui = plugin.getCUIManager().getCUIType(TestCUI.class).createInstance();
+		cui = plugin.getCUIManager().getCUIType(TestCUI.class).createInstance(new TestCUI.InstanceHandler());
 		Assertions.assertNotNull(cui);
 	}
 
 	@Test
 	@Order(2)
 	public void testOpen() {
-		camera1 = cui.createCamera().edit().keepAlive(true).done();
-		Assertions.assertEquals(1, cui.getCameraCount(), "应当只有一个默认相机");
+		camera1 = cui.createCamera(camera -> {
+		}).edit().keepAlive(true).done();
+		Assertions.assertEquals(1, cui.getCameraCount(), "应当只有一个相机");
 		Assertions.assertTrue(camera1.open(a, false), "应当能成功使用新建摄像头1");
-		camera2 = cui.createCamera();
+		camera2 = cui.createCamera(camera -> {
+		});
 		Assertions.assertTrue(camera2.open(b, false), "应当能成功使用新建摄像头2");
 		Assertions.assertEquals(2, cui.getCameraCount(), "添加相机后应该有两个相机");
-		Assertions.assertNull(camera2.getInventory(), "服务器还没有tick，当前玩家应该还未展示CUI");
+		Assertions.assertNotEquals(camera2.getInventory(), b.getOpenInventory().getTopInventory(),
+				"服务器还没有tick，当前玩家应该还未展示CUI");
 		tick();
 		Assertions.assertEquals(camera2.getInventory(), b.getOpenInventory().getTopInventory(),
 				"打开CUI后的下一tick，玩家应当已经看见CUI");
@@ -104,14 +106,17 @@ public class CUIInstanceTest {
 	}
 
 	public static class TestCUI implements ChestUI<TestCUI> {
+		private CUIType<TestCUI> type;
+
 		@Override
 		public void onInitialize(CUIType<TestCUI> type) {
-
+			this.type = type;
 		}
 
 		@Override
-		public @NotNull CUIInstanceHandler<TestCUI> createCUIInstanceHandler(Context context) {
-			return new InstanceHandler();
+		public @Nullable <S> Camera<TestCUI> getDisplayedCamera(DisplayContext<S> context) {
+			return type.createInstance(new InstanceHandler()).createCamera(camera -> {
+			});
 		}
 
 		private static class InstanceHandler implements CUIInstanceHandler<TestCUI> {
@@ -130,12 +135,6 @@ public class CUIInstanceTest {
 												}).build())
 										.done())
 						.done();
-			}
-
-			@Override
-			public @NotNull CameraHandler<TestCUI> createCameraHandler(Context context) {
-				return camera -> {
-				};
 			}
 		}
 	}

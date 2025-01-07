@@ -1,5 +1,6 @@
 package fun.polyvoxel.cui.prebuilt;
 
+import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIClickEvent;
 import fun.polyvoxel.cui.layer.Layer;
 import fun.polyvoxel.cui.serialize.CUIData;
@@ -10,17 +11,17 @@ import fun.polyvoxel.cui.slot.Transformer;
 import fun.polyvoxel.cui.ui.*;
 import fun.polyvoxel.cui.util.ItemStacks;
 import fun.polyvoxel.cui.util.Position;
-import fun.polyvoxel.cui.util.context.Context;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.FileReader;
@@ -32,17 +33,17 @@ import java.util.function.Supplier;
 
 @CUI(name = "creator", icon = Material.COMMAND_BLOCK)
 public class CUICreator implements ChestUI<CUICreator> {
+	private CUIPlugin plugin;
 	private CUIType<CUICreator> type;
 	private final Map<String, CUIData> byName = new HashMap<>();
 	private CUIManager manager;
 
 	@Override
 	public void onInitialize(CUIType<CUICreator> type) {
-		this.type = type.edit().defaultTitle(Component.text("CUI Creator", NamedTextColor.LIGHT_PURPLE))
-				.triggerByDisplay(CameraProvider.createCameraInNewCUIInstance()).done();
-		this.manager = type.getCUIPlugin().getCUIManager();
+		this.plugin = type.getCUIPlugin();
+		this.type = type.edit().defaultTitle(Component.text("CUI Creator", NamedTextColor.LIGHT_PURPLE)).done();
+		this.manager = plugin.getCUIManager();
 
-		var plugin = type.getCUIPlugin();
 		var cuiFolder = new File(plugin.getDataFolder(), "json");
 		if (!cuiFolder.exists()) {
 			return;
@@ -69,6 +70,13 @@ public class CUICreator implements ChestUI<CUICreator> {
 		}
 	}
 
+	@Override
+	public @Nullable <S> Camera<CUICreator> getDisplayedCamera(DisplayContext<S> context) {
+		var handler = new DisplayAllJsonHandler();
+		var cameraHandler = handler.new CameraHandler();
+		return type.createInstance(handler).createCamera(cameraHandler);
+	}
+
 	private Component toComponent(String s) {
 		return ItemStacks.cleanComponent(LegacyComponentSerializer.legacyAmpersand().deserialize(s));
 	}
@@ -77,18 +85,22 @@ public class CUICreator implements ChestUI<CUICreator> {
 		return byName.get(name);
 	}
 
-	@Override
-	public @NotNull CUIInstanceHandler<CUICreator> createCUIInstanceHandler(Context context) {
-		var data = context.get("payload");
-		return switch (data) {
-			case CUIData cuiData -> new EditCUIHandler(cuiData);
-			case LayerData layerData -> new EditLayerHandler(context.get("cui"), layerData);
-			case SlotData slotData -> new EditSlotHandler(slotData);
-			case null, default -> new DisplayAllJsonHandler();
-		};
+	public abstract static class CUICreatorHandler implements CUIInstanceHandler<CUICreator> {
+		public abstract void update();
+
+		public class CameraHandler implements fun.polyvoxel.cui.ui.CameraHandler<CUICreator> {
+			@Override
+			public void onInitialize(Camera<CUICreator> camera) {
+			}
+
+			@Override
+			public void onOpenInventory(Player viewer, Inventory inventory) {
+				update();
+			}
+		}
 	}
 
-	public class DisplayAllJsonHandler implements CUIInstanceHandler<CUICreator> {
+	public class DisplayAllJsonHandler extends CUICreatorHandler {
 		private CUIInstance<CUICreator> cui;
 		private int size;
 
@@ -117,7 +129,8 @@ public class CUICreator implements ChestUI<CUICreator> {
 					.done();
 		}
 
-		private void update() {
+		@Override
+		public void update() {
 			var dataList = new ArrayList<>(byName.values());
 			size = dataList.size() + 1;
 			cui.edit().layer(1, new Layer(0, 9).edit().marginTop(1).tile(size, true, index -> {
@@ -126,7 +139,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 							.displayName(Component.text("Create new chest UI", NamedTextColor.GREEN))
 							.click(cuiClickEvent -> {
 								var player = cuiClickEvent.getPlayer();
-								cui.getCUIPlugin().getTools().createAnvilTextInput(player, name -> {
+								plugin.getTools().createAnvilTextInput(player, name -> {
 									name = name.toUpperCase(Locale.ROOT);
 									var cuiData = new CUIData();
 									try {
@@ -136,7 +149,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 										return;
 									}
 									cuiData.name = name;
-									var path = cuiData.getDefaultPath(cui.getCUIPlugin());
+									var path = cuiData.getDefaultPath(plugin);
 									if (path.toFile().exists()) {
 										player.sendMessage(
 												Component.text("The name already exists", NamedTextColor.RED));
@@ -144,8 +157,9 @@ public class CUICreator implements ChestUI<CUICreator> {
 									}
 									byName.put(name, cuiData);
 									update();
-									type.createInstance(Context.background().withValue("payload", cuiData))
-											.createCamera().open(player, true);
+									var handler = new EditCUIHandler(cuiData);
+									type.createInstance(handler).createCamera(handler.new CameraHandler()).open(player,
+											true);
 								}, Component.text("Name (0~9, a~z):")).open(player, true);
 							}).build();
 				}
@@ -158,7 +172,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 								Component.text("Drop(Q) to delete forever", NamedTextColor.RED))
 						.click(event -> {
 							if (event.getClickType() == ClickType.DROP) {
-								var path = data.getDefaultPath(cui.getCUIPlugin());
+								var path = data.getDefaultPath(plugin);
 								if (path.toFile().delete()) {
 									manager.unregisterCUI(data.getKey());
 									byName.remove(data.name);
@@ -168,10 +182,11 @@ public class CUICreator implements ChestUI<CUICreator> {
 											Component.text("Failed to delete the json file", NamedTextColor.RED));
 								}
 							} else if (event.getClickType().isLeftClick()) {
-								CUICreator.this.type.createInstance(Context.background().withValue("payload", data))
-										.createCamera().open(event.getPlayer(), true);
+								var handler = new EditCUIHandler(data);
+								type.createInstance(handler).createCamera(handler.new CameraHandler())
+										.open(event.getPlayer(), true);
 							} else if (event.getClickType().isRightClick()) {
-								var path = data.getDefaultPath(cui.getCUIPlugin());
+								var path = data.getDefaultPath(plugin);
 								var json = data.toJson();
 								try {
 									Files.writeString(path, json);
@@ -186,24 +201,9 @@ public class CUICreator implements ChestUI<CUICreator> {
 						}).build();
 			}).done());
 		}
-
-		@Override
-		public @NotNull CameraHandler<CUICreator> createCameraHandler(Context context) {
-			return new CameraHandler<>() {
-				@Override
-				public void onInitialize(Camera<CUICreator> camera) {
-					camera.edit().rowSize(6);
-				}
-
-				@Override
-				public void onOpenInventory(Inventory inventory) {
-					update();
-				}
-			};
-		}
 	}
 
-	public class EditCUIHandler implements CUIInstanceHandler<CUICreator> {
+	public class EditCUIHandler extends CUICreatorHandler {
 		private CUIInstance<CUICreator> cui;
 		private final CUIData toEdit;
 		private Layer buttonLayer;
@@ -244,15 +244,16 @@ public class CUICreator implements ChestUI<CUICreator> {
 								toEdit.layers.remove(depth);
 								updateLayerData(depth);
 							} else {
-								type.createInstance(
-										Context.background().withValue("payload", layerData).withValue("cui", toEdit))
-										.createCamera().open(event.getPlayer(), true);
+								var handler = new EditLayerHandler(toEdit, layerData);
+								type.createInstance(handler).createCamera(handler.new CameraHandler())
+										.open(event.getPlayer(), true);
 							}
 						}).build();
 			});
 		}
 
-		private void update() {
+		@Override
+		public void update() {
 			for (int i = 0; i < 32; i++) {
 				updateLayerData(i);
 			}
@@ -263,17 +264,21 @@ public class CUICreator implements ChestUI<CUICreator> {
 			buttonLayer = new Layer(6, 7).edit().marginLeft(2).done();
 			effectLayer = new Layer(6, 7).edit().marginLeft(2).done();
 			layersLayer = new Layer(6, 7).edit().marginLeft(9).done();
-			this.cui = cui.edit().layer(0, new Layer(6, 2).edit().relative(true).column(1,
-					row -> Button.builder().material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ").build())
-					.slot(0, 0, () -> Button.builder().material(Material.COMMAND_BLOCK).displayName("Basic Settings")
-							.click(event -> {
-								event.getCamera().edit().position(new Position(0, 0));
-							}).build())
-					.slot(1, 0, () -> Button.builder().material(Material.BOOKSHELF).displayName("Layer Settings")
-							.click(event -> {
-								event.getCamera().edit().position(new Position(0, 7));
-							}).build())
-					.done()).layer(1, effectLayer).layer(2, buttonLayer).layer(3, layersLayer).done();
+			this.cui = cui.edit()
+					.layer(0, new Layer(6, 2)
+							.edit().relative(true).column(
+									1,
+									row -> Button.builder().material(Material.BLACK_STAINED_GLASS_PANE).displayName(" ")
+											.build())
+							.slot(0, 0, () -> Button.builder().material(Material.COMMAND_BLOCK)
+									.displayName("Basic Settings")
+									.click(event -> event.getCamera().edit().position(new Position(0, 0))).build())
+							.slot(1, 0,
+									() -> Button.builder().material(Material.BOOKSHELF).displayName("Layer Settings")
+											.click(event -> event.getCamera().edit().position(new Position(0, 7)))
+											.build())
+							.done())
+					.layer(1, effectLayer).layer(2, buttonLayer).layer(3, layersLayer).done();
 
 			setButton(0, (event, refresh) -> {
 				ItemStack cursor = event.getCursor();
@@ -293,7 +298,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 
 			setButton(1, (event, refresh) -> {
 				var player = event.getPlayer();
-				cui.getCUIPlugin().getTools().createAnvilTextInput(player, title -> {
+				plugin.getTools().createAnvilTextInput(player, title -> {
 					toEdit.title = title;
 					refresh.run();
 				}, Component.text("Edit title")).open(player, true);
@@ -315,7 +320,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 
 			setButton(3, (event, refresh) -> {
 				var player = event.getPlayer();
-				cui.getCUIPlugin().getTools().createAnvilTextInput(player, row -> {
+				plugin.getTools().createAnvilTextInput(player, row -> {
 					int rowSize;
 					try {
 						rowSize = Integer.parseInt(row);
@@ -337,24 +342,9 @@ public class CUICreator implements ChestUI<CUICreator> {
 							.lore(Component.text("Click to edit size")).build())
 					.build());
 		}
-
-		@Override
-		public @NotNull CameraHandler<CUICreator> createCameraHandler(Context context) {
-			return new CameraHandler<>() {
-				@Override
-				public void onInitialize(Camera<CUICreator> camera) {
-					camera.edit().rowSize(6);
-				}
-
-				@Override
-				public void onOpenInventory(Inventory inventory) {
-					update();
-				}
-			};
-		}
 	}
 
-	public class EditLayerHandler implements CUIInstanceHandler<CUICreator> {
+	public class EditLayerHandler extends CUICreatorHandler {
 		private CUIInstance<CUICreator> cui;
 		private final CUIData cuiData;
 		private final LayerData toEdit;
@@ -411,14 +401,16 @@ public class CUICreator implements ChestUI<CUICreator> {
 								toEdit.slots.remove(pos);
 								updateSlotData(row, column);
 							} else if (event.getClickType().isLeftClick()) {
-								type.createInstance(Context.background().withValue("payload", slotData)).createCamera()
+								var handler = new EditSlotHandler(slotData);
+								type.createInstance(handler).createCamera(handler.new CameraHandler())
 										.open(event.getPlayer(), true);
 							}
 						}).build();
 			});
 		}
 
-		private void update() {
+		@Override
+		public void update() {
 			for (int row = 0; row < 6; row++) {
 				for (int column = 0; column < 7; column++) {
 					updateSlotData(row, column);
@@ -474,7 +466,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 			// set size
 			setButton(1, (event, refresh) -> {
 				var player = event.getPlayer();
-				cui.getCUIPlugin().getTools().createAnvilTextInput(player, row -> {
+				plugin.getTools().createAnvilTextInput(player, row -> {
 					int rowSize;
 					try {
 						rowSize = Integer.parseInt(row);
@@ -486,7 +478,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 						player.sendMessage(Component.text("Row size must be greater than zero", NamedTextColor.RED));
 						return;
 					}
-					cui.getCUIPlugin().getTools().createAnvilTextInput(player, column -> {
+					plugin.getTools().createAnvilTextInput(player, column -> {
 						int columnSize;
 						try {
 							columnSize = Integer.parseInt(column);
@@ -514,7 +506,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 			// set margin
 			setButton(2, (event, refresh) -> {
 				var player = event.getPlayer();
-				cui.getCUIPlugin().getTools().createAnvilTextInput(player, top -> {
+				plugin.getTools().createAnvilTextInput(player, top -> {
 					int marginTop;
 					try {
 						marginTop = Integer.parseInt(top);
@@ -527,7 +519,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 								Component.text("Margin top must be greater than or equal to zero", NamedTextColor.RED));
 						return;
 					}
-					cui.getCUIPlugin().getTools().createAnvilTextInput(player, left -> {
+					plugin.getTools().createAnvilTextInput(player, left -> {
 						int marginLeft;
 						try {
 							marginLeft = Integer.parseInt(left);
@@ -555,7 +547,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 			// change depth
 			setButton(3, (event, refresh) -> {
 				var player = event.getPlayer();
-				cui.getCUIPlugin().getTools().createAnvilTextInput(player, depth -> {
+				plugin.getTools().createAnvilTextInput(player, depth -> {
 					int depthInt;
 					try {
 						depthInt = Integer.parseInt(depth);
@@ -582,24 +574,9 @@ public class CUICreator implements ChestUI<CUICreator> {
 							.lore(Component.text("Click to edit depth")).build())
 					.build());
 		}
-
-		@Override
-		public @NotNull CameraHandler<CUICreator> createCameraHandler(Context context) {
-			return new CameraHandler<>() {
-				@Override
-				public void onInitialize(Camera<CUICreator> camera) {
-					camera.edit().rowSize(6);
-				}
-
-				@Override
-				public void onOpenInventory(Inventory inventory) {
-					update();
-				}
-			};
-		}
 	}
 
-	public class EditSlotHandler implements CUIInstanceHandler<CUICreator> {
+	public class EditSlotHandler extends CUICreatorHandler {
 		private CUIInstance<CUICreator> cui;
 		private final SlotData toEdit;
 		private Layer baseLayer;
@@ -621,7 +598,8 @@ public class CUICreator implements ChestUI<CUICreator> {
 			setEffect.run();
 		}
 
-		private void update() {
+		@Override
+		public void update() {
 			baseLayer.edit().slot(1, 1, () -> Button.builder().itemStack(toEdit.getDemo()).build());
 			typeLayer.edit().slot(2, 1, () -> Button.builder()
 					.material(toEdit.type == SlotData.SlotType.EMPTY ? Material.GREEN_CONCRETE : Material.RED_CONCRETE)
@@ -681,7 +659,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 									onClick.action = actions[(onClick.action.ordinal() + 1) % actions.length];
 								} else if (event.getClickType().isRightClick()) {
 									var player = event.getPlayer();
-									cui.getCUIPlugin().getTools().createAnvilTextInput(player, value -> {
+									plugin.getTools().createAnvilTextInput(player, value -> {
 										onClick.value = value;
 										updateEditingOnClick(clickType);
 									}, Component.text("Set value")).open(player, true);
@@ -775,7 +753,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 			// display name
 			setButton(2, (event, refresh) -> {
 				var player = event.getPlayer();
-				cui.getCUIPlugin().getTools().createAnvilTextInput(player, name -> {
+				plugin.getTools().createAnvilTextInput(player, name -> {
 					toEdit.displayName = name;
 					refresh.run();
 					update();
@@ -795,7 +773,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 					update();
 					return;
 				}
-				cui.getCUIPlugin().getTools().createAnvilTextInput(player, lore -> {
+				plugin.getTools().createAnvilTextInput(player, lore -> {
 					if (toEdit.lore == null) {
 						toEdit.lore = new ArrayList<>();
 					}
@@ -820,7 +798,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 			// amount
 			setButton(4, (event, refresh) -> {
 				var player = event.getPlayer();
-				cui.getCUIPlugin().getTools().createAnvilTextInput(player, amount -> {
+				plugin.getTools().createAnvilTextInput(player, amount -> {
 					int amountInt;
 					try {
 						amountInt = Integer.parseInt(amount);
@@ -842,21 +820,6 @@ public class CUICreator implements ChestUI<CUICreator> {
 									toComponent("Amount: ").append(Component.text(toEdit.amount, NamedTextColor.AQUA)))
 							.lore(Component.text("Click to edit amount")).build())
 					.build());
-		}
-
-		@Override
-		public @NotNull CameraHandler<CUICreator> createCameraHandler(Context context) {
-			return new CameraHandler<>() {
-				@Override
-				public void onInitialize(Camera<CUICreator> camera) {
-					camera.edit().rowSize(6);
-				}
-
-				@Override
-				public void onOpenInventory(Inventory inventory) {
-					update();
-				}
-			};
 		}
 	}
 }

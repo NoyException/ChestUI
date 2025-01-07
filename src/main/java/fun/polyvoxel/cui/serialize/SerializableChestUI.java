@@ -1,12 +1,13 @@
 package fun.polyvoxel.cui.serialize;
 
 import fun.polyvoxel.cui.ui.*;
-import fun.polyvoxel.cui.util.context.Context;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class SerializableChestUI implements ChestUI<SerializableChestUI> {
 	private CUIType<SerializableChestUI> type;
 	private final CUIData cuiData;
+	// 仅在单例模式下使用
+	private Camera<SerializableChestUI> camera;
 
 	public SerializableChestUI(CUIData cuiData) {
 		this.cuiData = cuiData;
@@ -22,28 +23,17 @@ public class SerializableChestUI implements ChestUI<SerializableChestUI> {
 
 	@Override
 	public void onInitialize(CUIType<SerializableChestUI> type) {
-		this.type = type.edit().defaultTitle(cuiData.title).triggerByDisplay((cuiType, player, asChild) -> {
-			CameraProvider<SerializableChestUI> provider = cuiData.singleton
-					? CameraProvider.useDefaultCameraInDefaultCUIInstance()
-					: CameraProvider.createCameraInNewCUIInstance();
-			return provider.provide(cuiType, player, asChild);
-		}).done();
+		this.type = type.edit().defaultTitle(cuiData.title).done();
 	}
 
 	@Override
-	public @NotNull CUIInstanceHandler<SerializableChestUI> createCUIInstanceHandler(Context context) {
-		return new InstanceHandler();
-	}
-
-	private class InstanceHandler implements CUIInstanceHandler<SerializableChestUI> {
-		@Override
-		public void onInitialize(CUIInstance<SerializableChestUI> cui) {
-			cuiData.toChestUI(cui);
+	public @Nullable <S> Camera<SerializableChestUI> getDisplayedCamera(DisplayContext<S> context) {
+		if (cuiData.singleton) {
+			if (camera == null) {
+				camera = type.createInstance(cuiData::toChestUI).createCamera(cuiData::toCamera);
+			}
+			return camera;
 		}
-
-		@Override
-		public @NotNull CameraHandler<SerializableChestUI> createCameraHandler(Context context) {
-			return cuiData::toCamera;
-		}
+		return type.createInstance(cuiData::toChestUI).createCamera(cuiData::toCamera);
 	}
 }

@@ -15,6 +15,8 @@ import fun.polyvoxel.cui.prebuilt.CUIMonitor;
 import fun.polyvoxel.cui.ui.CUIInstance;
 import fun.polyvoxel.cui.ui.CUIType;
 import fun.polyvoxel.cui.ui.Camera;
+import fun.polyvoxel.cui.ui.DisplayContext;
+import fun.polyvoxel.cui.ui.source.CommandDisplaySource;
 import fun.polyvoxel.cui.util.ItemStacks;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -185,7 +187,7 @@ public class CommandCUI {
 		sender.sendMessage("/cui help: 显示帮助信息.");
 		sender.sendMessage("/cui bind: 将手中的物品绑定到<cui>.");
 		sender.sendMessage("/cui close: (强制)关闭指定玩家的顶部/所有摄像头.");
-		sender.sendMessage("/cui create: 创造一个<cui>类型的实例/指定实例的摄像头.");
+		// sender.sendMessage("/cui create: 创造一个<cui>类型的实例/指定实例的摄像头.");
 		sender.sendMessage("/cui destroy: 摧毁<cui>类型的全部实例/指定实例/指定实例的指定摄像头.");
 		sender.sendMessage("/cui display: 为指定玩家一键显示<cui>.");
 		sender.sendMessage("/cui monitor: 打开CUI监视器.");
@@ -238,44 +240,48 @@ public class CommandCUI {
 				})));
 	}
 
-	private LiteralArgumentBuilder<CommandSourceStack> create() {
-		return Commands.literal("create").then(Commands.argument("cui", cuiTypeArgument).then(
-				Commands.argument("inst-id", cuiInstanceArgument).then(Commands.literal("keep-alive").executes(ctx -> {
-					// create <cui> <inst-id> keep-alive
-					var cuiType = ctx.getArgument("cui", CUIType.class);
-					var instance = ctx.getArgument("inst-id", CUIInstanceArgumentResolver.class).resolve(cuiType);
-					var camera = instance.createCamera().edit().keepAlive(true).done();
-					ctx.getSource().getSender()
-							.sendMessage(Component.text("Camera created: ")
-									.append(Component.text("#" + camera.getId(), NamedTextColor.AQUA))
-									.append(Component.text(" (KeepAlive)", NamedTextColor.RED)));
-					return Command.SINGLE_SUCCESS;
-				})).executes(ctx -> {
-					// create <cui> <inst-id>
-					var cuiType = ctx.getArgument("cui", CUIType.class);
-					var instance = ctx.getArgument("inst-id", CUIInstanceArgumentResolver.class).resolve(cuiType);
-					var camera = instance.createCamera();
-					ctx.getSource().getSender().sendMessage(Component.text("Camera created: ")
-							.append(Component.text("#" + camera.getId(), NamedTextColor.AQUA)));
-					return Command.SINGLE_SUCCESS;
-				})).then(Commands.literal("keep-alive").executes(ctx -> {
-					// create <cui> keep-alive
-					var cuiType = ctx.getArgument("cui", CUIType.class);
-					var instance = cuiType.createInstance().edit().keepAlive(true).done();
-					ctx.getSource().getSender()
-							.sendMessage(Component.text("Instance created: ")
-									.append(Component.text("#" + instance.getId(), NamedTextColor.AQUA))
-									.append(Component.text(" (KeepAlive)", NamedTextColor.RED)));
-					return Command.SINGLE_SUCCESS;
-				})).executes(ctx -> {
-					// create <cui>
-					var cuiType = ctx.getArgument("cui", CUIType.class);
-					var instance = cuiType.createInstance();
-					ctx.getSource().getSender().sendMessage(Component.text("Instance created: ")
-							.append(Component.text("#" + instance.getId(), NamedTextColor.AQUA)));
-					return Command.SINGLE_SUCCESS;
-				}));
-	}
+	// private LiteralArgumentBuilder<CommandSourceStack> create() {
+	// return Commands.literal("create").then(Commands.argument("cui",
+	// cuiTypeArgument).then(
+	// Commands.argument("inst-id",
+	// cuiInstanceArgument).then(Commands.literal("keep-alive").executes(ctx -> {
+	// // create <cui> <inst-id> keep-alive
+	// var cuiType = ctx.getArgument("cui", CUIType.class);
+	// var instance = ctx.getArgument("inst-id",
+	// CUIInstanceArgumentResolver.class).resolve(cuiType);
+	// var camera = instance.createCamera().edit().keepAlive(true).done();
+	// ctx.getSource().getSender()
+	// .sendMessage(Component.text("Camera created: ")
+	// .append(Component.text("#" + camera.getId(), NamedTextColor.AQUA))
+	// .append(Component.text(" (KeepAlive)", NamedTextColor.RED)));
+	// return Command.SINGLE_SUCCESS;
+	// })).executes(ctx -> {
+	// // create <cui> <inst-id>
+	// var cuiType = ctx.getArgument("cui", CUIType.class);
+	// var instance = ctx.getArgument("inst-id",
+	// CUIInstanceArgumentResolver.class).resolve(cuiType);
+	// var camera = instance.createCamera();
+	// ctx.getSource().getSender().sendMessage(Component.text("Camera created: ")
+	// .append(Component.text("#" + camera.getId(), NamedTextColor.AQUA)));
+	// return Command.SINGLE_SUCCESS;
+	// })).then(Commands.literal("keep-alive").executes(ctx -> {
+	// // create <cui> keep-alive
+	// var cuiType = ctx.getArgument("cui", CUIType.class);
+	// var instance = cuiType.createInstance().edit().keepAlive(true).done();
+	// ctx.getSource().getSender()
+	// .sendMessage(Component.text("Instance created: ")
+	// .append(Component.text("#" + instance.getId(), NamedTextColor.AQUA))
+	// .append(Component.text(" (KeepAlive)", NamedTextColor.RED)));
+	// return Command.SINGLE_SUCCESS;
+	// })).executes(ctx -> {
+	// // create <cui>
+	// var cuiType = ctx.getArgument("cui", CUIType.class);
+	// var instance = cuiType.createInstance();
+	// ctx.getSource().getSender().sendMessage(Component.text("Instance created: ")
+	// .append(Component.text("#" + instance.getId(), NamedTextColor.AQUA)));
+	// return Command.SINGLE_SUCCESS;
+	// }));
+	// }
 
 	private LiteralArgumentBuilder<CommandSourceStack> destroy() {
 		return Commands.literal("destroy")
@@ -309,30 +315,44 @@ public class CommandCUI {
 						}));
 	}
 
-	private void display(CommandContext<CommandSourceStack> ctx, boolean isPlayerSpecified, boolean asChild)
+	private boolean display(CommandContext<CommandSourceStack> ctx, boolean isPlayerSpecified, boolean asChild)
 			throws CommandSyntaxException {
 		var players = getPlayers(ctx, isPlayerSpecified);
-		var cuiType = ctx.getArgument("cui", CUIType.class);
-		players.forEach(player -> cuiType.display(player, asChild));
+		var cuiType = (CUIType<?>) ctx.getArgument("cui", CUIType.class);
+		players.forEach(player -> cuiType
+				.display(new DisplayContext<>(player, asChild, new CommandDisplaySource(ctx.getSource()))));
+		return true;
 	}
 
 	private LiteralArgumentBuilder<CommandSourceStack> display() {
 		return Commands.literal("display").then(Commands.argument("cui", cuiTypeArgument).then(Commands
 				.argument("players", ArgumentTypes.players()).then(Commands.literal("as-child").executes(ctx -> {
 					// display <cui> <players> as-child
-					display(ctx, true, true);
+					if (!display(ctx, true, true)) {
+						throw new SimpleCommandExceptionType(MessageComponentSerializer.message()
+								.serialize(Component.text("Failed to display", NamedTextColor.RED))).create();
+					}
 					return Command.SINGLE_SUCCESS;
 				})).executes(ctx -> {
 					// display <cui> <players>
-					display(ctx, true, false);
+					if (!display(ctx, true, false)) {
+						throw new SimpleCommandExceptionType(MessageComponentSerializer.message()
+								.serialize(Component.text("Failed to display", NamedTextColor.RED))).create();
+					}
 					return Command.SINGLE_SUCCESS;
 				})).then(Commands.literal("as-child").executes(ctx -> {
 					// display <cui> as-child
-					display(ctx, false, true);
+					if (!display(ctx, false, true)) {
+						throw new SimpleCommandExceptionType(MessageComponentSerializer.message()
+								.serialize(Component.text("Failed to display", NamedTextColor.RED))).create();
+					}
 					return Command.SINGLE_SUCCESS;
 				})).executes(ctx -> {
 					// display <cui>
-					display(ctx, false, false);
+					if (!display(ctx, false, false)) {
+						throw new SimpleCommandExceptionType(MessageComponentSerializer.message()
+								.serialize(Component.text("Failed to display", NamedTextColor.RED))).create();
+					}
 					return Command.SINGLE_SUCCESS;
 				}));
 	}
@@ -346,8 +366,8 @@ public class CommandCUI {
 						.serialize(Component.text("Player required", NamedTextColor.RED))).create();
 			}
 			var cuiType = plugin.getCUIManager().getCUIType(CUIMonitor.class);
-			var camera = cuiType.display(player, false);
-			if (camera == null) {
+			var res = cuiType.display(new DisplayContext<>(player, false, new CommandDisplaySource(ctx.getSource())));
+			if (!res) {
 				throw new SimpleCommandExceptionType(MessageComponentSerializer.message()
 						.serialize(Component.text("Failed to open monitor", NamedTextColor.RED))).create();
 			}
@@ -361,7 +381,7 @@ public class CommandCUI {
 		var cuiType = ctx.getArgument("cui", CUIType.class);
 		var instance = ctx.getArgument("inst-id", CUIInstanceArgumentResolver.class).resolve(cuiType);
 		var camera = ctx.getArgument("camera-id", CameraArgumentResolver.class).resolve(instance);
-		players.forEach(player -> camera.open(player, asChild));
+		players.forEach(player -> camera.open(player, asChild, new CommandDisplaySource(ctx.getSource())));
 	}
 
 	private LiteralArgumentBuilder<CommandSourceStack> open() {
@@ -398,8 +418,8 @@ public class CommandCUI {
 							.then(Commands.literal("help").executes(ctx -> {
 								printHelp(ctx.getSource().getSender());
 								return Command.SINGLE_SUCCESS;
-							})).then(bind()).then(close()).then(create()).then(destroy()).then(display())
-							.then(monitor()).then(open()).build(), "Manage Chest UI");
+							})).then(bind()).then(close()).then(destroy()).then(display()).then(monitor()).then(open())
+							.build(), "Manage Chest UI");
 		});
 	}
 }

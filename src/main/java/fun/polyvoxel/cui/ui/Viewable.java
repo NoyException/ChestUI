@@ -1,8 +1,10 @@
 package fun.polyvoxel.cui.ui;
 
 import fun.polyvoxel.cui.CUIPlugin;
+import fun.polyvoxel.cui.ui.source.DisplaySource;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.InventoryView;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class Viewable {
 	private final CUIPlugin plugin;
@@ -19,29 +21,32 @@ public abstract class Viewable {
 		return true;
 	}
 
-	public final boolean open(Player viewer) {
-		return open(viewer, false);
+	public final boolean open(Player viewer, boolean asChild) {
+		return open(viewer, asChild, null);
 	}
 
 	/**
 	 * 打开视图。如果不作为子视图打开，则会尝试关闭当前正在查看的视图。<br>
 	 * Open the view. If not open as a child view, it will try to close the current
 	 * view.
-	 * 
+	 *
 	 * @param viewer
 	 *            玩家<br>
 	 *            The player
 	 * @param asChild
 	 *            是否作为子视图打开<br>
 	 *            Whether to open as a child view
+	 * @param source
+	 *            显示源<br>
+	 *            The display source
 	 * @return 是否成功打开<br>
 	 *         Whether it is successfully opened
 	 */
-	public final boolean open(Player viewer, boolean asChild) {
-		return plugin.getCameraManager().open(this, viewer, asChild);
+	public final boolean open(Player viewer, boolean asChild, @Nullable DisplaySource<?> source) {
+		return plugin.getCameraManager().open(this, viewer, source, asChild);
 	}
 
-	protected abstract void doOpen(Player viewer, boolean asChild);
+	protected abstract void doOpen(Player viewer, boolean asChild, @Nullable DisplaySource<?> source);
 
 	public boolean canClose(Player viewer) {
 		return true;
@@ -60,7 +65,7 @@ public abstract class Viewable {
 	 * Close the view. If cascade close is not allowed, this view will only be
 	 * closed when the player is currently viewing this view, otherwise it will be
 	 * closed until switching back to this view and then close.
-	 * 
+	 *
 	 * @param viewer
 	 *            玩家<br>
 	 *            The player
@@ -90,7 +95,7 @@ public abstract class Viewable {
 	 * Check and keep the view open. If the player is found not opening the view,
 	 * open it and return the view. If the player cannot open or has already opened
 	 * the view, return null.
-	 * 
+	 *
 	 * @param viewer
 	 *            玩家<br>
 	 *            The player

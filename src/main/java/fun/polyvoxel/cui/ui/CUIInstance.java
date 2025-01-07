@@ -3,10 +3,11 @@ package fun.polyvoxel.cui.ui;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.layer.Layer;
 
-import fun.polyvoxel.cui.util.context.Context;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -67,18 +68,18 @@ public final class CUIInstance<T extends ChestUI<T>> {
 		return nextCameraId++;
 	}
 
-	public Camera<T> createCamera() {
-		return createCamera(Context.background());
-	}
-
-	public Camera<T> createCamera(Context context) {
-		var handler = this.handler.createCameraHandler(context);
+	public @NotNull Camera<T> createCamera(CameraHandler<T> handler) {
+		if (state != State.READY) {
+			throw new IllegalStateException("CUI Instance is not ready");
+		}
 		var camera = new Camera<>(this, handler, getNextCameraId());
 		cameras.put(camera.getId(), camera);
+		this.handler.onCreateCamera(camera);
 		return camera;
 	}
 
-	public List<Camera<T>> getCameras() {
+	@Contract(" -> new")
+	public @NotNull List<Camera<T>> getCameras() {
 		return new ArrayList<>(cameras.values());
 	}
 
@@ -90,9 +91,9 @@ public final class CUIInstance<T extends ChestUI<T>> {
 	 * @return 摄像头。<br>
 	 *         Camera.
 	 */
-	public @NotNull Camera<T> getCamera() {
+	public @Nullable Camera<T> getCamera() {
 		if (cameras.isEmpty()) {
-			return createCamera();
+			return null;
 		}
 		return cameras.values().iterator().next();
 	}

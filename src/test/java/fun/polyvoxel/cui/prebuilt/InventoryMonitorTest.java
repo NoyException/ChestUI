@@ -1,59 +1,52 @@
 package fun.polyvoxel.cui.prebuilt;
 
-import fun.polyvoxel.cui.CUIPlugin;
-import fun.polyvoxel.cui.ui.Camera;
-import fun.polyvoxel.cui.ui.CUIInstance;
-import org.bukkit.Material;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
-import org.junit.jupiter.api.*;
-import org.mockbukkit.mockbukkit.MockBukkit;
-import org.mockbukkit.mockbukkit.ServerMock;
-import org.mockbukkit.mockbukkit.entity.PlayerMock;
-import org.mockbukkit.mockbukkit.simulate.entity.PlayerSimulation;
 
 public class InventoryMonitorTest {
-	private static ServerMock server;
-	private static CUIPlugin plugin;
-	private static PlayerMock a, b;
-	private static PlayerSimulation as, bs;
-	private static CUIInstance<PlayerMonitor> cui;
-	private static Camera<PlayerMonitor> camera;
-
-	@BeforeAll
-	public static void setup() {
-		server = MockBukkit.mock();
-		plugin = MockBukkit.load(CUIPlugin.class);
-		a = server.addPlayer("a");
-		cui = plugin.getCUIManager().getCUIType(PlayerMonitor.class).createInstance();
-		Assertions.assertNotNull(cui);
-		camera = cui.createCamera();
-		Assertions.assertTrue(camera.open(a, false), "应当能打开默认摄像头");
-		server.getScheduler().performOneTick();
-		as = new PlayerSimulation(a);
-		InventoryView view = a.getOpenInventory();
-		view.getBottomInventory().setItem(0, ItemStack.of(Material.DIRT, 1));
-		view.getBottomInventory().setItem(1, ItemStack.of(Material.STONE, 64));
-		// 选择自己
-		as.simulateInventoryClick(view, ClickType.LEFT, 9);
-		b = server.addPlayer("b");
-		Assertions.assertTrue(camera.open(b, false), "应当能打开默认摄像头");
-		bs = new PlayerSimulation(b);
-		server.getScheduler().performOneTick();
-	}
-
-	@AfterAll
-	public static void teardown() {
-		MockBukkit.unmock();
-	}
-
-	private void tick() {
-		server.getScheduler().performOneTick();
-		plugin.getCUIManager().onTickEnd(null);
-	}
-
 	// TODO: 因为MockBukkit还未支持放置物品，故无法测试放置物品的情况
+	// private static ServerMock server;
+	// private static CUIPlugin plugin;
+	// private static PlayerMock a, b;
+	// private static PlayerSimulation as, bs;
+	// private static CUIInstance<PlayerMonitor> cui;
+	// private static Camera<PlayerMonitor> camera;
+	//
+	// @BeforeAll
+	// public static void setup() {
+	// server = MockBukkit.mock();
+	// plugin = MockBukkit.load(CUIPlugin.class);
+	// a = server.addPlayer("a");
+	// cui =
+	// plugin.getCUIManager().getCUIType(PlayerMonitor.class).createInstance();
+	// Assertions.assertNotNull(cui);
+	// camera = cui.createCamera();
+	// Assertions.assertTrue(camera.open(a, new InternalDisplaySource(), false),
+	// "应当能打开默认摄像头");
+	// server.getScheduler().performOneTick();
+	// as = new PlayerSimulation(a);
+	// InventoryView view = a.getOpenInventory();
+	// view.getBottomInventory().setItem(0, ItemStack.of(Material.DIRT, 1));
+	// view.getBottomInventory().setItem(1, ItemStack.of(Material.STONE, 64));
+	// // 选择自己
+	// as.simulateInventoryClick(view, ClickType.LEFT, 9);
+	// b = server.addPlayer("b");
+	// Assertions.assertTrue(camera.open(b, new InternalDisplaySource(), false),
+	// "应当能打开默认摄像头");
+	// bs = new PlayerSimulation(b);
+	// server.getScheduler().performOneTick();
+	// }
+	//
+	// @AfterAll
+	// public static void teardown() {
+	// MockBukkit.unmock();
+	// }
+	//
+	// private void tick() {
+	// server.getScheduler().performOneTick();
+	// plugin.getCUIManager().onTickEnd(null);
+	// }
+
 	// @Test
 	// public void testLeftClick() {
 	// // A从CUI捡起泥土

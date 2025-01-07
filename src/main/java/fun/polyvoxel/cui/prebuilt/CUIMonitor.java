@@ -1,11 +1,12 @@
 package fun.polyvoxel.cui.prebuilt;
 
+import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIRegisterEvent;
 import fun.polyvoxel.cui.layer.Layer;
 
 import fun.polyvoxel.cui.slot.Button;
 import fun.polyvoxel.cui.ui.*;
-import fun.polyvoxel.cui.util.context.Context;
+import fun.polyvoxel.cui.util.ItemStacks;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -14,7 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,6 +24,7 @@ import java.util.Map;
 
 @CUI(name = "monitor", icon = Material.BARRIER)
 public class CUIMonitor implements ChestUI<CUIMonitor> {
+	private CUIPlugin plugin;
 	private CUIType<CUIMonitor> type;
 	private CUIInstance<CUIMonitor> mainInstance;
 	private final Map<CUIType<?>, CUIInstance<CUIMonitor>> byType = new HashMap<>();
@@ -30,38 +32,29 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 
 	@Override
 	public void onInitialize(CUIType<CUIMonitor> type) {
-		this.type = type.edit().defaultTitle(Component.text("CUI Monitor", NamedTextColor.RED))
-				.triggerByDisplay((cuiType, player, asChild) -> getMainInstance().createCamera()).done();
+		this.plugin = type.getCUIPlugin();
+		this.type = type.edit().defaultTitle(Component.text("CUI Monitor", NamedTextColor.RED)).done();
 	}
 
 	@Override
-	public @NotNull CUIInstanceHandler<CUIMonitor> createCUIInstanceHandler(Context context) {
-		CUIType<?> cuiType = context.get("cuiType");
-		CUIInstance<?> cuiInstance = context.get("cuiInstance");
-		if (cuiType != null) {
-			return new MonitorCUITypeHandler(cuiType);
-		}
-		if (cuiInstance != null) {
-			return new MonitorCUIInstanceHandler(cuiInstance);
-		}
-		return new MainHandler();
+	public @Nullable <S> Camera<CUIMonitor> getDisplayedCamera(DisplayContext<S> context) {
+		return getMainInstance().createCamera(camera -> {
+		});
 	}
 
 	private CUIInstance<CUIMonitor> getMainInstance() {
 		if (mainInstance == null) {
-			mainInstance = type.createInstance();
+			mainInstance = type.createInstance(new MainHandler());
 		}
 		return mainInstance;
 	}
 
 	private CUIInstance<CUIMonitor> getByCUIType(CUIType<?> type) {
-		return byType.computeIfAbsent(type,
-				t -> this.type.createInstance(Context.background().withValue("cuiType", t)));
+		return byType.computeIfAbsent(type, t -> this.type.createInstance(new MonitorCUITypeHandler(t)));
 	}
 
 	private CUIInstance<CUIMonitor> getByCUIInstance(CUIInstance<?> instance) {
-		return byInst.computeIfAbsent(instance,
-				i -> this.type.createInstance(Context.background().withValue("cuiInstance", i)));
+		return byInst.computeIfAbsent(instance, i -> this.type.createInstance(new MonitorCUIInstanceHandler(i)));
 	}
 
 	private abstract static class InstanceHandler implements CUIInstanceHandler<CUIMonitor> {
@@ -94,11 +87,6 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 			refresh();
 		}
 
-		@Override
-		public @NotNull CameraHandler<CUIMonitor> createCameraHandler(Context context) {
-			return camera -> camera.edit().rowSize(6);
-		}
-
 		public abstract void refresh();
 
 		@Override
@@ -119,7 +107,7 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 				public void onRegister(CUIRegisterEvent<?> event) {
 					refresh();
 				}
-			}, cui.getCUIPlugin());
+			}, plugin);
 		}
 
 		@Override
@@ -129,11 +117,11 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 
 		@Override
 		public void refresh() {
-			var cuiTypes = cui.getCUIPlugin().getCUIManager().getRegisteredCUITypes();
+			var cuiTypes = plugin.getCUIManager().getRegisteredCUITypes();
 			size = cuiTypes.size();
 			cuiTypes.remove(type);
 
-			cui.edit().layer(1, new Layer(0, 9).edit().marginTop(1).tile(size, true, index -> {
+			cui.edit().layer(1, new Layer(1, 9).edit().marginTop(1).tile(size, true, index -> {
 				if (index == 0) {
 					return Button.builder().material(Material.WRITTEN_BOOK)
 							.displayName(Component.text("About", NamedTextColor.GOLD))
@@ -147,10 +135,8 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 							.build();
 				}
 				var cuiType = cuiTypes.get(index - 1);
-				var lore = new ArrayList<Component>(List.of(Component.text("Left click to manage")));
-				if (cuiType.canDisplay()) {
-					lore.add(Component.text("Right click to display", NamedTextColor.GREEN));
-				}
+				var lore = new ArrayList<Component>(List.of(Component.text("Left click to manage"),
+						Component.text("Right click to display", NamedTextColor.GREEN)));
 				if (cuiType.isSingleton()) {
 					lore.add(Component.text("- ", NamedTextColor.GRAY)
 							.append(Component.text("Singleton", NamedTextColor.RED)));
@@ -171,11 +157,10 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 						.click(event -> {
 							Player player = event.getPlayer();
 							if (event.getClickType().isLeftClick()) {
-								getByCUIType(cuiType).createCamera().open(player, true);
+								getByCUIType(cuiType).createCamera(camera -> {
+								}).open(player, true);
 							} else if (event.getClickType().isRightClick()) {
-								if (cuiType.canDisplay()) {
-									cuiType.display(player, true);
-								}
+								cuiType.display(new DisplayContext<>(player, true));
 							}
 						}).build();
 			}).done()).done();
@@ -203,23 +188,19 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 		@Override
 		public void refresh() {
 			var instances = cuiType.getInstances();
-			size = instances.size() + 1;
-			cui.edit().layer(1, new Layer(0, 9).edit().marginTop(1).tile(size, true, index -> {
-				if (index == 0) {
-					if (cuiType.isSingleton() && size > 1) {
-						return Button.builder().material(Material.RED_CONCRETE)
-								.displayName(Component.text("New instance", NamedTextColor.RED)).lore(Component
-										.text("Singleton ChestUI can only have one instance", NamedTextColor.RED))
-								.build();
-					}
-					return Button.builder().material(Material.GREEN_CONCRETE)
-							.displayName(Component.text("New instance", NamedTextColor.GREEN))
-							.lore(Component.text("Click to create a new instance"),
-									Component.text("Noticed that this will be kept alive", NamedTextColor.RED),
-									Component.text("until you destroy it manually", NamedTextColor.RED))
-							.click(event -> cuiType.createInstance().edit().keepAlive(true)).build();
-				}
-				var instance = instances.get(index - 1);
+			size = instances.size();
+			if (size == 0) {
+				cui.edit().layer(1,
+						new Layer(1, 9).edit().marginTop(1)
+								.slot(0, 0,
+										() -> Button.builder().itemStack(ItemStacks.builder()
+												.material(Material.RED_CONCRETE).displayName("No instances").build())
+												.build())
+								.done());
+				return;
+			}
+			cui.edit().layer(1, new Layer(1, 9).edit().marginTop(1).tile(size, true, index -> {
+				var instance = instances.get(index);
 				var lore = new ArrayList<Component>(List.of(Component.text("Left click to manage"),
 						Component.text("Drop(Q) to destroy", NamedTextColor.RED)));
 				if (instance.isKeepAlive()) {
@@ -239,7 +220,8 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 						.displayName(Component.text("#" + instance.getId(), NamedTextColor.GOLD)).lore(lore)
 						.click(event -> {
 							if (event.getClickType().isLeftClick()) {
-								getByCUIInstance(instance).createCamera().open(event.getPlayer(), true);
+								getByCUIInstance(instance).createCamera(camera -> {
+								}).open(event.getPlayer(), true);
 							} else if (event.getClickType() == ClickType.DROP) {
 								instance.destroy();
 							}
@@ -269,17 +251,17 @@ public class CUIMonitor implements ChestUI<CUIMonitor> {
 		@Override
 		public void refresh() {
 			var cameras = cuiInstance.getCameras();
-			size = cameras.size() + 1;
-			cui.edit().layer(1, new Layer(0, 9).edit().marginTop(1).tile(size, true, index -> {
-				if (index == 0) {
-					return Button.builder().material(Material.GREEN_CONCRETE)
-							.displayName(Component.text("New camera", NamedTextColor.GREEN))
-							.lore(Component.text("Click to create a new camera"),
-									Component.text("Noticed that this will be kept alive", NamedTextColor.RED),
-									Component.text("until you destroy it manually", NamedTextColor.RED))
-							.click(event -> cuiInstance.createCamera().edit().keepAlive(true)).build();
-				}
-				var camera = cameras.get(index - 1);
+			size = cameras.size();
+			if (size == 0) {
+				cui.edit().layer(1, new Layer(1, 9).edit().marginTop(1)
+						.slot(0, 0, () -> Button.builder().itemStack(
+								ItemStacks.builder().material(Material.RED_CONCRETE).displayName("No cameras").build())
+								.build())
+						.done());
+				return;
+			}
+			cui.edit().layer(1, new Layer(1, 9).edit().marginTop(1).tile(size, true, index -> {
+				var camera = cameras.get(index);
 				var lore = new ArrayList<Component>(List.of(Component.text("Left click to open"),
 						Component.text("Drop(Q) to destroy", NamedTextColor.RED)));
 				if (camera.isKeepAlive()) {

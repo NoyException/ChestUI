@@ -9,8 +9,8 @@ import org.bukkit.inventory.Inventory;
  * will have a corresponding handler.
  * 
  * @param <T>
- *            你的ChestUI实现类。<br>
- *            Your ChestUI implementation class.
+ *            你的ChestUI实现类<br>
+ *            Your ChestUI implementation class
  */
 public interface CameraHandler<T extends ChestUI<T>> {
 
@@ -35,7 +35,7 @@ public interface CameraHandler<T extends ChestUI<T>> {
 	 * when a player switches back from another camera, or tries to close but is
 	 * prevented from doing so.
 	 */
-	default void onOpenInventory(Inventory inventory) {
+	default void onOpenInventory(Player viewer, Inventory inventory) {
 	}
 
 	default boolean canOpen(Player viewer) {

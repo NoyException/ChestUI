@@ -2,6 +2,7 @@ package fun.polyvoxel.cui.ui;
 
 import fun.polyvoxel.cui.CUIPlugin;
 import com.google.common.collect.HashBiMap;
+import fun.polyvoxel.cui.ui.source.DisplaySource;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -51,7 +52,7 @@ public final class CameraManager {
 		return cameras.get(name);
 	}
 
-	public boolean open(Viewable viewable, Player viewer, boolean asChild) {
+	public boolean open(Viewable viewable, Player viewer, DisplaySource<?> source, boolean asChild) {
 		if (!viewable.canOpen(viewer)) {
 			return false;
 		}
@@ -69,7 +70,7 @@ public final class CameraManager {
 			}
 		}
 		stack.push(viewable);
-		viewable.doOpen(viewer, asChild);
+		viewable.doOpen(viewer, asChild, source);
 		return true;
 	}
 

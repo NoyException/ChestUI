@@ -120,36 +120,10 @@ public final class CUIManager implements Listener {
 		}
 	}
 
-	@Deprecated
-	public record ParseResult(CUIType<?> cuiType, Integer instanceId, Integer cameraId) {
-	}
-
-	@Deprecated
-	public ParseResult parse(String name) throws IllegalArgumentException {
-		var split = name.split("#");
-		if (split.length < 1) {
-			throw new IllegalArgumentException("Invalid CUI name: " + name);
-		}
-		var key = NamespacedKey.fromString(split[0]);
-		var type = getCUIType(key);
-		if (type == null) {
-			return new ParseResult(null, null, null);
-		}
-		if (split.length < 2) {
-			return new ParseResult(type, null, null);
-		}
-		var instanceId = Integer.parseInt(split[1]);
-		if (split.length < 3) {
-			return new ParseResult(type, instanceId, null);
-		}
-		var cameraId = Integer.parseInt(split[2]);
-		return new ParseResult(type, instanceId, cameraId);
-	}
-
 	public void unregisterCUI(NamespacedKey key) {
 		CUIType<?> cuiType = cuiTypes.remove(key);
 		if (cuiType != null) {
-			cuiType.getInstances().forEach(CUIInstance::destroy);
+			cuiType.onUnregister();
 		}
 	}
 
@@ -161,6 +135,7 @@ public final class CUIManager implements Listener {
 		if (!type.isSerializable()) {
 			cuiTypesByClass.put(type.getChestUI().getClass(), cuiTypes.get(key));
 		}
+		type.onRegister();
 	}
 
 	/**
