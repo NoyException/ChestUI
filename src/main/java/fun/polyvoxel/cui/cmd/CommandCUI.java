@@ -12,6 +12,7 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.prebuilt.CUIMonitor;
+import fun.polyvoxel.cui.prebuilt.EnhancedWorkbench;
 import fun.polyvoxel.cui.ui.CUIInstance;
 import fun.polyvoxel.cui.ui.CUIType;
 import fun.polyvoxel.cui.ui.Camera;
@@ -417,6 +418,10 @@ public class CommandCUI {
 							.requires(commandSourceStack -> commandSourceStack.getSender().isOp())
 							.then(Commands.literal("help").executes(ctx -> {
 								printHelp(ctx.getSource().getSender());
+								return Command.SINGLE_SUCCESS;
+							})).then(Commands.literal("test").executes(ctx -> {
+								plugin.getCUIManager().getCUIType(EnhancedWorkbench.class).getChestUI()
+										.enableProviders();
 								return Command.SINGLE_SUCCESS;
 							})).then(bind()).then(close()).then(destroy()).then(display()).then(monitor()).then(open())
 							.build(), "Manage Chest UI");

@@ -119,7 +119,7 @@ public final class CUIType<T extends ChestUI<T>> {
 			return false;
 		}
 		// TODO: 简化为直接传context？
-		camera.open(context.getViewer(), context.isAsChild(), context.getSource());
+		camera.open(context.viewer(), context.asChild(), context.source());
 		return true;
 	}
 

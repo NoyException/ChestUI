@@ -6,7 +6,6 @@ import fun.polyvoxel.cui.crafting.producer.ShapelessProducer;
 import fun.polyvoxel.cui.crafting.producer.product.ExactProduct;
 import fun.polyvoxel.cui.layer.Layer;
 import fun.polyvoxel.cui.util.ItemStackAssertions;
-import fun.polyvoxel.cui.util.context.Context;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterAll;
@@ -72,13 +71,13 @@ public class CraftingTableTypeTest {
 		inputLayer.getSlot(2, 0).set(ItemStack.of(Material.IRON_INGOT, 4));
 		inputLayer.getSlot(2, 1).set(ItemStack.of(Material.IRON_INGOT, 1));
 		inputLayer.getSlot(2, 2).set(ItemStack.of(Material.IRON_INGOT, 4));
-		workbench.match(Context.background().withPlayer(player));
+		workbench.match(player);
 		workbench.apply();
-		workbench.match(Context.background().withPlayer(player));
+		workbench.match(player);
 		workbench.apply();
-		workbench.match(Context.background().withPlayer(player));
+		workbench.match(player);
 		workbench.apply();
-		workbench.match(Context.background().withPlayer(player));
+		workbench.match(player);
 		workbench.apply();
 		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_CHESTPLATE), outputLayer.getSlot(0, 0).get(),
 				"应当成功合成铁胸甲");
@@ -86,7 +85,7 @@ public class CraftingTableTypeTest {
 				"应当成功合成铁头盔");
 		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_BOOTS), outputLayer.getSlot(0, 2).get(), "应当成功合成铁靴子");
 		outputLayer.getSlot(0, 0).set(null);
-		workbench.match(Context.background());
+		workbench.match(null);
 		workbench.apply();
 		ItemStackAssertions.assertSame(ItemStack.of(Material.IRON_BOOTS), outputLayer.getSlot(0, 0).get(), "应当成功合成铁靴子");
 	}

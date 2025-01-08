@@ -10,7 +10,6 @@ import fun.polyvoxel.cui.crafting.producer.ShapelessProducer;
 import fun.polyvoxel.cui.crafting.producer.product.ExactProduct;
 import fun.polyvoxel.cui.crafting.producer.product.RandomProduct;
 import fun.polyvoxel.cui.util.ItemStackAssertions;
-import fun.polyvoxel.cui.util.context.Context;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Material;
 import org.bukkit.entity.Boat;
@@ -29,7 +28,7 @@ import java.util.stream.Collectors;
 public class RecipeTest {
 	private static PlayerMock player, player2;
 	private static CraftingContext createCtx(Player player) {
-		return CraftingContext.background().withContext(Context.background().withPlayer(player));
+		return new CraftingContext(null).withPlayer(player);
 	}
 
 	@BeforeAll

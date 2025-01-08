@@ -1,7 +1,5 @@
 package fun.polyvoxel.cui.util.context;
 
-import fun.polyvoxel.cui.ui.Camera;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 public final class BackgroundContext implements Context {
@@ -23,15 +21,5 @@ public final class BackgroundContext implements Context {
 	@Override
 	public boolean has(@NotNull String key) {
 		return false;
-	}
-
-	@Override
-	public Player player() {
-		return null;
-	}
-
-	@Override
-	public Camera<?> camera() {
-		return null;
 	}
 }

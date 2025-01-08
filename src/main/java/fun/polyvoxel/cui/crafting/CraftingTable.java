@@ -28,8 +28,8 @@ public class CraftingTable {
 		return type;
 	}
 
-	public boolean match(@NotNull Context context) {
-		var ctx = CraftingContext.fromContext(context).withCraftingTable(this);
+	public boolean match(@NotNull Context context, @Nullable Player player) {
+		var ctx = new CraftingContext(this).withContext(context).withPlayer(player);
 		var matched = new AtomicReference<Pair<Recipe, CraftingTableType.IO>>();
 		type.getRecipes().parallelStream().forEach(recipe -> {
 			var result = recipe.use(ctx, current);
@@ -39,8 +39,12 @@ public class CraftingTable {
 		});
 		if (matched.get() == null)
 			return false;
-		setResult(matched.get().getRight(), matched.get().getLeft(), context.player());
+		setResult(matched.get().getRight(), matched.get().getLeft(), player);
 		return true;
+	}
+
+	public boolean match(@Nullable Player player) {
+		return match(Context.background(), player);
 	}
 
 	public CraftingTableType.IO getCurrent() {
@@ -136,8 +140,7 @@ public class CraftingTable {
 			super.set(itemStack, player);
 			if (type.getMode() == CraftingTableType.Mode.AUTO) {
 				clearResult();
-				var context = player == null ? Context.background() : Context.background().withPlayer(player);
-				match(context);
+				match(player);
 			}
 		}
 
@@ -168,8 +171,7 @@ public class CraftingTable {
 			super.set(itemStack, player);
 			if (type.getMode() == CraftingTableType.Mode.AUTO && dirty) {
 				apply();
-				var context = player == null ? Context.background() : Context.background().withPlayer(player);
-				match(context);
+				match(player);
 			}
 		}
 

@@ -9,7 +9,7 @@ public class DisplayContext<S> {
 	private final Player viewer;
 	private final DisplaySource<S> source;
 	private final boolean asChild;
-	private Context context;
+	private final Context context;
 
 	public DisplayContext(Player viewer, boolean asChild) {
 		this(viewer, asChild, null);
@@ -26,23 +26,23 @@ public class DisplayContext<S> {
 		this.context = context;
 	}
 
-	public Player getViewer() {
+	public DisplayContext<S> withContext(Context context) {
+		return new DisplayContext<>(viewer, asChild, source, context);
+	}
+
+	public Player viewer() {
 		return viewer;
 	}
 
-	public DisplaySource<S> getSource() {
+	public DisplaySource<S> source() {
 		return source;
 	}
 
-	public boolean isAsChild() {
+	public boolean asChild() {
 		return asChild;
 	}
 
-	public Context getContext() {
+	public Context context() {
 		return context;
-	}
-
-	public void setContext(Context context) {
-		this.context = context;
 	}
 }

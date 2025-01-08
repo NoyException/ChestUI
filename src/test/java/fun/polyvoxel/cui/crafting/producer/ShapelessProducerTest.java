@@ -3,7 +3,6 @@ package fun.polyvoxel.cui.crafting.producer;
 import fun.polyvoxel.cui.crafting.CraftingContext;
 import fun.polyvoxel.cui.crafting.producer.product.ExactProduct;
 import fun.polyvoxel.cui.util.ItemStacks;
-import fun.polyvoxel.cui.util.context.Context;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterAll;
@@ -17,7 +16,7 @@ public class ShapelessProducerTest {
 	private static PlayerMock player;
 
 	private static CraftingContext createCtx() {
-		return CraftingContext.background().withContext(Context.background().withPlayer(player));
+		return new CraftingContext(null).withPlayer(player);
 	}
 
 	@BeforeAll

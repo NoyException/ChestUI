@@ -35,6 +35,7 @@ public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
 	private CUIType<EnhancedWorkbench> type;
 	private CraftingTableType enhancedWorkbench;
 	private final Map<Block, CUIInstance<EnhancedWorkbench>> byBlock = new HashMap<>();
+	private boolean isProvidersEnabled = false;
 
 	@Override
 	public void onInitialize(CUIType<EnhancedWorkbench> type) {
@@ -61,12 +62,19 @@ public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
 						.addProducer(ShapelessProducer.builder().add(new ExactProduct(Material.CAKE)).build()).build())
 				.build();
 
-		this.type = type.edit().defaultTitle("Enhanced Workbench")
+		this.type = type.edit().defaultTitle("Enhanced Workbench").done();
+	}
+
+	public void enableProviders() {
+		if (isProvidersEnabled) {
+			return;
+		}
+		isProvidersEnabled = true;
+		this.type.edit()
 				.provideByBlock(event -> event.getAction() == Action.RIGHT_CLICK_BLOCK
 						&& event.getClickedBlock().getType() == Material.ENCHANTING_TABLE
 						&& event.getClickedBlock().getRelative(BlockFace.DOWN).getType() == Material.CRAFTING_TABLE)
-				.provideByItemStack(event -> event.getItem().getType() == Material.CRAFTING_TABLE && !event.hasBlock())
-				.done();
+				.provideByItemStack(event -> event.getItem().getType() == Material.CRAFTING_TABLE && !event.hasBlock());
 	}
 
 	public CUIInstance<EnhancedWorkbench> getCUIInstance(DisplaySource<?> source) {
@@ -79,7 +87,7 @@ public class EnhancedWorkbench implements ChestUI<EnhancedWorkbench> {
 
 	@Override
 	public @Nullable <S> Camera<EnhancedWorkbench> getDisplayedCamera(DisplayContext<S> context) {
-		return getCUIInstance(context.getSource()).createCamera(camera -> {
+		return getCUIInstance(context.source()).createCamera(camera -> {
 		});
 	}
 
