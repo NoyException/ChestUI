@@ -6,8 +6,7 @@ import fun.polyvoxel.cui.event.CUIDropAllEvent;
 import fun.polyvoxel.cui.util.ItemStacks;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.inventory.ItemFlag;
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -116,6 +115,19 @@ public class Transformer extends Slot {
 			});
 		}
 
+		public Builder changeModel(Material material) {
+			return changeModel(material.getKey());
+		}
+
+		public Builder changeModel(NamespacedKey model) {
+			return filter(itemStack -> {
+				itemStack.editMeta(itemMeta -> {
+					itemMeta.setItemModel(model);
+				});
+				return itemStack;
+			});
+		}
+
 		public Builder changeDisplayName(Component displayName) {
 			return filter(itemStack -> {
 				if (ItemStacks.isEmpty(itemStack)) {
@@ -162,16 +174,22 @@ public class Transformer extends Slot {
 			});
 		}
 
-		// TODO: 自制一个GlowEnchant
 		public Builder enchant() {
 			return filter(itemStack -> {
 				if (ItemStacks.isEmpty(itemStack)) {
 					return itemStack;
 				}
-				itemStack.editMeta(meta -> {
-					meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-					meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-				});
+				itemStack.editMeta(meta -> meta.setEnchantmentGlintOverride(true));
+				return itemStack;
+			});
+		}
+
+		public Builder disenchant() {
+			return filter(itemStack -> {
+				if (ItemStacks.isEmpty(itemStack)) {
+					return itemStack;
+				}
+				itemStack.editMeta(meta -> meta.setEnchantmentGlintOverride(false));
 				return itemStack;
 			});
 		}

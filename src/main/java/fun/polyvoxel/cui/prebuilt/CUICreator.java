@@ -393,7 +393,8 @@ public class CUICreator implements ChestUI<CUICreator> {
 								updateSlotData(row, column);
 							}).build();
 				}
-				return Button.builder().itemStack(slotData.getDemo()).displayName("Slot (" + row + ", " + column + ")")
+				return Button.builder().itemStack(slotData.getItemStack())
+						.displayName("Slot (" + row + ", " + column + ")")
 						.lore(Component.text("Left click to edit", NamedTextColor.GREEN),
 								Component.text("Drop(Q) to delete", NamedTextColor.RED))
 						.click(event -> {
@@ -600,7 +601,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 
 		@Override
 		public void update() {
-			baseLayer.edit().slot(1, 1, () -> Button.builder().itemStack(toEdit.getDemo()).build());
+			baseLayer.edit().slot(1, 1, () -> Button.builder().itemStack(toEdit.getItemStack()).build());
 			typeLayer.edit().slot(2, 1, () -> Button.builder()
 					.material(toEdit.type == SlotData.SlotType.EMPTY ? Material.GREEN_CONCRETE : Material.RED_CONCRETE)
 					.displayName("").build());
@@ -727,7 +728,7 @@ public class CUICreator implements ChestUI<CUICreator> {
 			// material
 			setButton(1, (event, refresh) -> {
 				if (event.getClickType() == ClickType.DROP) {
-					toEdit.material = null;
+					toEdit.model = Material.AIR.getKey();
 					refresh.run();
 					update();
 					return;
@@ -736,15 +737,12 @@ public class CUICreator implements ChestUI<CUICreator> {
 				if (ItemStacks.isEmpty(cursor)) {
 					return;
 				}
-				var material = cursor.getType();
-				if (material == Material.AIR) {
-					return;
-				}
-				toEdit.material = material;
+				toEdit.material = cursor.getType();
+				toEdit.model = null;
 				refresh.run();
 				update();
 			}, () -> Transformer.builder()
-					.changeItemStack(ItemStacks.builder().itemStack(toEdit.getDemo()).displayName("Material")
+					.changeItemStack(ItemStacks.builder().itemStack(toEdit.getItemStack()).displayName("Material")
 							.lore(Component.text("Click with item in cursor to change", NamedTextColor.GREEN),
 									Component.text("Drop(Q) to set AIR", NamedTextColor.RED))
 							.build())

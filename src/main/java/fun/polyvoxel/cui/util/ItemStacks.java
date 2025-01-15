@@ -149,7 +149,7 @@ public class ItemStacks {
 	}
 
 	public static class Builder {
-		private ItemStack itemStack = ItemStack.of(Material.GRASS_BLOCK);
+		private ItemStack itemStack = ItemStack.of(Material.CLOCK);
 		private int amount = 0;
 		private Component displayName;
 		private List<Component> lore;
@@ -157,6 +157,7 @@ public class ItemStacks {
 		private Consumer<ItemMeta> metaModifier;
 
 		protected Builder() {
+			material(Material.AIR);
 		}
 
 		public ItemStack build() {
@@ -212,6 +213,17 @@ public class ItemStacks {
 
 		public Builder material(Material material) {
 			itemStack = ItemStack.of(material);
+			return this;
+		}
+
+		public Builder model(Material material) {
+			return model(material.getKey());
+		}
+
+		public Builder model(NamespacedKey model) {
+			itemStack.editMeta(meta -> {
+				meta.setItemModel(model);
+			});
 			return this;
 		}
 

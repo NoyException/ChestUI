@@ -1,15 +1,16 @@
 package fun.polyvoxel.cui.serialize;
 
+import fun.polyvoxel.cui.CUIPlugin;
 import fun.polyvoxel.cui.event.CUIClickEvent;
 import fun.polyvoxel.cui.slot.*;
 import fun.polyvoxel.cui.util.CmdHelper;
 import fun.polyvoxel.cui.util.ItemStacks;
 import com.google.gson.*;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -20,7 +21,8 @@ import java.util.stream.Collectors;
 
 public class SlotData {
 	public SlotType type = SlotType.BUTTON;
-	public Material material = Material.OAK_BUTTON;
+	public Material material = Material.CLOCK;
+	public NamespacedKey model = Material.AIR.getKey();
 	public String displayName = "";
 	public ArrayList<String> lore;
 	public int amount = 1;
@@ -57,6 +59,9 @@ public class SlotData {
 		} else {
 			itemStack = ItemStack.of(material, amount);
 			itemStack.editMeta(itemMeta -> {
+				if (model != null) {
+					itemMeta.setItemModel(model);
+				}
 				if (displayName != null) {
 					TextComponent component = LegacyComponentSerializer.legacyAmpersand().deserialize(displayName);
 					itemMeta.displayName(ItemStacks.cleanComponent(component));
@@ -66,15 +71,6 @@ public class SlotData {
 							.map(ItemStacks::cleanComponent).toList());
 				}
 			});
-		}
-		return itemStack;
-	}
-
-	public @NotNull ItemStack getDemo() {
-		ItemStack itemStack = getItemStack();
-		if (itemStack.isEmpty()) {
-			itemStack = ItemStack.of(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
-			itemStack.editMeta(meta -> meta.displayName(Component.text("AIR")));
 		}
 		return itemStack;
 	}
@@ -107,6 +103,9 @@ public class SlotData {
 			if (src.displayName != null) {
 				obj.addProperty("displayName", src.displayName);
 			}
+			if (src.model != null) {
+				obj.addProperty("model", src.model.toString());
+			}
 			if (src.lore != null) {
 				obj.add("lore", context.serialize(src.lore));
 			}
@@ -138,6 +137,12 @@ public class SlotData {
 			slotData.material = obj.has("material")
 					? Material.valueOf(obj.get("material").getAsString().toUpperCase(Locale.ROOT))
 					: null;
+			try {
+				slotData.model = obj.has("model") ? NamespacedKey.fromString(obj.get("model").getAsString()) : null;
+			} catch (Exception e) {
+				CUIPlugin.logger().warn("Failed to parse model key: {}", obj.get("model").getAsString());
+				slotData.model = null;
+			}
 			slotData.displayName = obj.has("displayName") ? obj.get("displayName").getAsString() : "";
 			slotData.lore = obj.has("lore") ? context.deserialize(obj.get("lore"), ArrayList.class) : null;
 			slotData.amount = obj.has("amount") ? obj.get("amount").getAsInt() : 1;
